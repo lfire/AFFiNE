@@ -3,7 +3,7 @@
 本学习指南用 [VitePress](https://vitepress.dev/) 构建为静态站点，通过 GitHub Actions 自动发布到 GitHub Pages：
 
 - **在线文档**：30 章教程，支持全文搜索、明暗主题，图表在浏览器端用 Mermaid 渲染；
-- **配套演示**：每章一套 reveal.js 幻灯片，地址为 `/slides/NN.html`；章节页顶部有"打开演示"入口，演示页可返回对应文档。
+- **配套演示**：每章一套自研的**交互式学习演示**（场景式，非 reveal.js 幻灯片），地址为 `/slides/NN.html`；左侧场景目录可跳转，章节页顶部有"打开演示"入口，演示页可返回对应文档。
 
 站点地址（fork 为 `lfire/AFFiNE` 时）：**<https://lfire.github.io/AFFiNE/>**
 
@@ -18,15 +18,15 @@ learning-guide/
 ├── slides/
 │   ├── index.md             # 演示总览页
 │   ├── [id].md              # 演示播放页（动态路由，每套生成 /slides/NN.html）
-│   ├── [id].paths.mts       # 动态路由参数：读取 decks/NN.md
+│   ├── [id].paths.mts       # 动态路由参数：构建期渲染 decks/NN.md 为场景
 │   └── decks/
-│       ├── _FORMAT.md       # 幻灯片编写规范（不发布）
-│       └── 01.md … 30.md    # 30 套幻灯片源文件
-├── scripts/check-mermaid.mjs  # Mermaid 语法与幻灯片分隔符校验
+│       ├── _FORMAT.md       # 学习演示编写规范（不发布）
+│       └── 01.md … 30.md    # 30 套学习演示源文件（场景用 === 分隔）
+├── scripts/check-mermaid.mjs  # Mermaid 语法与演示结构校验
 ├── .vitepress/
 │   ├── config.mts           # 站点配置：侧边栏自动生成、链接改写、Mermaid 围栏
-│   ├── decks.ts             # 幻灯片清单（构建期）
-│   └── theme/               # 自定义主题：MermaidDiagram / SlideDeck / DeckGallery 等组件
+│   ├── decks.ts             # 演示清单与构建期渲染（独立 markdown-it + shiki）
+│   └── theme/               # 自定义主题：MermaidDiagram / LearningDeck / DeckGallery 等组件
 └── package.json             # 独立的 npm 项目，不属于 AFFiNE 的 Yarn workspace
 ```
 
@@ -40,7 +40,7 @@ learning-guide/
 cd learning-guide
 npm install          # 首次安装依赖
 npm run dev          # 开发服务器（热更新）：http://localhost:5173/AFFiNE/
-npm run check        # 校验全部 Mermaid 图与幻灯片分隔符
+npm run check        # 校验全部 Mermaid 图与演示结构
 npm run build        # 生产构建，产物位于 .vitepress/dist
 npm run preview      # 本地预览生产构建：http://localhost:4173/AFFiNE/
 ```
@@ -63,7 +63,7 @@ npm run preview      # 本地预览生产构建：http://localhost:4173/AFFiNE/
    git push benji guide
    ```
 
-   > `.prettierignore` 中追加了 `learning-guide/**`：仓库的 pre-commit 钩子会用 oxfmt 格式化暂存文件，它会把幻灯片里为单页容量压缩过的代码块展开，导致内容溢出、分步高亮行号错位，因此需要排除。
+   > `.prettierignore` 中追加了 `learning-guide/**`：仓库的 pre-commit 钩子会用 oxfmt 格式化暂存文件，会改动演示源文件里手工编排的 HTML 组件与代码块，因此需要排除。
 
 5. 在 **Actions → Deploy Learning Guide** 中查看运行结果。成功后访问 <https://lfire.github.io/AFFiNE/>。
 
@@ -91,7 +91,7 @@ flowchart LR
 | 触发条件 | `guide` 分支上 `learning-guide/**` 或工作流文件本身有变更；或手动触发 |
 | 稀疏检出 | AFFiNE 仓库体积很大，只检出 `learning-guide/`，检出只需几秒 |
 | 依赖缓存 | `setup-node` 按 `package-lock.json` 缓存 npm 依赖 |
-| 质量门禁 | `npm run check` 中任一 Mermaid 图语法错误或幻灯片分隔符误用都会中断部署 |
+| 质量门禁 | `npm run check` 中任一 Mermaid 图语法错误或演示结构问题都会中断部署 |
 | base 路径 | 取 `configure-pages` 输出的 `base_path`：项目页为 `/AFFiNE/`；配置自定义域名后自动变为 `/` |
 | 并发控制 | 同一时间只保留一个部署，进行中的部署不会被取消 |
 
@@ -114,8 +114,8 @@ flowchart LR
 
 ### 修改或新增演示
 
-1. 编写规范见 [`slides/decks/_FORMAT.md`](https://github.com/lfire/AFFiNE/blob/guide/learning-guide/slides/decks/_FORMAT.md)（分隔符、备注、版式工具类、单页容量上限）；
-2. 编辑 `slides/decks/NN.md`，文件名的两位数字与章号对应，章节页的"打开演示"入口和演示总览会自动关联；
+1. 编写规范见 [`slides/decks/_FORMAT.md`](https://github.com/lfire/AFFiNE/blob/guide/learning-guide/slides/decks/_FORMAT.md)（场景分隔、封面/过渡页、富组件库、容量上限）；
+2. 编辑 `slides/decks/NN.md`（场景用 `===` 分隔），文件名的两位数字与章号对应，章节页的"打开演示"入口和演示总览会自动关联；
 3. 运行 `npm run check` 校验，再用 `npm run dev` 打开 `/slides/NN.html` 预览。
 
 ### 与上游同步

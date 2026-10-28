@@ -74,19 +74,19 @@ for (const file of files) {
   }
 
   if (isDeck) {
-    // 幻灯片：代码块内部不允许出现单独成行的 --- / --，否则会被误切分
+    // 演示：代码块须成对闭合，且封面一级标题恰好 1 个
     let inFence = false;
-    text.split('\n').forEach((raw, index) => {
-      const lineText = raw.trimEnd();
-      if (lineText.startsWith('```')) inFence = !inFence;
-      if (inFence && (lineText === '---' || lineText === '--')) {
-        errors.push(`${rel}:${index + 1}  代码块内出现分隔符 "${lineText}"`);
-      }
-    });
+    for (const raw of text.split('\n')) {
+      if (raw.trimStart().startsWith('```')) inFence = !inFence;
+    }
     if (inFence) errors.push(`${rel}  存在未闭合的代码块`);
     const h1 = text.match(/^# .+$/gm) ?? [];
     if (h1.length !== 1) {
       errors.push(`${rel}  一级标题应恰好 1 个（封面），实际 ${h1.length} 个`);
+    }
+    const scenes = text.split(/\n={3,}\s*\n/).filter(s => s.trim()).length;
+    if (scenes < 6) {
+      errors.push(`${rel}  场景数偏少（${scenes}），用 === 分隔，建议 14–20 个`);
     }
   }
 }

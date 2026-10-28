@@ -20,9 +20,11 @@ async function render() {
     const { default: mermaid } = await import('mermaid');
     mermaid.initialize({
       startOnLoad: false,
-      securityLevel: 'strict',
+      securityLevel: 'loose',
       theme: isDark.value ? 'dark' : 'default',
       fontFamily: 'var(--vp-font-family-base)',
+      flowchart: { useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true },
     });
     const result = await mermaid.render(`${uid}-${seq++}`, source);
     svg.value = result.svg;

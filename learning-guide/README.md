@@ -7,9 +7,9 @@
 
 | 在线阅读 | 配套演示 | 部署与维护 |
 | --- | --- | --- |
-| [lfire.github.io/AFFiNE](https://lfire.github.io/AFFiNE/) | [30 套章节幻灯片](https://lfire.github.io/AFFiNE/slides/) | [站点部署说明](./DEPLOY.md) |
+| [lfire.github.io/AFFiNE](https://lfire.github.io/AFFiNE/) | [30 套交互式学习演示](https://lfire.github.io/AFFiNE/slides/) | [站点部署说明](./DEPLOY.md) |
 
-每章正文顶部都有"打开演示"入口。建议**先读文档，再用演示复习**；做团队分享时可以直接用演示，按 `S` 打开演讲者视图查看备注。
+每章正文顶部都有"打开演示"入口。配套演示是**场景式交互学习模块**（非 bullet 幻灯片）：左侧场景目录可跳转，成段讲解配架构/时序图、标注代码、对比与自测。建议**先读文档或先过演示建立框架，再相互印证**。
 
 ---
 

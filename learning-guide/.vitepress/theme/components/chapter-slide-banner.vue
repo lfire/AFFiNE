@@ -23,10 +23,9 @@ const deck = computed(() => {
       </svg>
     </div>
     <div class="slide-banner__text">
-      <strong>本章配套演示</strong>
+      <strong>本章交互学习演示</strong>
       <span>
-        共 {{ deck.slides }} 张幻灯片<template v-if="deck.subSlides">（另含 {{ deck.subSlides }} 张子页）</template>，
-        建议先读文档，再用演示复习要点
+        共 {{ deck.scenes }} 个场景，图文并茂、可自测，适合预习建立框架、读后复盘巩固
       </span>
     </div>
     <a class="slide-banner__btn" :href="withBase(`/slides/${deck.id}.html`)" target="_blank" rel="noopener">

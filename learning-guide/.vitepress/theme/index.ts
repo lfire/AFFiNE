@@ -6,8 +6,8 @@ import { h } from 'vue';
 
 import ChapterSlideBanner from './components/chapter-slide-banner.vue';
 import DeckGallery from './components/deck-gallery.vue';
+import LearningDeck from './components/learning-deck.vue';
 import MermaidDiagram from './components/mermaid-diagram.vue';
-import SlideDeck from './components/slide-deck.vue';
 
 export default {
   extends: DefaultTheme,
@@ -18,7 +18,7 @@ export default {
     }),
   enhanceApp({ app }) {
     app.component('MermaidDiagram', MermaidDiagram);
-    app.component('SlideDeck', SlideDeck);
+    app.component('LearningDeck', LearningDeck);
     app.component('DeckGallery', DeckGallery);
   },
 } satisfies Theme;
