@@ -74,15 +74,19 @@ for (const file of files) {
   }
 
   if (isDeck) {
-    // 演示：代码块须成对闭合，且封面一级标题恰好 1 个
+    // 演示：代码块须成对闭合，且封面一级标题恰好 1 个（统计 H1 时跳过代码围栏内的 # 注释）
     let inFence = false;
+    let h1 = 0;
     for (const raw of text.split('\n')) {
-      if (raw.trimStart().startsWith('```')) inFence = !inFence;
+      if (raw.trimStart().startsWith('```')) {
+        inFence = !inFence;
+        continue;
+      }
+      if (!inFence && /^# .+$/.test(raw)) h1++;
     }
     if (inFence) errors.push(`${rel}  存在未闭合的代码块`);
-    const h1 = text.match(/^# .+$/gm) ?? [];
-    if (h1.length !== 1) {
-      errors.push(`${rel}  一级标题应恰好 1 个（封面），实际 ${h1.length} 个`);
+    if (h1 !== 1) {
+      errors.push(`${rel}  一级标题应恰好 1 个（封面），实际 ${h1} 个`);
     }
     const scenes = text.split(/\n={3,}\s*\n/).filter(s => s.trim()).length;
     if (scenes < 6) {
