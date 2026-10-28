@@ -45,3 +45,6 @@ blocksuite/docs-site/api/**
 packages/frontend/admin/src/config.json
 **/test-docs.json
 **/test-blocks.json
+
+# AFFiNE learning guide (fork only): slide decks rely on hand-tuned code blocks & line highlights
+learning-guide/**

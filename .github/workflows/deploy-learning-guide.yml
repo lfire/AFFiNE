@@ -1,0 +1,86 @@
+# 将 learning-guide/（AFFiNE 学习指南：在线文档 + 配套演示）构建并发布到 GitHub Pages。
+#
+# 触发：guide 分支上 learning-guide/ 或本文件有变更时自动运行，也可在 Actions 页面手动运行。
+# 站点地址：https://<owner>.github.io/<repo>/（fork 为 lfire/AFFiNE 时即 https://lfire.github.io/AFFiNE/）
+#
+# 首次启用前需要在仓库设置中完成两步（详见 learning-guide/DEPLOY.md）：
+#   1. Settings → Pages → Build and deployment → Source 选择 “GitHub Actions”；
+#   2. Settings → Environments → github-pages → Deployment branches and tags 中放行 guide 分支。
+name: Deploy Learning Guide
+
+on:
+  push:
+    branches:
+      - guide
+    paths:
+      - 'learning-guide/**'
+      - '.github/workflows/deploy-learning-guide.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只保留一个部署；进行中的部署不取消，保证发布完整
+concurrency:
+  group: pages-learning-guide
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: learning-guide
+    steps:
+      # AFFiNE 仓库体积很大，只稀疏检出 learning-guide 目录
+      - name: Checkout learning-guide only
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            learning-guide
+          sparse-checkout-cone-mode: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: learning-guide/package-lock.json
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Check Mermaid diagrams
+        run: npm run check
+
+      - name: Build with VitePress
+        run: npm run build
+        env:
+          # 项目页为 /<repo>/；若配置了自定义域名，base_path 为空，站点部署在根路径
+          DOCS_BASE: ${{ steps.pages.outputs.base_path }}/
+          GUIDE_BRANCH: ${{ github.ref_name }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: learning-guide/.vitepress/dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "types": ["node", "vite/client"]
+  },
+  "include": [".vitepress/*.ts", ".vitepress/*.mts", ".vitepress/theme/**/*", "slides/*.mts", "scripts/*.mjs"],
+  "exclude": ["node_modules", ".vitepress/dist", ".vitepress/cache", ".vitepress/.temp"]
+}
