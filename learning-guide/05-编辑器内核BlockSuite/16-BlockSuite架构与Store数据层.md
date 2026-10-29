@@ -1,6 +1,6 @@
-# 第 12 章 BlockSuite 架构与 Store 数据层
+# 第 16 章 BlockSuite 架构与 Store 数据层
 
-> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 6 章（React / Lit / Signals / RxJS）、第 8 章（CRDT 与 Yjs 原理）
+> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 10 章（React / Lit / Signals / RxJS）、第 12 章（CRDT 与 Yjs 原理）
 
 ---
 
@@ -8,7 +8,7 @@
 
 如果把 AFFiNE 比作一辆车，BlockSuite 就是它的发动机：文档页（Page）、白板（Edgeless）、数据库视图、富文本、协同光标……几乎所有"编辑"能力都来自仓库里的 `blocksuite/` 目录，React 应用层（`packages/frontend/core`）只负责把发动机装进车壳。
 
-学习 BlockSuite 最容易犯的错误，是一上来就钻进某个块组件的 Lit 渲染代码，被扩展注册、DI 标识符、Signal、Yjs 事件绕晕。正确的顺序是**自底向上**：先看清分层（哪些包是框架、哪些是 AFFiNE 预置块），再吃透数据层 `@blocksuite/store`——所有块最终都是一棵存在 Yjs 里的 **Block 树**，视图只是它的投影；最后（第 13 章）才看 `@blocksuite/std` 如何把数据变成可交互的 DOM。
+学习 BlockSuite 最容易犯的错误，是一上来就钻进某个块组件的 Lit 渲染代码，被扩展注册、DI 标识符、Signal、Yjs 事件绕晕。正确的顺序是**自底向上**：先看清分层（哪些包是框架、哪些是 AFFiNE 预置块），再吃透数据层 `@blocksuite/store`——所有块最终都是一棵存在 Yjs 里的 **Block 树**，视图只是它的投影；最后（第 17 章）才看 `@blocksuite/std` 如何把数据变成可交互的 DOM。
 
 本章覆盖：分层架构与聚合包、`framework/global` 基础设施、Workspace / Doc / Store 三层容器、Block 树存储布局、Schema、BlockModel 响应式、事务与撤销、Transformer / Adapter、Store 侧扩展，以及 `framework/sync` 与 nbstore 的关系。我们会对照 `blocksuite/docs-site/guide` 指出**文档落后于源码之处**——在 BlockSuite 中这很普遍，务必养成"以源码为准"的习惯。
 
@@ -72,7 +72,7 @@ blocksuite/
 ├── framework/          # 框架层：global / store / sync / std
 ├── affine/             # 预置层：all blocks components data-view ext-loader foundation
 │                       #         fragments gfx inlines model rich-text shared widgets
-├── playground/         # 本地调试用 Vite 应用（第 15 章使用）
+├── playground/         # 本地调试用 Vite 应用（第 19 章使用）
 ├── integration-test/   # 浏览器集成测试与 TestAffineEditorContainer
 ├── docs-site/          # VitePress 文档站：guide / blog / components
 └── docs/               # typedoc API 文档配置
@@ -170,7 +170,7 @@ flowchart TB
 | `Container` | `.../di/container.ts` | 注册表：`add`（按类）、`addImpl`（为标识符注册类/工厂/值）、`override` |
 | `ServiceProvider` | `.../di/provider.ts` | 解析器：`get`、`getOptional`、`getAll`；支持父 provider 链 |
 
-`createIdentifier` 的实现是 `Object.assign(variant => createIdentifier(name, variant), { identifierName: name, variant })`——一个"可调用的标识符对象"。"变体"是 BlockSuite 最常见的用法：`BlockSchemaIdentifier('affine:paragraph')`、`BlockViewIdentifier('affine:paragraph')` 以 flavour 为变体，`provider.getAll(BlockSchemaIdentifier)` 一次取出全部。`container.provider(scope, parentProvider)` 的第二个参数是父 provider——这正是 Store 与 Std 两级容器能串起来的原因（第 13 章）。
+`createIdentifier` 的实现是 `Object.assign(variant => createIdentifier(name, variant), { identifierName: name, variant })`——一个"可调用的标识符对象"。"变体"是 BlockSuite 最常见的用法：`BlockSchemaIdentifier('affine:paragraph')`、`BlockViewIdentifier('affine:paragraph')` 以 flavour 为变体，`provider.getAll(BlockSchemaIdentifier)` 一次取出全部。`container.provider(scope, parentProvider)` 的第二个参数是父 provider——这正是 Store 与 Std 两级容器能串起来的原因（第 17 章）。
 
 ### 12.2.2 disposable、exceptions、gfx、lit 与其它
 
@@ -386,7 +386,7 @@ const parentId = parent ?? (schema.model.role === 'root' ? null : this.root);
 type QueryMode = 'strict' | 'loose' | 'include';
 ```
 
-`bypass` 表示"自身不渲染但渲染子块"：子块需要显示而祖先被隐藏时，祖先被提升为 `bypass`。`BlockComponent._renderViewType` 按这三个值决定渲染内容（第 13 章）。
+`bypass` 表示"自身不渲染但渲染子块"：子块需要显示而祖先被隐藏时，祖先被提升为 `bypass`。`BlockComponent._renderViewType` 按这三个值决定渲染内容（第 17 章）。
 
 ### 12.4.4 常用 CRUD API
 
@@ -794,11 +794,11 @@ export const titleMiddleware =
   };
 ```
 
-同目录还有 `replace-id.ts`、`paste.ts`、`upload.ts`、`doc-link.ts`、`surface-ref-to-embed.ts` 等，剪贴板（第 13 章）大量使用。
+同目录还有 `replace-id.ts`、`paste.ts`、`upload.ts`、`doc-link.ts`、`surface-ref-to-embed.ts` 等，剪贴板（第 17 章）大量使用。
 
 ### 12.8.5 Adapter 基类
 
-`BaseAdapter<AdapterTarget>`（`blocksuite/framework/store/src/adapter/base.ts`）站在 Transformer 之上，定义 6 个抽象方法（`fromDocSnapshot/fromBlockSnapshot/fromSliceSnapshot/toDocSnapshot/toBlockSnapshot/toSliceSnapshot`）与组合便捷方法（`fromDoc`、`toDoc`、`fromSlice`…）。同文件的 `ASTWalker` 与 `adapter/context.ts` 的 `ASTWalkerContext` 提供"遍历源 AST 同时 `openNode/closeNode` 构造目标 AST"的机制。具体 Markdown/HTML/Notion HTML/纯文本适配器在 `blocksuite/affine/shared/src/adapters/`，每个块通过 `BlockMarkdownAdapterExtension` 等注册 matcher（第 14、15 章）。
+`BaseAdapter<AdapterTarget>`（`blocksuite/framework/store/src/adapter/base.ts`）站在 Transformer 之上，定义 6 个抽象方法（`fromDocSnapshot/fromBlockSnapshot/fromSliceSnapshot/toDocSnapshot/toBlockSnapshot/toSliceSnapshot`）与组合便捷方法（`fromDoc`、`toDoc`、`fromSlice`…）。同文件的 `ASTWalker` 与 `adapter/context.ts` 的 `ASTWalkerContext` 提供"遍历源 AST 同时 `openNode/closeNode` 构造目标 AST"的机制。具体 Markdown/HTML/Notion HTML/纯文本适配器在 `blocksuite/affine/shared/src/adapters/`，每个块通过 `BlockMarkdownAdapterExtension` 等注册 matcher（第 18、19 章）。
 
 ```mermaid
 flowchart LR
@@ -863,7 +863,7 @@ export class DividerStoreExtension extends StoreExtensionProvider {
 }
 ```
 
-`getInternalStoreExtensions()`（`blocksuite/affine/all/src/extensions/store.ts`）返回所有内置 Provider，首个是 `FoundationStoreExtension`（`blocksuite/affine/foundation/src/store.ts`，注册预置选择类型、Adapter 工厂、`FeatureFlagService` 等）。`StoreExtensionManager.get('store')` 实例化 Provider、调用 `setup`、收集所有 `register` 的扩展，得到 `ExtensionType[]`。完整机制（含 `ViewExtensionProvider`）见第 13 章 13.10 节。
+`getInternalStoreExtensions()`（`blocksuite/affine/all/src/extensions/store.ts`）返回所有内置 Provider，首个是 `FoundationStoreExtension`（`blocksuite/affine/foundation/src/store.ts`，注册预置选择类型、Adapter 工厂、`FeatureFlagService` 等）。`StoreExtensionManager.get('store')` 实例化 Provider、调用 `setup`、收集所有 `register` 的扩展，得到 `ExtensionType[]`。完整机制（含 `ViewExtensionProvider`）见第 17 章 13.10 节。
 
 **小结**：Store 层的可插拔能力全部是 `ExtensionType`；预置层用 `StoreExtensionProvider` 按块打包、由 Manager 汇总。
 
@@ -894,7 +894,7 @@ export interface DocSource {
 | 资源 | `BlobSource`（get/set/delete/list，可选 `blobState$`、`upload`） | `BlobEngine` | `MemoryBlobSource`、`IndexedDBBlobSource` |
 | 在线状态 | `AwarenessSource`（connect/disconnect） | `AwarenessEngine` | `BroadcastChannelAwarenessSource` |
 
-`pull(docId, stateVector)` 返回差量、`push` 推送本地更新、`subscribe` 监听远端——正是第 8 章状态向量同步协议的抽象。
+`pull(docId, stateVector)` 返回差量、`push` 推送本地更新、`subscribe` 监听远端——正是第 12 章状态向量同步协议的抽象。
 
 ### 12.10.2 在 AFFiNE 中谁在用
 
@@ -939,7 +939,7 @@ flowchart LR
   BE --> H3 --> N
 ```
 
-**小结**：`@blocksuite/sync` 是 BlockSuite 独立使用时的参考同步实现；AFFiNE 中 Workspace/Doc 通过 `onLoadDoc` 等钩子把 Y.Doc 交给 nbstore（第 19 章）。这正是框架把 `Workspace`/`Doc` 设计成接口的原因。
+**小结**：`@blocksuite/sync` 是 BlockSuite 独立使用时的参考同步实现；AFFiNE 中 Workspace/Doc 通过 `onLoadDoc` 等钩子把 Y.Doc 交给 nbstore（第 23 章）。这正是框架把 `Workspace`/`Doc` 设计成接口的原因。
 
 ---
 
@@ -994,7 +994,7 @@ classDiagram
   BaseAdapter --> Transformer
 ```
 
-左侧是"宿主可替换"的接口层（Workspace/Doc），右侧是"框架固定"的实现层；Store 是**聚合根**，Schema、CRUD、Block 集合、扩展容器都挂在它身上；视图层的 `BlockStdScope` 再以 Store 的 provider 为父级（第 13 章）。
+左侧是"宿主可替换"的接口层（Workspace/Doc），右侧是"框架固定"的实现层；Store 是**聚合根**，Schema、CRUD、Block 集合、扩展容器都挂在它身上；视图层的 `BlockStdScope` 再以 Store 的 provider 为父级（第 17 章）。
 
 ---
 
@@ -1055,7 +1055,7 @@ API 虽变，`docs-site/blog/crdt-native-data-flow.md` 阐述的**设计哲学�
   1. 阅读 `blocksuite/framework/store/src/__tests__/block.unit.spec.ts` 中的 `createTestDoc()`；
   2. 本地临时新建测试文件（**不要提交**），仿照其写法定义 `role: 'root'` 的 `page` 与 `role: 'content'`、带 `title: ''` 默认 prop 的 `note`，`addBlock('page')` 后 `addBlock('note', { title: 'x' })`；
   3. 打印 `store.doc.yBlocks.toJSON()`；对 note 的 `model.props.title$` 建立 `effect`，再修改 `model.props.title`；
-  4. 在仓库根执行 `yarn vitest run <测试文件路径>`（环境见第 11 章）。
+  4. 在仓库根执行 `yarn vitest run <测试文件路径>`（环境见第 15 章）。
 - **验收标准**：输出含 `sys:flavour`、`sys:children`、`prop:title`；effect 被触发；把 note 的 `metadata.parent` 改为 `['not-exist']` 后，`store.schema.validate('note', 'page')` 抛出 `SchemaValidateError`，而 `addBlock` 只在控制台打印错误、返回的 id 在 `store.getBlock(id)` 中不存在（异常被 `transact` 捕获）。
 
 ### 练习 3：验证撤销单元切分（进阶）
@@ -1130,7 +1130,7 @@ API 虽变，`docs-site/blog/crdt-native-data-flow.md` 阐述的**设计哲学�
 - `blocksuite/framework/store/src/extension/extension.ts` 顶部注释：扩展模式官方讲解
 - `blocksuite/framework/store/src/__tests__/`：`block.unit.spec.ts`、`schema.unit.spec.ts`、`transformer.unit.spec.ts` 是"可运行的文档"
 - Yjs 文档中 `Y.UndoManager`、`trackedOrigins`、`captureTimeout` 部分
-- 本书第 8 章（CRDT 与 Yjs）、第 16 章（应用层 DI，可对比）、第 19 章（nbstore）
+- 本书第 12 章（CRDT 与 Yjs）、第 20 章（应用层 DI，可对比）、第 23 章（nbstore）
 
 ---
 
@@ -1150,4 +1150,4 @@ API 虽变，`docs-site/blog/crdt-native-data-flow.md` 阐述的**设计哲学�
 
 ---
 
-上一章：[第 11 章 本地开发环境搭建与调试](../04-工程化与开发环境/11-本地开发环境搭建与调试.md) ｜ 下一章：[第 13 章 BlockSuite Std：视图、扩展、命令、事件](./13-BlockSuite-Std视图扩展命令事件.md) ｜ [返回目录](../README.md)
+上一章：[第 15 章 本地开发环境搭建与调试](../04-工程化与开发环境/15-本地开发环境搭建与调试.md) ｜ 下一章：[第 17 章 BlockSuite Std：视图、扩展、命令、事件](./17-BlockSuite-Std视图扩展命令事件.md) ｜ [返回目录](../README.md)

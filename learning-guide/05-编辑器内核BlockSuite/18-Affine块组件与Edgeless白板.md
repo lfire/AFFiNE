@@ -1,6 +1,6 @@
-# 第 14 章 Affine 块组件与 Edgeless 白板
+# 第 18 章 Affine 块组件与 Edgeless 白板
 
-> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★★ ｜ **建议学时**：14 小时 ｜ **前置章节**：第 13 章（BlockSuite Std：视图、扩展、命令、事件）
+> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★★ ｜ **建议学时**：14 小时 ｜ **前置章节**：第 17 章（BlockSuite Std：视图、扩展、命令、事件）
 
 ---
 
@@ -86,7 +86,7 @@ mindmap
 | 渲染 | Lit 组件（DOM） | Canvas 绘制函数（或可选的 DOM 渲染器） |
 | 例子 | note、image、frame、embed-*、edgeless-text | shape、connector、brush、text、mindmap、group |
 
-所有 embed 块都通过 `createEmbedBlockSchema`（`blocksuite/affine/model/src/utils/helper.ts`）统一生成，flavour 为 `` `affine:embed-${name}` ``，并自动带上 `index`、`xywh`、`lockedBySelf`、`rotate` 等白板通用属性。这也解释了 Surface 的 `children` 为什么能用 glob `'affine:embed-*'` 一次匹配所有嵌入块（第 12 章 12.5.3）。
+所有 embed 块都通过 `createEmbedBlockSchema`（`blocksuite/affine/model/src/utils/helper.ts`）统一生成，flavour 为 `` `affine:embed-${name}` ``，并自动带上 `index`、`xywh`、`lockedBySelf`、`rotate` 等白板通用属性。这也解释了 Surface 的 `children` 为什么能用 glob `'affine:embed-*'` 一次匹配所有嵌入块（第 16 章 12.5.3）。
 
 Shape 元素的属性用 `@field` 装饰器声明：
 
@@ -159,7 +159,7 @@ store.ts / view.ts     # StoreExtensionProvider / ViewExtensionProvider
 index.ts               # 公共导出
 ```
 
-记住这个"模板"，读任何块都会轻松很多，第 15 章也会照着它写自定义块。
+记住这个"模板"，读任何块都会轻松很多，第 19 章也会照着它写自定义块。
 
 ---
 
@@ -218,7 +218,7 @@ AFFiNE 应用侧（`packages/frontend/core/src/blocksuite/manager/view.ts` 的 `
 | `Tab` / `Shift-Tab` | 缩进 / 反缩进 | `indentParagraphCommand` / `dedentParagraphCommand` |
 | `Delete` / `Control-d`（mac） | 向前删除 | `forwardDelete` |
 
-一个值得注意的细节：Enter 与 Backspace 处理器都先判断 `matchModels(model.parent, [CalloutBlockModel])`，若父块是 callout 则直接返回、交给 `CalloutKeymapExtension` 处理——**块之间通过"让出事件"协作**，依赖的正是第 13 章讲的事件作用域冒泡。
+一个值得注意的细节：Enter 与 Backspace 处理器都先判断 `matchModels(model.parent, [CalloutBlockModel])`，若父块是 callout 则直接返回、交给 `CalloutKeymapExtension` 处理——**块之间通过"让出事件"协作**，依赖的正是第 17 章讲的事件作用域冒泡。
 
 ### 14.3.2 list：同构的另一种文本块
 
@@ -288,7 +288,7 @@ export class CodeBlockViewExtension extends ViewExtensionProvider {
 }
 ```
 
-这个 Provider 几乎用上了第 13 章所有扩展类型：
+这个 Provider 几乎用上了第 17 章所有扩展类型：
 
 - **`CodeBlockHighlighter`**（`code-block-service.ts`）是 LifeCycleWatcher（key `code-block-highlighter`），用**静态单例 + 引用计数**共享 shiki 的 `HighlighterCore`（多个编辑器实例不会重复加载 WASM），`highlighter$` 是 signal，主题随 `ThemeProvider.theme$` 切换明暗；
 - **独立的 InlineManager**：`CodeBlockInlineManagerExtension` 只包含代码块需要的行内规格（`CodeBlockUnitSpecExtension` 渲染 `affine-code-unit`，`highlight/affine-code-unit.ts` 按高亮 token 着色），代码块里不会出现链接、提及等富文本格式；
@@ -323,7 +323,7 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
 }
 ```
 
-`setEngine(this.std.store.blobSync)` 把它接到 Workspace 的 `BlobEngine`（AFFiNE 中最终落到 nbstore，第 12 章 12.10）。导入导出时 `ImageBlockTransformer` 负责搬运二进制（第 12 章 12.8.3）。附件块（`attachment`）使用同样的 `ResourceController` 模式。
+`setEngine(this.std.store.blobSync)` 把它接到 Workspace 的 `BlobEngine`（AFFiNE 中最终落到 nbstore，第 16 章 12.10）。导入导出时 `ImageBlockTransformer` 负责搬运二进制（第 16 章 12.8.3）。附件块（`attachment`）使用同样的 `ResourceController` 模式。
 
 **小结**：code 展示了"服务 + 独立 InlineManager + 块级 widget + 按 scope 注册"；image 展示了"函数式 View + GfxCompatible 双栖模型 + blob 资源控制"。
 
@@ -650,7 +650,7 @@ export const SurfaceBlockSchema = defineBlockSchema({
 });
 ```
 
-画布元素全部存在 `elements` 这个 `Boxed<Y.Map>` 中（用 `Boxed` 是为了直接操作 `Y.Map` 而不被深转换，第 12 章 12.6.4）。每个元素是一个 `Y.Map`，含 `type`、`id`、`xywh`、`index`（fractional index，决定图层顺序）以及 `@field` 声明的属性。`SurfaceBlockModel`（框架基类在 `blocksuite/framework/std/src/gfx/model/surface/surface-model.ts`）观察这个 Map，按 `elementsCtorMap`（`blocksuite/affine/blocks/surface/src/element-model/index.ts`）实例化元素模型：
+画布元素全部存在 `elements` 这个 `Boxed<Y.Map>` 中（用 `Boxed` 是为了直接操作 `Y.Map` 而不被深转换，第 16 章 12.6.4）。每个元素是一个 `Y.Map`，含 `type`、`id`、`xywh`、`index`（fractional index，决定图层顺序）以及 `@field` 声明的属性。`SurfaceBlockModel`（框架基类在 `blocksuite/framework/std/src/gfx/model/surface/surface-model.ts`）观察这个 Map，按 `elementsCtorMap`（`blocksuite/affine/blocks/surface/src/element-model/index.ts`）实例化元素模型：
 
 ```ts
 // 来源：blocksuite/affine/blocks/surface/src/element-model/index.ts（节选）
@@ -767,7 +767,7 @@ sequenceDiagram
 
 ### 14.10.1 工具与工具栏
 
-白板中的每种交互模式都是一个 `BaseTool` 子类（第 13 章 13.11），已注册的 toolName 包括：`default`、`pan`、`empty`、`shape`、`connector`、`brush`、`highlighter`、`eraser`、`text`、`affine:note`、`frame`、`frameNavigator`（演示）、`template`，以及应用侧的 `CopilotTool`。
+白板中的每种交互模式都是一个 `BaseTool` 子类（第 17 章 13.11），已注册的 toolName 包括：`default`、`pan`、`empty`、`shape`、`connector`、`brush`、`highlighter`、`eraser`、`text`、`affine:note`、`frame`、`frameNavigator`（演示）、`template`，以及应用侧的 `CopilotTool`。
 
 工具栏按钮通过 `edgeless-toolbar` widget 的两个扩展点注入：
 
@@ -833,7 +833,7 @@ export const SeniorToolIdentifier = createIdentifier<ToolBuilder<SeniorTool>>('e
 
 这些服务大多是"**接口 + 默认实现 + 应用覆盖**"：块代码通过 `std.get(DocModeProvider)` 使用，AFFiNE 在 `packages/frontend/core/src/blocksuite/view-extensions/editor-view/doc-mode-service.ts` 中提供连接到应用路由的实现；playground 则用 `mockDocModeService` 覆盖（`blocksuite/playground/apps/starter/utils/extensions.ts`）。
 
-每个块的 Adapter 通过 matcher 扩展接入这些适配器。Markdown 块级 matcher 的形态（以分割线为例，第 15 章详解）：`{ flavour, toMatch(o), fromMatch(o), toBlockSnapshot: { enter, leave }, fromBlockSnapshot: { enter, leave } }`，由 `BlockMarkdownAdapterExtension(matcher)` 以 flavour 为变体注册。
+每个块的 Adapter 通过 matcher 扩展接入这些适配器。Markdown 块级 matcher 的形态（以分割线为例，第 19 章详解）：`{ flavour, toMatch(o), fromMatch(o), toBlockSnapshot: { enter, leave }, fromBlockSnapshot: { enter, leave } }`，由 `BlockMarkdownAdapterExtension(matcher)` 以 flavour 为变体注册。
 
 ### 14.11.2 fragments：编辑器外的"片段"
 
@@ -976,7 +976,7 @@ fragment 不属于 Block 树、不由 EditorHost 渲染，而是放在编辑器�
 - `blocksuite/affine/blocks/surface/src/__tests__/`：连线寻路（A*）、包围盒等算法单测
 - `blocksuite/affine/all/src/__tests__/adapters/`：各 Adapter 的快照测试，是理解块 ↔ Markdown/HTML 映射的最佳材料
 - `tests/blocksuite/e2e/`：按功能组织的 Playwright 端到端测试（`edgeless/`、`database/`、`slash-menu.spec.ts` 等）
-- 本书第 15 章（自定义 Block 实战）、第 19 章（nbstore 与 blob 存储）
+- 本书第 19 章（自定义 Block 实战）、第 23 章（nbstore 与 blob 存储）
 
 ---
 
@@ -997,4 +997,4 @@ fragment 不属于 Block 树、不由 EditorHost 渲染，而是放在编辑器�
 
 ---
 
-上一章：[第 13 章 BlockSuite Std：视图、扩展、命令、事件](./13-BlockSuite-Std视图扩展命令事件.md) ｜ 下一章：[第 15 章 自定义 Block 实战](./15-自定义Block实战.md) ｜ [返回目录](../README.md)
+上一章：[第 17 章 BlockSuite Std：视图、扩展、命令、事件](./17-BlockSuite-Std视图扩展命令事件.md) ｜ 下一章：[第 19 章 自定义 Block 实战](./19-自定义Block实战.md) ｜ [返回目录](../README.md)

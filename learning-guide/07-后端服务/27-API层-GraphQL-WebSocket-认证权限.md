@@ -1,17 +1,17 @@
-# 第 23 章 API 层：GraphQL、WebSocket、认证与权限
+# 第 27 章 API 层：GraphQL、WebSocket、认证与权限
 
-> **所属部分**：第 7 部分 · 后端服务 ｜ **难度**：★★★★★ ｜ **建议学时**：12 小时 ｜ **前置章节**：[第 22 章 数据层：Prisma、PostgreSQL、Redis](22-数据层-Prisma-PostgreSQL-Redis.md)
+> **所属部分**：第 7 部分 · 后端服务 ｜ **难度**：★★★★★ ｜ **建议学时**：12 小时 ｜ **前置章节**：[第 26 章 数据层：Prisma、PostgreSQL、Redis](26-数据层-Prisma-PostgreSQL-Redis.md)
 
 ## 本章导读
 
-第 21 章讲了"进程如何组装"，第 22 章讲了"数据存在哪里"，本章讲"**前端怎样和后端说话**"。这是全栈开发中最常打交道的一层，也是 AFFiNE 后端最复杂的一层：
+第 25 章讲了"进程如何组装"，第 26 章讲了"数据存在哪里"，本章讲"**前端怎样和后端说话**"。这是全栈开发中最常打交道的一层，也是 AFFiNE 后端最复杂的一层：
 
 - **GraphQL**：绝大多数业务 API（工作区、成员、文档元信息、评论、通知、订阅、AI 会话……），前端通过 `packages/common/graphql` 中 180 多个 `.gql` 文件调用；
 - **REST**：认证、Blob 下载、文档二进制、存储上传代理、Copilot 流式输出、链接预览等不适合 GraphQL 的场景；
 - **WebSocket（socket.io）**：文档实时协同同步（Yjs 增量收发、awareness 光标），以及一套新的"实时查询 / 主题订阅"协议 `realtime:*`；
 - **认证与权限**：每一次调用都要先回答"你是谁"（会话 cookie、JWT、刷新令牌轮换、Magic Link、OAuth）和"你能做什么"（工作区/文档两级 action 权限）。
 
-阅读本章时请记住第 21 章的版本特征提示：**权限决策、配额计算、会话签发、文档写入合同等核心逻辑已经下沉到 Rust 运行时**，TS 层主要负责协议适配（GraphQL/HTTP/WS）、参数校验和错误映射。理解这条"TS 协议层 → Rust 领域核心"的分界线，是读懂本章源码的钥匙。
+阅读本章时请记住第 25 章的版本特征提示：**权限决策、配额计算、会话签发、文档写入合同等核心逻辑已经下沉到 Rust 运行时**，TS 层主要负责协议适配（GraphQL/HTTP/WS）、参数校验和错误映射。理解这条"TS 协议层 → Rust 领域核心"的分界线，是读懂本章源码的钥匙。
 
 ## 学习目标
 
@@ -64,7 +64,7 @@ GraphQL 的 Schema 是强类型的：每个对象类型、每个字段的类型�
 
 ### 23.1.2 code-first：从 TS 装饰器生成 Schema
 
-有两种写 Schema 的方式：schema-first（先写 `.graphql` SDL，再写实现）和 code-first（写 TS 类 + 装饰器，框架生成 SDL）。AFFiNE 用 `@nestjs/graphql` 的 **code-first**。第 21 章讲过 `GqlModule` 的配置：非生产环境把 Schema 写入 `packages/backend/server/src/schema.gql`（当前 3026 行），`sortSchema: true` 保证输出稳定、便于 diff 审查。
+有两种写 Schema 的方式：schema-first（先写 `.graphql` SDL，再写实现）和 code-first（写 TS 类 + 装饰器，框架生成 SDL）。AFFiNE 用 `@nestjs/graphql` 的 **code-first**。第 25 章讲过 `GqlModule` 的配置：非生产环境把 Schema 写入 `packages/backend/server/src/schema.gql`（当前 3026 行），`sortSchema: true` 保证输出稳定、便于 diff 审查。
 
 一个对象类型用 `@ObjectType()` + `@Field(() => Type)` 声明，例如同文件中的 `WorkspaceRolePermissions` 有 `role`、`permissions` 两个字段。`WorkspacePermissions` 更有意思——它是**根据权限 Action 列表动态生成**的 ObjectType：
 
@@ -321,7 +321,7 @@ export class GraphQLService extends Service {
 }
 ```
 
-业务代码（例如 `packages/frontend/core/src/modules/cloud/stores/auth.ts`）只需 `await this.gqlService.gql({ query: getCurrentUserQuery })`。401 时自动触发会话重新校验——第 21 章的 `UserFriendlyError` 在这里闭环。
+业务代码（例如 `packages/frontend/core/src/modules/cloud/stores/auth.ts`）只需 `await this.gqlService.gql({ query: getCurrentUserQuery })`。401 时自动触发会话重新校验——第 25 章的 `UserFriendlyError` 在这里闭环。
 
 ## 23.4 REST Controller 全景
 
@@ -345,7 +345,7 @@ GraphQL 并不适合所有场景：二进制流、cookie 写入、第三方回�
 | `/api/revenuecat`、`/api/team/licenses`、`/api/team/v1/licenses` 等 | `src/plugins/payment/*controller.ts` | 支付 Webhook 与 License |
 | `/api/worker` | `src/plugins/worker/controller.ts` | 链接预览、图片代理 |
 
-第 24 章会深入插件类控制器。这里看最常用的 **Blob 下载**：
+第 28 章会深入插件类控制器。这里看最常用的 **Blob 下载**：
 
 ```ts
 // 来源：packages/backend/server/src/core/workspaces/controller.ts
@@ -392,7 +392,7 @@ GraphQL 并不适合所有场景：二进制流、cookie 写入、第三方回�
 
 ### 23.5.1 连接与鉴权
 
-第 21 章讲过：`SocketIoAdapter` 在握手阶段调用 `AuthWebsocketOptionsProvider.canActivate`，它复用 `AuthGuard.signIn()` 识别 cookie 会话或 `handshake.auth.tokenType === 'jwt'` 的 Bearer 令牌。未登录的连接在握手阶段就被拒绝，所以 Gateway 方法里的 `@CurrentUser()` 总是有值。测试用例名也印证了这一点：`src/__tests__/sync/gateway.spec.ts` 中有 `should reject websocket legacy session token auth`、`should connect websocket with jwt auth`。
+第 25 章讲过：`SocketIoAdapter` 在握手阶段调用 `AuthWebsocketOptionsProvider.canActivate`，它复用 `AuthGuard.signIn()` 识别 cookie 会话或 `handshake.auth.tokenType === 'jwt'` 的 Bearer 令牌。未登录的连接在握手阶段就被拒绝，所以 Gateway 方法里的 `@CurrentUser()` 总是有值。测试用例名也印证了这一点：`src/__tests__/sync/gateway.spec.ts` 中有 `should reject websocket legacy session token auth`、`should connect websocket with jwt auth`。
 
 ### 23.5.2 事件清单
 
@@ -481,7 +481,7 @@ sequenceDiagram
 
 **权限世代号（permission generation）**是这里最精巧的设计：加入订阅时记录当时的权限世代号，此后每次推送都把它交给 Rust 写入合同核对。一旦管理员移除了某人的编辑权限，世代号变化，旧订阅推送的更新会被拒绝，并通过 `space:broadcast-doc-invalidation` 让客户端重新加入——测试 `permission revocation removes an active document subscription` 就在验证这一点。**权限不是只在"连接时"检查一次，而是在长连接的整个生命周期内持续有效**。
 
-房间命名用 `Room(spaceId, type)` 生成 `${spaceId}:sync` 或 `${spaceId}:sync-027`，按客户端版本隔离协议；广播经第 21 章的 Redis Adapter 到达其他实例上的客户端。
+房间命名用 `Room(spaceId, type)` 生成 `${spaceId}:sync` 或 `${spaceId}:sync-027`，按客户端版本隔离协议；广播经第 25 章的 Redis Adapter 到达其他实例上的客户端。
 
 ## 23.6 通用实时层：`core/realtime` 与 `packages/common/realtime`
 
@@ -562,11 +562,11 @@ export interface RealtimeTopicMap {
   }
 ```
 
-数据变化时，业务代码调用 `RealtimePublisher.publishChanged(topic, input, reason)`：它先 `publishLocal`（`server.to(room).emit('realtime:event', envelope)`），再 `event.broadcast('realtime.topic.changed', payload)` 让其他实例也推送——又一次复用第 21 章的 EventBus 广播。前端收到 `{ changed: true }` 后再发一次 `realtime:request` 拉最新快照，这种"**通知 + 拉取**"模式避免了在推送里携带可能越权的数据。
+数据变化时，业务代码调用 `RealtimePublisher.publishChanged(topic, input, reason)`：它先 `publishLocal`（`server.to(room).emit('realtime:event', envelope)`），再 `event.broadcast('realtime.topic.changed', payload)` 让其他实例也推送——又一次复用第 25 章的 EventBus 广播。前端收到 `{ changed: true }` 后再发一次 `realtime:request` 拉最新快照，这种"**通知 + 拉取**"模式避免了在推送里携带可能越权的数据。
 
 ### 23.6.3 完整性检查与模块装配
 
-`src/core/realtime/required-handlers.ts` 列出了必须存在的 14 个 request（如 `workspace.access.get`、`doc.grants.get`、`comment.changes.get`、`copilot.transcript.task.get`、`user.quota-state.get`）与 13 个 topic。`RealtimeRegistryCompletenessChecker` 在 `front`/`sync` Flavor 启动时检查，缺任何一个直接抛错拒绝启动。这正是第 21 章 `ServerRealtimeHandlersModule`（装配 `WorkspaceRealtimeModule`、`CommentRealtimeModule`、`CopilotRealtimeModule`）必须存在于同步节点的原因——**把"部署形态漏装模块"这种运维错误前置到启动期**。`src/core/realtime/rooms.ts` 统一管理房间名生成函数（`realtimeWorkspaceMembersRoom`、`realtimeNotificationRoom` 等）。
+`src/core/realtime/required-handlers.ts` 列出了必须存在的 14 个 request（如 `workspace.access.get`、`doc.grants.get`、`comment.changes.get`、`copilot.transcript.task.get`、`user.quota-state.get`）与 13 个 topic。`RealtimeRegistryCompletenessChecker` 在 `front`/`sync` Flavor 启动时检查，缺任何一个直接抛错拒绝启动。这正是第 25 章 `ServerRealtimeHandlersModule`（装配 `WorkspaceRealtimeModule`、`CommentRealtimeModule`、`CopilotRealtimeModule`）必须存在于同步节点的原因——**把"部署形态漏装模块"这种运维错误前置到启动期**。`src/core/realtime/rooms.ts` 统一管理房间名生成函数（`realtimeWorkspaceMembersRoom`、`realtimeNotificationRoom` 等）。
 
 ## 23.7 文档存储：`core/doc`
 
@@ -614,9 +614,9 @@ export interface RealtimeTopicMap {
   }
 ```
 
-`await using` 配合第 21 章的 `Lock`（`AsyncDisposable`）自动释放锁。读时如有积压增量就顺手合并回快照（读修复），配合 Worker 上 `DocJobRunner` 的定时合并（第 22 章），保证 `updates` 表不会无限膨胀。
+`await using` 配合第 25 章的 `Lock`（`AsyncDisposable`）自动释放锁。读时如有积压增量就顺手合并回快照（读修复），配合 Worker 上 `DocJobRunner` 的定时合并（第 26 章），保证 `updates` 表不会无限膨胀。
 
-`DocStorageAdapter` 是典型的**模板方法模式**：基类定义"加锁 → 读快照 → 读增量 → 合并 → 写回 → 记历史"的流程骨架，子类只实现存取细节。`space:load-doc` 中的 `adapter.diff(spaceId, docId, stateVector)` 利用 Yjs 状态向量只返回客户端缺失的部分（第 8 章）。
+`DocStorageAdapter` 是典型的**模板方法模式**：基类定义"加锁 → 读快照 → 读增量 → 合并 → 写回 → 记历史"的流程骨架，子类只实现存取细节。`space:load-doc` 中的 `adapter.diff(spaceId, docId, stateVector)` 利用 Yjs 状态向量只返回客户端缺失的部分（第 12 章）。
 
 ## 23.8 认证全流程：`core/auth`
 
@@ -674,7 +674,7 @@ Cookie 名定义在 `src/core/auth/input.ts`：`SESSION_COOKIE_NAME = 'affine_se
   }
 ```
 
-同一个 `/sign-in` 端点：有密码走密码登录，无密码则发送 Magic Link 邮件（含链接与 6 位 OTP，见第 21 章的 `SignIn` 邮件模板）。`canSignIn` 内部用 `Cache.increaseWithTtl` 按邮箱与 IP 做登录频率限制。`MagicLinkAuthService.send` 调用 Rust `executeAuthSessionCommandV1({ action: 'prepare_magic_link', ... })` 生成 `MagicLinkOtp` 并投递邮件；用户提交 OTP 后 `POST /magic-link` 调用 `action: 'complete_magic_link'`。`client_nonce` 把"发起登录的那个浏览器"与"完成登录的请求"绑定，防止链接被转发后在别人设备上登录。
+同一个 `/sign-in` 端点：有密码走密码登录，无密码则发送 Magic Link 邮件（含链接与 6 位 OTP，见第 25 章的 `SignIn` 邮件模板）。`canSignIn` 内部用 `Cache.increaseWithTtl` 按邮箱与 IP 做登录频率限制。`MagicLinkAuthService.send` 调用 Rust `executeAuthSessionCommandV1({ action: 'prepare_magic_link', ... })` 生成 `MagicLinkOtp` 并投递邮件；用户提交 OTP 后 `POST /magic-link` 调用 `action: 'complete_magic_link'`。`client_nonce` 把"发起登录的那个浏览器"与"完成登录的请求"绑定，防止链接被转发后在别人设备上登录。
 
 会话签发统一由 `SessionIssuer` 完成：
 
@@ -764,18 +764,18 @@ sequenceDiagram
   }
 ```
 
-得到的令牌对对应第 22 章的 `AuthSession` + `AuthRefreshToken`：访问令牌（JWT）用于每次请求，过期后用刷新令牌调用 `/session/refresh`，服务端按 `generation` 轮换并检测重放；`/sessions`、`/sessions/:id` 让用户在"设备管理"中查看与吊销会话。`AuthGuard.checkUserSessionClientVersion` 还会在客户端版本过旧时吊销会话（硬性下限 `HARD_REQUIRED_VERSION = '>=0.25.0'`）。
+得到的令牌对对应第 26 章的 `AuthSession` + `AuthRefreshToken`：访问令牌（JWT）用于每次请求，过期后用刷新令牌调用 `/session/refresh`，服务端按 `generation` 轮换并检测重放；`/sessions`、`/sessions/:id` 让用户在"设备管理"中查看与吊销会话。`AuthGuard.checkUserSessionClientVersion` 还会在客户端版本过旧时吊销会话（硬性下限 `HARD_REQUIRED_VERSION = '>=0.25.0'`）。
 
 ### 23.8.6 OAuth
 
-OAuth 由 `src/plugins/oauth` 提供（第 24 章介绍 provider），流程是：
+OAuth 由 `src/plugins/oauth` 提供（第 28 章介绍 provider），流程是：
 
 1. 前端 `POST /api/oauth/preflight { provider, redirect_uri, client, client_nonce }` → `OAuthService.preflight`，返回跳转到 Google/GitHub/Apple/OIDC 的授权地址；
 2. 用户授权后第三方重定向回前端页面 `/oauth/callback`（Apple 直接回到 `/api/oauth/callback`）；
 3. 前端 `POST /api/oauth/callback { code, state, client_nonce }` → `OAuthService.callback`；
 4. 结果为 `login` 时 `SessionIssuer.apply` 写 cookie；为 `handoff` 时（从桌面应用发起）重定向到 `/open-app/url?url=<client>://authentication?...`，把 code 交回原生应用。
 
-`state` 校验失败、过期分别映射为 `InvalidOauthCallbackState`、`OauthStateExpired` 等 UserFriendlyError（这些错误名也在第 21 章 `IncludedEvents` 中，会被记日志）。
+`state` 校验失败、过期分别映射为 `InvalidOauthCallbackState`、`OauthStateExpired` 等 UserFriendlyError（这些错误名也在第 25 章 `IncludedEvents` 中，会被记日志）。
 
 ## 23.9 权限：`core/permission`
 
@@ -845,7 +845,7 @@ export enum WorkspaceRole {
 }
 ```
 
-数值越大权限越高，便于比较。注意数据库里存的是字符串（第 22 章：`WorkspaceMember.role` 为 `owner`/`admin`/`member`，`DocGrant.role` 为 `owner`/`manager`/`editor`/`commenter`/`reader`），这两个枚举是面向 GraphQL API 的"兼容角色"（`legacyApiRole`）。
+数值越大权限越高，便于比较。注意数据库里存的是字符串（第 26 章：`WorkspaceMember.role` 为 `owner`/`admin`/`member`，`DocGrant.role` 为 `owner`/`manager`/`editor`/`commenter`/`reader`），这两个枚举是面向 GraphQL API 的"兼容角色"（`legacyApiRole`）。
 
 ### 23.9.3 角色 × Action 矩阵在哪里
 
@@ -944,7 +944,7 @@ sequenceDiagram
   }
 ```
 
-注意 `Number(state.usedStorageQuota)`：Rust 侧用 64 位整数，经 NAPI 传到 JS 后需要显式转换。`WorkspaceResolver.workspaceQuota` 字段还会附上 `humanReadable`（`formatWorkspaceQuota`）。配额的"强制执行"（上传前预留、超额拒绝）发生在 Rust 运行时（第 22 章 `Blob.reservationId`、`runtime_rolling_quota_*` 表），TS 层主要负责展示。
+注意 `Number(state.usedStorageQuota)`：Rust 侧用 64 位整数，经 NAPI 传到 JS 后需要显式转换。`WorkspaceResolver.workspaceQuota` 字段还会附上 `humanReadable`（`formatWorkspaceQuota`）。配额的"强制执行"（上传前预留、超额拒绝）发生在 Rust 运行时（第 26 章 `Blob.reservationId`、`runtime_rolling_quota_*` 表），TS 层主要负责展示。
 
 ## 23.11 其他核心模块速览
 
@@ -952,7 +952,7 @@ sequenceDiagram
 | --- | --- | --- |
 | `comment` | `resolver.ts`、`service.ts`、`realtime.ts`、`realtime.module.ts` | 评论与回复 CRUD（`createComment`、`resolveComment`、`createReply`、`commentChanges` 增量拉取、`uploadCommentAttachment`），实时 `comment.changed` |
 | `notification` | `resolver.ts`、`service.ts`、`job.ts`、`realtime.ts` | 通知列表（`notifications` 分页）、`readNotification`、`readAllNotifications`、`mentionUser`；`NotificationWorkerModule` 定时处理 |
-| `mail` | `mailer.ts`、`sender.ts`、`job.ts`、`events.ts` | 邮件入队与投递（第 22 章发件箱） |
+| `mail` | `mailer.ts`、`sender.ts`、`job.ts`、`events.ts` | 邮件入队与投递（第 26 章发件箱） |
 | `doc-renderer` | `controller.ts` | `GET /workspace/*path`：分享页 SSR，注入 OG 元信息；`Accept` 为 Markdown 类型时直接返回文档 Markdown（需 `Doc.Read`）；根据 UA 选择 `static/mobile` 资源 |
 | `static-files` | `static.ts` | `front` Flavor 下托管前端静态资源 |
 | `selfhost` | `controller.ts`、`setup.ts`、`static.ts`、`guard.ts` | 自托管首次安装：`POST /api/setup/create-admin-user`、`SetupMiddleware`、`SelfhostGuard` |
@@ -960,7 +960,7 @@ sequenceDiagram
 | `telemetry` | `controller.ts`、`gateway.ts`、`ga4-client.ts`、`deduper.ts` | 前端埋点采集：`POST /api/telemetry/collect` 与 socket 事件 `telemetry:batch`，去重后转发 GA4 |
 | `monitor` | `service.ts` | 每分钟记录进程内存指标（`metrics.process`） |
 | `storage` / `storage-runtime` | `wrappers/*`、`r2-proxy.ts`、`blob-job.ts` / `provider.ts` | 业务存储包装与上传代理 / Rust `StorageRuntime` 封装 |
-| `backend-runtime` | `provider.ts`、`operations.ts`、`copilot-operations.ts`、`search-operations.ts` | 全部 Rust 领域能力的 TS 入口（第 21、22 章） |
+| `backend-runtime` | `provider.ts`、`operations.ts`、`copilot-operations.ts`、`search-operations.ts` | 全部 Rust 领域能力的 TS 入口（第 25、26 章） |
 | `config` | `resolver.ts`、`service.ts` | `serverConfig` 查询（前端获取服务端能力）、管理后台 `AppConfigResolver` |
 | `user` | `resolver.ts`、`controller.ts`、`realtime.ts` | 用户资料、头像上传、设置、管理员用户管理 |
 
@@ -1025,7 +1025,7 @@ sequenceDiagram
 
 - **目标**：理解权限链路与错误映射。
 - **步骤**：用一个 Reader 角色的账号尝试评论或编辑文档，观察 GraphQL 响应中的 `extensions.name` 与 `extensions.data`；在源码中从 Resolver 的 `assert` 追到 `PermissionService.assertDoc` 与 `DocActionDenied`。
-- **验收标准**：能说出错误名、HTTP 状态码（参考第 21 章 `no_permission`/`action_forbidden` 映射）以及 `data` 中包含的字段。
+- **验收标准**：能说出错误名、HTTP 状态码（参考第 25 章 `no_permission`/`action_forbidden` 映射）以及 `data` 中包含的字段。
 
 ## 自测题
 
@@ -1076,7 +1076,7 @@ sequenceDiagram
 - GraphQL Code Generator 文档：typescript、typescript-operations、自定义插件
 - socket.io 文档：Rooms、Acknowledgements、Redis Adapter
 - OWASP：Cross-Site Request Forgery Prevention Cheat Sheet（Double Submit Cookie）、Session Management；OAuth 2.0 Security Best Current Practice；Refresh Token Rotation
-- 本书 [第 8 章 CRDT 与 Yjs 原理](../03-编程语言与基础技术/08-CRDT与Yjs原理.md)、[第 19 章 存储与同步引擎 nbstore](../06-前端应用/19-存储与同步引擎nbstore.md)
+- 本书 [第 12 章 CRDT 与 Yjs 原理](../03-编程语言与基础技术/12-CRDT与Yjs原理.md)、[第 23 章 存储与同步引擎 nbstore](../06-前端应用/23-存储与同步引擎nbstore.md)
 
 ## 学时拆分
 
@@ -1094,4 +1094,4 @@ sequenceDiagram
 | **合计** | **12 小时** |
 
 ---
-上一章：[第 22 章 数据层：Prisma、PostgreSQL、Redis](22-数据层-Prisma-PostgreSQL-Redis.md) ｜ 下一章：[第 24 章 业务插件：AI、搜索、支付等](24-业务插件-AI-搜索-支付等.md) ｜ [返回目录](../README.md)
+上一章：[第 26 章 数据层：Prisma、PostgreSQL、Redis](26-数据层-Prisma-PostgreSQL-Redis.md) ｜ 下一章：[第 28 章 业务插件：AI、搜索、支付等](28-业务插件-AI-搜索-支付等.md) ｜ [返回目录](../README.md)

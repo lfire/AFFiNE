@@ -1,6 +1,6 @@
-# 第 5 章 TypeScript 在 AFFiNE 中的应用
+# 第 9 章 TypeScript 在 AFFiNE 中的应用
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 1 章
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 1 章、第 5 章（TypeScript 基础）
 
 ## 本章导读
 
@@ -717,7 +717,7 @@ type G = Getters<{ name: string }>; // { getName: () => string }
 
 ### 5.5.2 实例一：DI 标识符 `createIdentifier<T>`
 
-前端依赖注入框架（第 16 章详解）需要一种"既是值又携带类型"的标识符。
+前端依赖注入框架（第 20 章详解）需要一种"既是值又携带类型"的标识符。
 
 来源：`packages/common/infra/src/framework/core/types.ts`
 
@@ -808,7 +808,7 @@ export function configureDocModule(framework: Framework) {
 
 ### 5.5.3 实例二：`LiveData<T>` 与 `useLiveData`
 
-`LiveData<T>` 继承自 RxJS 的 `Observable<T>`（第 6 章详解其运行机制），这里只看类型设计。
+`LiveData<T>` 继承自 RxJS 的 `Observable<T>`（第 10 章详解其运行机制），这里只看类型设计。
 
 来源：`packages/common/infra/src/livedata/livedata.ts`
 
@@ -1058,7 +1058,7 @@ declare interface BUILD_CONFIG_TYPE {
 declare var BUILD_CONFIG: BUILD_CONFIG_TYPE;
 ```
 
-`BUILD_CONFIG` 在构建时由打包器的 define 插件替换为常量（详见第 10 章），所以代码里可以直接写 `BUILD_CONFIG.isElectron` 而无需 import。
+`BUILD_CONFIG` 在构建时由打包器的 define 插件替换为常量（详见第 14 章），所以代码里可以直接写 `BUILD_CONFIG.isElectron` 而无需 import。
 
 来源：`tools/@types/env/__all.d.ts`
 
@@ -1492,7 +1492,7 @@ export class GraphqlBadRequest extends UserFriendlyError {
 
 - 文件头带 `AUTO GENERATED` / `do not manipulate this file manually` 注释，以及 `oxlint-disable` 或 `@ts-nocheck`；
 - **永远修改真相源，然后重新生成**，而不是手改生成文件；
-- 这些文件被提交进仓库，因此 PR 中如果改了 `.gql` 或 `en.json` 却没有更新生成文件，CI 会报差异（详见第 26 章）。
+- 这些文件被提交进仓库，因此 PR 中如果改了 `.gql` 或 `en.json` 却没有更新生成文件，CI 会报差异（详见第 30 章）。
 
 ```mermaid
 flowchart LR
@@ -1705,4 +1705,4 @@ TypeScript 7。`typescript` 别名指向 `@typescript/typescript6`，其 bin 名
 | **合计** | **8 小时** |
 
 ---
-上一章：[第 4 章 分支版本与发布节奏](../02-项目管理与开源协作/04-分支版本与发布节奏.md) ｜ 下一章：[第 6 章 前端技术栈：React、Lit、Signals、RxJS](06-前端技术栈-React-Lit-Signals-RxJS.md) ｜ [返回目录](../README.md)
+上一章：[第 4 章 分支版本与发布节奏](../02-项目管理与开源协作/04-分支版本与发布节奏.md) ｜ 下一章：[第 10 章 前端技术栈：React、Lit、Signals、RxJS](10-前端技术栈-React-Lit-Signals-RxJS.md) ｜ [返回目录](../README.md)

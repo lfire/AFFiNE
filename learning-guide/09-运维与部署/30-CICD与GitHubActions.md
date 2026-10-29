@@ -1,6 +1,6 @@
-# 第 26 章 CI/CD 与 GitHub Actions
+# 第 30 章 CI/CD 与 GitHub Actions
 
-> **所属部分**：第 9 部分 · 运维与部署 ｜ **难度**：★★★☆☆ ｜ **建议学时**：6 小时 ｜ **前置章节**：第 4 章 分支版本与发布节奏、第 25 章 测试体系
+> **所属部分**：第 9 部分 · 运维与部署 ｜ **难度**：★★★☆☆ ｜ **建议学时**：6 小时 ｜ **前置章节**：第 4 章 分支版本与发布节奏、第 29 章 测试体系
 
 ## 本章导读
 
@@ -174,7 +174,7 @@ concurrency:
 
 1. **触发分支**与第 4 章的分支模型对应：`canary`（日常开发）、`beta`、`stable`，以及 `v0.x.x` 维护分支与其 `-staging`。改 `README.md` 不触发。
 2. **merge_group**：支持 GitHub Merge Queue，PR 进入合并队列后会在"合并后的临时提交"上再跑一遍。
-3. **全局 env**：`BUILD_TYPE: canary` 让构建配置走 canary 预设（第 20 章 `build-config.ts`）；`COVERAGE: true` 打开覆盖率；`DEBUG: napi:*` 打印 NAPI-RS 构建日志；`DEPLOYMENT_TYPE: affine` 是服务端的部署类型（第 27 章）。
+3. **全局 env**：`BUILD_TYPE: canary` 让构建配置走 canary 预设（第 24 章 `build-config.ts`）；`COVERAGE: true` 打开覆盖率；`DEBUG: napi:*` 打印 NAPI-RS 构建日志；`DEPLOYMENT_TYPE: affine` 是服务端的部署类型（第 31 章）。
 4. **concurrency**：同一分支或同一 PR（`github.ref` 为 `refs/pull/N/merge`）连续推送时，自动取消上一次运行，节约大量 runner 时间。
 
 ## 26.3 build-test.yml 的 job 依赖 DAG
@@ -351,7 +351,7 @@ AFFiNE 有大量"生成代码"：i18n 资源类型、GraphQL 类型、服务端�
           fi
 ```
 
-为什么 `check-git-status` 依赖 `build-server-native`？因为 `yarn affine server genconfig`（生成 `config.example.json` / `schema.json`，第 27 章）需要加载服务端代码，而服务端会 require `server-native.node`。
+为什么 `check-git-status` 依赖 `build-server-native`？因为 `yarn affine server genconfig`（生成 `config.example.json` / `schema.json`，第 31 章）需要加载服务端代码，而服务端会 require `server-native.node`。
 
 `i18n-completenesses.json` 被显式 `git checkout` 还原——翻译完成度统计会随翻译平台变化，不应因此阻塞 PR。
 
@@ -371,7 +371,7 @@ AFFiNE 有大量"生成代码"：i18n 资源类型、GraphQL 类型、服务端�
           git diff --exit-code
 ```
 
-根 `package.json` 声明 `"packageManager": "yarn@4.18.0"`，`.yarnrc.yml` 的 `yarnPath` 指向 `.yarn/releases/yarn-4.18.0.cjs`。这个 job 防止有人只改了其中之一，或提交了被篡改的 yarn 二进制——这也是一项供应链安全措施（第 28 章）。
+根 `package.json` 声明 `"packageManager": "yarn@4.18.0"`，`.yarnrc.yml` 的 `yarnPath` 指向 `.yarn/releases/yarn-4.18.0.cjs`。这个 job 防止有人只改了其中之一，或提交了被篡改的 yarn 二进制——这也是一项供应链安全措施（第 32 章）。
 
 ## 26.5 路径过滤与按需构建
 
@@ -490,7 +490,7 @@ flowchart LR
   BER[build-electron-renderer] -->|web 即 dist.tar.gz| DT
 ```
 
-`build-electron-renderer` 把 `packages/frontend/apps/electron-renderer/dist` 打成 `dist.tar.gz` 上传为 `web` artifact；`desktop-test` 通过复合 Action `download-web` 下载并解压到 `packages/frontend/apps/electron/resources/web-static`——正是第 20 章 `protocol.ts` 读取静态资源的目录。
+`build-electron-renderer` 把 `packages/frontend/apps/electron-renderer/dist` 打成 `dist.tar.gz` 上传为 `web` artifact；`desktop-test` 通过复合 Action `download-web` 下载并解压到 `packages/frontend/apps/electron/resources/web-static`——正是第 24 章 `protocol.ts` 读取静态资源的目录。
 
 ## 26.7 测试类 job 详解
 
@@ -593,7 +593,7 @@ flowchart LR
         run: cargo test -p affine_server_native blob_cleanup_projection_ -- --ignored --nocapture
 ```
 
-注意 `--features use-as-lib`——呼应第 20 章，让 `affine_nbstore` 以普通库形式编译，避免在纯 Rust 测试中链接 NAPI 符号。`affine_server_native` 的测试需要数据库，所以先用 `yarn affine @affine/server prisma migrate deploy` 建表，并串行执行（`--test-threads=1`）。
+注意 `--features use-as-lib`——呼应第 24 章，让 `affine_nbstore` 以普通库形式编译，避免在纯 Rust 测试中链接 NAPI 符号。`affine_server_native` 的测试需要数据库，所以先用 `yarn affine @affine/server prisma migrate deploy` 建表，并串行执行（`--test-threads=1`）。
 
 ### 26.7.4 E2E 与桌面测试
 
@@ -782,7 +782,7 @@ Ubuntu 24.04 上运行 Electron 的一个坑在 workflow 注释里写得很清�
         yarn affine @affine/server data-migration run
 ```
 
-这里直接体现了第 27 章要讲的**配置体系**：服务端读取 `packages/backend/server/config.json`，`indexer.provider.type` 决定搜索后端。Copilot 测试通过 `SERVER_CONFIG: ${{ secrets.TEST_SERVER_CONFIG }}` 注入包含 AI 供应商密钥的完整配置，再由 jq 合并 indexer 段。
+这里直接体现了第 31 章要讲的**配置体系**：服务端读取 `packages/backend/server/config.json`，`indexer.provider.type` 决定搜索后端。Copilot 测试通过 `SERVER_CONFIG: ${{ secrets.TEST_SERVER_CONFIG }}` 注入包含 AI 供应商密钥的完整配置，再由 jq 合并 indexer 段。
 
 ## 26.10 PR 辅助工作流：标题、标签、Copilot
 
@@ -811,7 +811,7 @@ jobs:
 ```
 
 - `if` 条件：编辑 PR 但没改标题（只改描述）时不运行；
-- 标题通过 `env: TITLE` 传入再 `echo "$TITLE"`，而**不是**直接 `run: echo "${{ github.event.pull_request.title }}"`——后者会把用户可控文本插入脚本，构成脚本注入（第 28 章）；
+- 标题通过 `env: TITLE` 传入再 `echo "$TITLE"`，而**不是**直接 `run: echo "${{ github.event.pull_request.title }}"`——后者会把用户可控文本插入脚本，构成脚本注入（第 32 章）；
 - 规则来自 `tools/commitlint/.commitlintrc.json`：继承 `@commitlint/config-conventional`，`scope-enum` 限定 scope 为 `admin`、`electron`、`server`、`core`、`web`、`mobile`、`ios`、`android`、`mobile-native`、`docs`、`component`、`env`、`graphql`、`hooks`、`i18n`、`native`、`templates`、`debug`、`nbstore`、`infra`、`editor`、`tools`、`y-octo`、`client`。所以合法标题形如 `feat(electron): add tray menu`。
 
 ### 26.10.2 auto-labeler.yml
@@ -896,7 +896,7 @@ sequenceDiagram
 2. **幂等与跳过**：`prepare` 会读取历史 Release 中的 `affine-release-completed.json` 作为 `--previous`，如果同一源码与目标集合已经完成，`SKIP` 为 true，后续全部跳过。
 3. **候选不可变**：`prepare` 与 `candidate` 中都有检查——同一运行如果之前的 attempt 已成功提交过 `release-candidate`，重跑会直接报错 "Submitted candidates are immutable"。
 4. **可选平台**：targets 中带 `?` 的（如 `desktop-linux?`）表示可选，对应矩阵项 `required: false`，job 以 `continue-on-error: ${{ !matrix.required }}` 运行，失败不阻断整体发布。
-5. **未签名候选 + 外部签名**：`release-desktop-platform.yml` 中设置 `AFFINE_UNSIGNED_PACKAGE: '1'`（对应第 20 章 `forge.config.mjs` 跳过 `osxSign`），产物 stage 记为 `unsigned`；签名、公证、上传等由 `release-submit.yml` 派发到 `toeverything/affine-native` 仓库的 `affine-release.yml` 完成。这使主仓库的工作流**不需要持有签名私钥**。
+5. **未签名候选 + 外部签名**：`release-desktop-platform.yml` 中设置 `AFFINE_UNSIGNED_PACKAGE: '1'`（对应第 24 章 `forge.config.mjs` 跳过 `osxSign`），产物 stage 记为 `unsigned`；签名、公证、上传等由 `release-submit.yml` 派发到 `toeverything/affine-native` 仓库的 `affine-release.yml` 完成。这使主仓库的工作流**不需要持有签名私钥**。
 
 ### 26.11.2 prepare-release 的输出
 
@@ -933,7 +933,7 @@ flowchart LR
 - `build-server-native` 的 matrix 覆盖 `x86_64-unknown-linux-gnu`、`aarch64-unknown-linux-gnu`、`armv7-unknown-linux-gnueabihf`，分别重命名为 `server-native.x64.node`、`server-native.arm64.node`、`server-native.armv7.node`，并注入 `AFFINE_PRO_PUBLIC_KEY`、`AFFINE_PRO_LICENSE_AES_KEY`（自托管许可证校验相关）。
 - `build-images` 下载所有 dist，`yarn workspaces focus @affine/server --production` 安装生产依赖（`supportedArchitectures` 设置为 x64/arm64/arm + glibc，让 yarn 一次下载所有架构的预编译包），`prisma generate` 后用 `docker/build-push-action@v6` 构建 `linux/amd64,linux/arm64,linux/arm/v7` 多架构镜像，`provenance: true` 生成构建来源证明。
 - 镜像标签是 `candidate-${{ github.run_id }}-${{ github.run_attempt }}`，job 输出的是**按 digest 引用**的不可变地址 `ghcr.io/toeverything/affine@sha256:...`。
-- 镜像所用的 `.github/deployment/node/Dockerfile` 第 27 章详解。
+- 镜像所用的 `.github/deployment/node/Dockerfile` 第 31 章详解。
 
 ### 26.11.4 桌面与移动候选
 
@@ -957,7 +957,7 @@ workflow 只负责把 `secrets.SENTRY_ORG`、`secrets.SENTRY_AUTH_TOKEN`、`secr
 
 ### 26.12.2 签名
 
-- macOS：第 20 章 `forge.config.mjs` 中的 `osxSign`/`osxNotarize` 依赖 `APPLE_ID` 等变量；主仓库发布工作流设置 `AFFINE_UNSIGNED_PACKAGE: '1'` 跳过。
+- macOS：第 24 章 `forge.config.mjs` 中的 `osxSign`/`osxNotarize` 依赖 `APPLE_ID` 等变量；主仓库发布工作流设置 `AFFINE_UNSIGNED_PACKAGE: '1'` 跳过。
 - Windows：`packages/frontend/apps/electron/scripts/sign-windows.ts` 需要 `AFFINE_SIGNER_ADDR`、`AFFINE_SIGNER_TOKEN`、`AFFINE_SIGN_CLIENT_HASH`、`WINDOWS_SIGNER_PUBLIC_CERT_BASE64`。仓库根还有一个检查脚本：
 
 ```js
@@ -995,7 +995,7 @@ if (missing.length === 0) {
 
 ### 26.12.3 版本号
 
-`setup-version` 调用 `scripts/set-version.sh <version>`：遍历 `yarn workspaces list --json` 的每个 workspace，用 `jq` 改写 `package.json` 的 `version`，并更新 Linux AppStream 元数据中的版本与日期。仓库中所有包版本统一（本书写作时为 0.27.5），正是这个脚本保证的。第 20 章 `generate-assets.ts` 中"`RELEASE_VERSION` 与 package.json 版本不一致就报错"的检查与之呼应。
+`setup-version` 调用 `scripts/set-version.sh <version>`：遍历 `yarn workspaces list --json` 的每个 workspace，用 `jq` 改写 `package.json` 的 `version`，并更新 Linux AppStream 元数据中的版本与日期。仓库中所有包版本统一（本书写作时为 0.27.5），正是这个脚本保证的。第 24 章 `generate-assets.ts` 中"`RELEASE_VERSION` 与 package.json 版本不一致就报错"的检查与之呼应。
 
 ## 26.13 周边配置：Renovate、render.yaml、CodeSandbox 等
 
@@ -1017,7 +1017,7 @@ if (missing.length === 0) {
 | `.github/auto_assign.yml` | 自动把 PR 作者设为 assignee（`addAssignees: author`） |
 | `.github/PULL_REQUEST_TEMPLATE.md`、`.github/ISSUE_TEMPLATE/` | PR 与 Issue 模板（第 3 章） |
 | `.github/CLA.md` | 贡献者许可协议 |
-| `.github/deployment/node/Dockerfile` | 服务端镜像（第 27 章） |
+| `.github/deployment/node/Dockerfile` | 服务端镜像（第 31 章） |
 
 ### 26.13.3 render.yaml 与 .render/：一键部署到 Render
 
@@ -1074,7 +1074,7 @@ node ./scripts/self-host-predeploy.js
 exec node ./dist/main.js
 ```
 
-> 严格说这是"一键自托管模板"而非 PR 预览环境：它部署的是已发布的 `stable` 镜像，不会构建 PR 代码。`self-host-predeploy.js` 的细节见第 27 章。
+> 严格说这是"一键自托管模板"而非 PR 预览环境：它部署的是已发布的 `stable` 镜像，不会构建 PR 代码。`self-host-predeploy.js` 的细节见第 31 章。
 
 ### 26.13.4 .codesandbox/task.json
 
@@ -1242,7 +1242,7 @@ exec node ./dist/main.js
 - Conventional Commits 规范与 commitlint。
 - Renovate 文档：packageRules、customManagers。
 - Render Blueprint（`render.yaml`）规范。
-- 本书第 4 章（分支与发布节奏）、第 25 章（测试体系）、第 27 章（镜像与部署）、第 28 章（供应链安全）。
+- 本书第 4 章（分支与发布节奏）、第 29 章（测试体系）、第 31 章（镜像与部署）、第 32 章（供应链安全）。
 
 ## 学时拆分
 
@@ -1257,4 +1257,4 @@ exec node ./dist/main.js
 | **合计** | **6 小时** |
 
 ---
-上一章：[第 25 章 测试体系](../08-质量保障/25-测试体系.md) ｜ 下一章：[第 27 章 部署与运维](./27-部署与运维.md) ｜ [返回目录](../README.md)
+上一章：[第 29 章 测试体系](../08-质量保障/29-测试体系.md) ｜ 下一章：[第 31 章 部署与运维](./31-部署与运维.md) ｜ [返回目录](../README.md)

@@ -1,10 +1,10 @@
-# 第 17 章 Core 业务模块与路由
+# 第 21 章 Core 业务模块与路由
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：第 16 章 前端基础设施-DI与LiveData
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：第 20 章 前端基础设施-DI与LiveData
 
 ## 本章导读
 
-第 16 章我们拆开了 `@toeverything/infra` 这把"螺丝刀"。本章要用它去看清整台机器——`@affine/core`（目录 `packages/frontend/core`）。这是 AFFiNE 前端体量最大的包：桌面版与移动版的所有页面、69 个业务模块、编辑器集成、命令系统都在这里；而 `packages/frontend/apps/web`、`apps/electron-renderer`、`apps/mobile` 等"应用壳"只做一件事——**按平台挑选模块并组装 Framework，然后把根组件挂到 DOM 上**。
+第 20 章我们拆开了 `@toeverything/infra` 这把"螺丝刀"。本章要用它去看清整台机器——`@affine/core`（目录 `packages/frontend/core`）。这是 AFFiNE 前端体量最大的包：桌面版与移动版的所有页面、69 个业务模块、编辑器集成、命令系统都在这里；而 `packages/frontend/apps/web`、`apps/electron-renderer`、`apps/mobile` 等"应用壳"只做一件事——**按平台挑选模块并组装 Framework，然后把根组件挂到 DOM 上**。
 
 读完本章，你应当能回答三个问题：
 
@@ -149,7 +149,7 @@ window.addEventListener('focus', () => {
 frameworkProvider.get(LifecycleService).applicationStart();
 ```
 
-`App` 组件依次包裹 `Suspense` → `FrameworkRoot` → emotion `CacheProvider` → `I18nProvider` → `AffineContext`（Jotai、ThemeProvider、ConfirmModalProvider、PromptModalProvider）→ `RouterProvider router={router}`。`nbstore.worker.ts` 是 Worker 侧入口（注册 idb、broadcast-channel、cloud 存储实现），第 19 章展开。
+`App` 组件依次包裹 `Suspense` → `FrameworkRoot` → emotion `CacheProvider` → `I18nProvider` → `AffineContext`（Jotai、ThemeProvider、ConfirmModalProvider、PromptModalProvider）→ `RouterProvider router={router}`。`nbstore.worker.ts` 是 Worker 侧入口（注册 idb、broadcast-channel、cloud 存储实现），第 23 章展开。
 
 ### 17.2.2 启动到渲染的时序
 
@@ -200,7 +200,7 @@ export function configureBrowserWorkbenchModule(services: Framework) {
 }
 ```
 
-这就是"同一份业务代码，多端换实现"的落地方式。第 20 章会展开 Electron 与移动端。
+这就是"同一份业务代码，多端换实现"的落地方式。第 24 章会展开 Electron 与移动端。
 
 ## 17.3 modules 全景：configureCommonModules
 
@@ -321,7 +321,7 @@ export class Workspace extends Entity {
 }
 ```
 
-`Workspace` 是工作区作用域内的"根实体"：持有根 YDoc（guid = 工作区 id），懒创建 BlockSuite 的 `docCollection`（`impls/workspace.ts` 的 `WorkspaceImpl`），并把文档加载、Blob 读写、Awareness 全部委托给 `engine`。`WorkspaceEngine.start()` 通过 `NbstoreService.openStore` 打开存储（key 形如 `workspace:<flavour>:<id>`），得到 `StoreClient`，再暴露 `doc`/`blob`/`indexer`/`awareness` 四个 frontend——这正是第 19 章的入口。
+`Workspace` 是工作区作用域内的"根实体"：持有根 YDoc（guid = 工作区 id），懒创建 BlockSuite 的 `docCollection`（`impls/workspace.ts` 的 `WorkspaceImpl`），并把文档加载、Blob 读写、Awareness 全部委托给 `engine`。`WorkspaceEngine.start()` 通过 `NbstoreService.openStore` 打开存储（key 形如 `workspace:<flavour>:<id>`），得到 `StoreClient`，再暴露 `doc`/`blob`/`indexer`/`awareness` 四个 frontend——这正是第 23 章的入口。
 
 ```mermaid
 classDiagram
@@ -564,7 +564,7 @@ export class Workbench extends Entity {
 
 `View` 实体（`entities/view.ts`）构造时 `createScope(ViewScope, { view: this })`，用 `createNavigableHistory`（`utils/navigable-history.ts`）创建内存历史，暴露 `location$`、`entries$`、`sidebarTabs$` 等。
 
-`WorkbenchService` 监听 `location$` 变化后通过 **`this.eventBus.root.emit(WorkbenchLocationChanged, ...)`** 向根总线广播（第 16 章讲过，根总线发出的事件能到达所有已创建子作用域），`PeekViewService` 用 `@OnEvent(WorkbenchLocationChanged, e => () => e.peekView.close())` 在路由变化时关闭预览层。
+`WorkbenchService` 监听 `location$` 变化后通过 **`this.eventBus.root.emit(WorkbenchLocationChanged, ...)`** 向根总线广播（第 20 章讲过，根总线发出的事件能到达所有已创建子作用域），`PeekViewService` 用 `@OnEvent(WorkbenchLocationChanged, e => () => e.peekView.close())` 在路由变化时关闭预览层。
 
 ### 17.7.3 渲染：SplitView + 每个 View 一个 MemoryRouter
 
@@ -655,7 +655,7 @@ export function getWorkspaceDocPath(workspaceId: string, docId: string) {
 | `/redirect-proxy` | `redirect` | 外链跳转代理（配合 `PopupWindowProvider`） |
 | `/subscribe`、`/upgrade-to-team` | `subscribe`、`upgrade-to-team` | 订阅流程 |
 | `/try-cloud`、`/template/preview` | —（loader 重定向） | 营销入口 |
-| `/theme-editor` | `theme-editor` | 主题编辑器（第 18 章） |
+| `/theme-editor` | `theme-editor` | 主题编辑器（第 22 章） |
 | `/clipper/import`、`/template/import` | `import-clipper`、`import-template` | 导入 |
 | `/auth/:authType`、`/sign-In`、`/magic-link`、`/oauth/login`、`/oauth/callback` | `auth` | 认证（同一 webpackChunkName `auth`） |
 | `/desktop-signin`、`/signIn` | `auth` | 已废弃，兼容旧客户端 |
@@ -748,7 +748,7 @@ export interface OrderByProvider {
 | 模块 | 存储位置 | 核心实体 | 备注 |
 |---|---|---|---|
 | `tag` | 根 YDoc `meta.properties.tags.options`（`TagStore` 用 `yjsGetPath` 观察） | `TagList`、`Tag` | 标签与文档的关联存在文档 meta 的 tags 字段 |
-| `favorite` | userdata DB `favorite` 表 | `FavoriteList` | 按用户隔离（第 16 章案例） |
+| `favorite` | userdata DB `favorite` 表 | `FavoriteList` | 按用户隔离（第 20 章案例） |
 | `organize` | workspace DB `folders` 表 | `FolderTree`、`FolderNode` | 文件夹树，`index` 为分数索引 |
 
 `navigation-panel` 模块管理左侧导航树的展开/折叠状态，`desktop/components/navigation-panel` 与 `mobile/components/navigation` 消费上述三个模块渲染"收藏 / 文件夹 / 标签 / 收藏夹"分区。
@@ -775,7 +775,7 @@ this.quickSearchService.quickSearch.show(
 );
 ```
 
-`DocsQuickSearchSession` 依赖 `DocsSearchService`（`docs-search` 模块，查询 nbstore 索引，见第 19 章）；`CommandsQuickSearchSession`（`impls/commands.ts`）通过 `AffineCommandRegistry.getAll()` 取出所有命令；`JournalsQuickSearchSession`、`ExternalLinksQuickSearchSession` 等则在编辑器侧（`blocksuite/view-extensions/editor-view/quick-search-service.ts`）按需组合使用。
+`DocsQuickSearchSession` 依赖 `DocsSearchService`（`docs-search` 模块，查询 nbstore 索引，见第 23 章）；`CommandsQuickSearchSession`（`impls/commands.ts`）通过 `AffineCommandRegistry.getAll()` 取出所有命令；`JournalsQuickSearchSession`、`ExternalLinksQuickSearchSession` 等则在编辑器侧（`blocksuite/view-extensions/editor-view/quick-search-service.ts`）按需组合使用。
 
 ### 17.10.2 commands：VSCode 风格的命令注册表
 
@@ -867,7 +867,7 @@ flowchart TB
 | 专属模块 | Electron 专属在 apps 层 configure | `mobile/modules`：`configureMobileBackCoordinator`、`configureMobileSearchModule`、`configureMobileVirtualKeyboardModule`、`configureMobileNavigationProjection`、`configureMobileHapticsModule` |
 | UI 组件 | `desktop/components` | `mobile/components`（`app-tabs` 底部标签栏、`swipe-menu`、`page-header` 等）与 `mobile/views` |
 
-`@affine/component` 内部也有移动分支：如 `ui/menu/index.ts` 根据 `BUILD_CONFIG.isMobileEdition` 导出 `MobileMenu` 或 `DesktopMenu`（第 18 章）。**业务模块（modules）完全共享**，差异只在页面与少量平台模块。
+`@affine/component` 内部也有移动分支：如 `ui/menu/index.ts` 根据 `BUILD_CONFIG.isMobileEdition` 导出 `MobileMenu` 或 `DesktopMenu`（第 22 章）。**业务模块（modules）完全共享**，差异只在页面与少量平台模块。
 
 ### 17.12.2 本章小结
 
@@ -914,7 +914,7 @@ flowchart TB
 ### 练习 3：在 Workbench 中分屏打开（进阶）
 
 - **目标**：理解 `Workbench.open` 的 `at` 参数。
-- **步骤**：本地启动开发环境（参考第 11 章）后，在浏览器控制台利用 `WorkbenchRoot` 挂出的调试变量 `window.workbench` 执行 `workbench.openAll({ at: 'beside' })`，再执行 `workbench.views$.value.length`、`workbench.active(0)`。
+- **步骤**：本地启动开发环境（参考第 15 章）后，在浏览器控制台利用 `WorkbenchRoot` 挂出的调试变量 `window.workbench` 执行 `workbench.openAll({ at: 'beside' })`，再执行 `workbench.views$.value.length`、`workbench.active(0)`。
 - **验收标准**：界面出现两个并排 View；能解释浏览器地址栏为什么跟随活动 View 变化。
 
 ### 练习 4：新增一个 CMD-K 命令（进阶）
@@ -975,10 +975,10 @@ flowchart TB
 - `packages/frontend/core/src/modules/workbench/README.md`：Workbench 设计说明；
 - `packages/frontend/routes/README.md`：路由工厂与参数类型用法；
 - `packages/frontend/core/src/commands/registry/README.md`：命令抽象说明；
-- 第 16 章：作用域、事件、LiveData 原理；
-- 第 18 章：组件库与 i18n（命令 label、对话框 UI）；
-- 第 19 章：`WorkspaceEngine` 背后的 nbstore；
-- 第 20 章：Electron 与移动端入口的完整组装；
+- 第 20 章：作用域、事件、LiveData 原理；
+- 第 22 章：组件库与 i18n（命令 label、对话框 UI）；
+- 第 23 章：`WorkspaceEngine` 背后的 nbstore；
+- 第 24 章：Electron 与移动端入口的完整组装；
 - React Router 文档 `createMemoryRouter`、`lazy` 路由；VSCode 文档 Commands。
 
 ## 学时拆分
@@ -995,4 +995,4 @@ flowchart TB
 | **合计** | **12 小时** |
 
 ---
-上一章：[第 16 章 前端基础设施：DI 与 LiveData](./16-前端基础设施-DI与LiveData.md) ｜ 下一章：[第 18 章 组件库、主题与国际化](./18-组件库主题与国际化.md) ｜ [返回目录](../README.md)
+上一章：[第 20 章 前端基础设施：DI 与 LiveData](./20-前端基础设施-DI与LiveData.md) ｜ 下一章：[第 22 章 组件库、主题与国际化](./22-组件库主题与国际化.md) ｜ [返回目录](../README.md)

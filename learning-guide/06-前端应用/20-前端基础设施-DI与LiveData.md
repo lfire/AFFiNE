@@ -1,6 +1,6 @@
-# 第 16 章 前端基础设施：DI 与 LiveData
+# 第 20 章 前端基础设施：DI 与 LiveData
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 6 章 前端技术栈-React-Lit-Signals-RxJS
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 10 章 前端技术栈-React-Lit-Signals-RxJS
 
 ## 本章导读
 
@@ -62,7 +62,7 @@ mindmap
 
 ## 16.1 infra 全景：一个包，三层能力
 
-`@toeverything/infra` 是 `private` 的 workspace 包。`packages/common/infra/package.json` 的 `exports` 直接指向 `.ts` 源文件（`".": "./src/index.ts"`、`"./op": "./src/op/index.ts"` 等），由上层构建工具统一转译（见第 10 章）。根入口 `src/index.ts` 再导出 `app-config-storage`、`atom`、`framework`、`livedata`、`media`、`orm`、`storage`、`utils`——**唯独 `op` 不在根入口**，必须 `import { OpClient } from '@toeverything/infra/op'`。这是有意为之：`op` 会在 Worker 里用，而 Worker 不应把 React（`framework/react`、`livedata/react`）打进包里。
+`@toeverything/infra` 是 `private` 的 workspace 包。`packages/common/infra/package.json` 的 `exports` 直接指向 `.ts` 源文件（`".": "./src/index.ts"`、`"./op": "./src/op/index.ts"` 等），由上层构建工具统一转译（见第 14 章）。根入口 `src/index.ts` 再导出 `app-config-storage`、`atom`、`framework`、`livedata`、`media`、`orm`、`storage`、`utils`——**唯独 `op` 不在根入口**，必须 `import { OpClient } from '@toeverything/infra/op'`。这是有意为之：`op` 会在 Worker 里用，而 Worker 不应把 React（`framework/react`、`livedata/react`）打进包里。
 
 | 子目录 | 核心导出 | 职责 | 主要使用方 |
 |---|---|---|---|
@@ -406,7 +406,7 @@ flowchart TB
   WS --> View[ViewScope 每个工作台视图]
 ```
 
-分别定义于 `modules/cloud/scopes/server.ts`、`modules/workspace/scopes/workspace.ts`、`modules/doc/scopes/doc.ts`、`modules/editor/scopes/editor.ts`、`modules/workbench/scopes/view.ts`，第 17 章详细展开。
+分别定义于 `modules/cloud/scopes/server.ts`、`modules/workspace/scopes/workspace.ts`、`modules/doc/scopes/doc.ts`、`modules/editor/scopes/editor.ts`、`modules/workbench/scopes/view.ts`，第 21 章详细展开。
 
 ### 16.5.4 错误类型速查
 
@@ -920,7 +920,7 @@ flowchart LR
   YDoc --> Engine[nbstore DocFrontend 持久化与同步]
 ```
 
-`YjsTableAdapter`（`orm/core/adapters/yjs/table.ts`）的注释写明结构："每张表是一个 YDoc，key → 行（YMap），行内字段 → 原始值"，删除采用软删除标记 `$$DELETED`。每张表的 YDoc 通过 `engine.doc.connectDoc` 接入第 19 章的 nbstore，于是**收藏数据自动获得本地持久化与多端同步**。
+`YjsTableAdapter`（`orm/core/adapters/yjs/table.ts`）的注释写明结构："每张表是一个 YDoc，key → 行（YMap），行内字段 → 原始值"，删除采用软删除标记 `$$DELETED`。每张表的 YDoc 通过 `engine.doc.connectDoc` 接入第 23 章的 nbstore，于是**收藏数据自动获得本地持久化与多端同步**。
 
 `Table`（`orm/core/table.ts`）提供 `create`、`update`、`get/get$`、`find/find$`、`select/select$`、`keys/keys$`、`delete`；带 `$` 的返回 Observable，正好喂给 `LiveData.from`。`ORMClient.defineHook` 支持写入前变换，见 `orm/core/__tests__/hook.spec.ts`。
 
@@ -957,7 +957,7 @@ const sum = await client.call('add', { a: 1, b: 2 }); // 3
 const sub = client.ob$('ticks', 1000).subscribe(console.log);
 ```
 
-Consumer 的 handler 可返回值、Promise 或 Observable，内部统一 `defer` 为 Observable 并 `takeUntil(abort)`；`call` 取第一个值即完成。Client 端 `call` 最后一个参数可传 `AbortSignal`，取消时发送 `cancel`，Consumer 侧对应的 AbortController 被 abort。`transfer(data, [buffer])` 把可转移对象登记到模块级 `Map`，`postMessage` 时取出——nbstore 正是用它把 `MessagePort` 转交给 Worker（`packages/common/nbstore/src/worker/client.ts` 的 `open`）。第 19 章详述。
+Consumer 的 handler 可返回值、Promise 或 Observable，内部统一 `defer` 为 Observable 并 `takeUntil(abort)`；`call` 取第一个值即完成。Client 端 `call` 最后一个参数可传 `AbortSignal`，取消时发送 `cancel`，Consumer 侧对应的 AbortController 被 abort。`transfer(data, [buffer])` 把可转移对象登记到模块级 `Map`，`postMessage` 时取出——nbstore 正是用它把 `MessagePort` 转交给 Worker（`packages/common/nbstore/src/worker/client.ts` 的 `open`）。第 23 章详述。
 
 ### 16.11.3 storage、atom、app-config 与 utils
 
@@ -994,7 +994,7 @@ BlockSuite 在 `blocksuite/framework/global/src/di` 有一套几乎同源的 DI�
 | Scope 表示 | Scope 是带 props 的组件类 | `createScope(name, base)` 返回字符串数组 |
 | 事件 | 内置 `EventBus` + `@OnEvent` | 无（BlockSuite 用自己的扩展机制） |
 | React 集成 | 有 | 无（Lit 世界） |
-| 用途 | 应用层业务模块 | 编辑器扩展（`ExtensionType`、`StdIdentifier`，见第 13 章） |
+| 用途 | 应用层业务模块 | 编辑器扩展（`ExtensionType`、`StdIdentifier`，见第 17 章） |
 
 可以把 infra framework 看作 BlockSuite DI 的"应用层增强版"。两套容器**互不相通**：AFFiNE 向编辑器注入应用能力时，在 `packages/frontend/core/src/blocksuite/view-extensions` 中让各 `ViewExtensionProvider` 通过 options 接收 infra 的 `FrameworkProvider`（如 `view-extensions/database/index.ts` 的 `framework: z.instanceof(FrameworkProvider).optional()`），再把服务包装成 BlockSuite 扩展 `context.register(...)`。
 
@@ -1111,9 +1111,9 @@ BlockSuite 在 `blocksuite/framework/global/src/di` 有一套几乎同源的 DI�
 
 - `packages/common/infra/src/op/README.md`：op 官方用法；
 - `packages/common/infra/src/framework/core/identifier.ts` 顶部长注释：作者对控制反转与 variant 的说明；
-- 第 13 章 BlockSuite-Std 视图扩展命令事件：BlockSuite DI 与扩展机制；
-- 第 17 章 Core 业务模块与路由：作用域树在业务中的完整展开；
-- 第 19 章 存储与同步引擎 nbstore：op 与 ORM 背后的存储引擎；
+- 第 17 章 BlockSuite-Std 视图扩展命令事件：BlockSuite DI 与扩展机制；
+- 第 21 章 Core 业务模块与路由：作用域树在业务中的完整展开；
+- 第 23 章 存储与同步引擎 nbstore：op 与 ORM 背后的存储引擎；
 - React 文档 `useSyncExternalStore`；RxJS 文档 `BehaviorSubject`、`switchMap`、`exhaustMap`；Android Jetpack LiveData（命名来源，见 `livedata.ts` 注释）。
 
 ## 学时拆分
@@ -1129,4 +1129,4 @@ BlockSuite 在 `blocksuite/framework/global/src/di` 有一套几乎同源的 DI�
 | **合计** | **8 小时** |
 
 ---
-上一章：[第 15 章 自定义 Block 实战](../05-编辑器内核BlockSuite/15-自定义Block实战.md) ｜ 下一章：[第 17 章 Core 业务模块与路由](./17-Core业务模块与路由.md) ｜ [返回目录](../README.md)
+上一章：[第 19 章 自定义 Block 实战](../05-编辑器内核BlockSuite/19-自定义Block实战.md) ｜ 下一章：[第 21 章 Core 业务模块与路由](./21-Core业务模块与路由.md) ｜ [返回目录](../README.md)

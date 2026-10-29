@@ -1,6 +1,6 @@
-# 第 7 章 Rust 与 NAPI-rs
+# 第 11 章 Rust 与 NAPI-rs
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 5 章
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 7 章（Rust 基础）、第 9 章
 
 ## 本章导读
 
@@ -729,7 +729,7 @@ confidence-threshold = 0.93
   crate = "llm_adapter"
 ```
 
-这是 [cargo-deny](https://embarkstudios.github.io/cargo-deny/) 的配置，当前只启用了 **licenses** 检查：列出允许的开源许可证白名单，并对 `llm_adapter`、`memory-indexer`、`path-ext` 等个别 crate 单独放行 AGPL。仓库的 GitHub workflows 中未直接调用 cargo-deny，可在本地执行 `cargo deny check licenses` 验证（需先安装 cargo-deny）。许可证合规的更多内容见第 28 章。
+这是 [cargo-deny](https://embarkstudios.github.io/cargo-deny/) 的配置，当前只启用了 **licenses** 检查：列出允许的开源许可证白名单，并对 `llm_adapter`、`memory-indexer`、`path-ext` 等个别 crate 单独放行 AGPL。仓库的 GitHub workflows 中未直接调用 cargo-deny，可在本地执行 `cargo deny check licenses` 验证（需先安装 cargo-deny）。许可证合规的更多内容见第 32 章。
 
 ## 7.7 napi-rs：让 Rust 成为 Node.js 模块
 
@@ -1015,7 +1015,7 @@ module.exports = binding;
 | `@affine/native` | `"build": "napi build -p affine_native --platform --release"`，调试版 `build:debug` |
 | `@affine/server-native` | `"build": "napi build --release --no-const-enum"` |
 
-`--platform` 让产物文件名带上平台后缀；`--no-const-enum` / `"constEnum": false` 让 Rust 枚举生成普通 TS `enum` 而不是 `const enum`（呼应第 5 章：`isolatedModules` 下 `const enum` 不友好）。按照本教材约定，学习阶段**不必**执行这些耗时构建，第 11 章会讲解本地开发环境如何获取原生模块。
+`--platform` 让产物文件名带上平台后缀；`--no-const-enum` / `"constEnum": false` 让 Rust 枚举生成普通 TS `enum` 而不是 `const enum`（呼应第 9 章：`isolatedModules` 下 `const enum` 不友好）。按照本教材约定，学习阶段**不必**执行这些耗时构建，第 15 章会讲解本地开发环境如何获取原生模块。
 
 ## 7.8 各原生 crate 职责详解
 
@@ -1107,7 +1107,7 @@ mod utils;
 
 生成的 `packages/backend/native/index.d.ts` 约 1900 行，导出 60 余个函数与 `BackendRuntime`、`StorageRuntime`、`ServerConfigHandle`、`Tokenizer`、`CopilotStreamHandle` 等类。可见服务端正在把越来越多的"核心规则"下沉到 Rust。
 
-lib.rs 中直接定义的 `merge_updates_in_apply_way` 是理解第 8 章的关键：
+lib.rs 中直接定义的 `merge_updates_in_apply_way` 是理解第 12 章的关键：
 
 ```rust
 /// Merge updates in form like `Y.applyUpdate(doc, update)` way and return the
@@ -1162,7 +1162,7 @@ pub use import::*;
 
 ### 7.8.5 affine_nbstore：三端共用的 SQLite 存储
 
-nbstore 是"No-Backend Store"的 Rust 实现之一（TS 侧的抽象在 `packages/common/nbstore`，第 19 章详解）。它用 **sqlx + SQLite** 实现文档更新、快照、时钟、Blob、同步对端时钟、索引同步等存储。
+nbstore 是"No-Backend Store"的 Rust 实现之一（TS 侧的抽象在 `packages/common/nbstore`，第 23 章详解）。它用 **sqlx + SQLite** 实现文档更新、快照、时钟、Blob、同步对端时钟、索引同步等存储。
 
 `get_doc` 的读取 + 压缩逻辑（来源：`packages/frontend/native/nbstore/src/doc.rs`，节选）：
 
@@ -1189,7 +1189,7 @@ nbstore 是"No-Backend Store"的 Rust 实现之一（TS 侧的抽象在 `package
       }
 ```
 
-读取一个文档时，把"快照 + 所有增量更新"用 y-octo 的 `merge_updates_v1` 合并成新快照，验证无缺失依赖后，在事务中以**乐观并发**方式（`UPDATE ... WHERE updated_at = ? AND data = ?`）写回快照并删除已合并的 updates；若期间有并发写入就重试，最多 8 次后返回 `ConcurrentModification`。这个"读时压缩"的设计在第 8 章还会从 CRDT 角度再分析一次。
+读取一个文档时，把"快照 + 所有增量更新"用 y-octo 的 `merge_updates_v1` 合并成新快照，验证无缺失依赖后，在事务中以**乐观并发**方式（`UPDATE ... WHERE updated_at = ? AND data = ?`）写回快照并删除已合并的 updates；若期间有并发写入就重试，最多 8 次后返回 `ConcurrentModification`。这个"读时压缩"的设计在第 12 章还会从 CRDT 角度再分析一次。
 
 Electron 侧的调用——来源：`packages/frontend/apps/electron/src/helper/nbstore/handlers.ts`
 
@@ -1285,7 +1285,7 @@ napi 与 UniFFI 的对照：
 | `packages/frontend/native/nbstore/src/doc.rs` | `merge_updates_v1` 压缩、`DocOptions::new().with_guid(..).build()` 校验 |
 | `affine_doc_loader`（外部 crate） | 解析文档内容（标题、Markdown、搜索投影） |
 
-后端 crate 启用了 `y-octo = { workspace = true, features = ["large_refs"] }`。与 JS Yjs 的互操作是通过**相同的 update v1 二进制编码**实现的——前端 Yjs 产生的 update，可以直接交给 y-octo 合并；反之亦然。第 8 章将深入 CRDT 原理。
+后端 crate 启用了 `y-octo = { workspace = true, features = ["large_refs"] }`。与 JS Yjs 的互操作是通过**相同的 update v1 二进制编码**实现的——前端 Yjs 产生的 update，可以直接交给 y-octo 合并；反之亦然。第 12 章将深入 CRDT 原理。
 
 ## 7.9 JS 如何调用：@affine/server-native 与 native.ts
 
@@ -1356,7 +1356,7 @@ sequenceDiagram
     B-->>R: Promise resolve Buffer
 ```
 
-此外，后端的 Redis/Prisma/WebSocket 等配置模块也通过 `serverNativeModule.appConfigDescriptors('redis')` 从 Rust 获取配置描述（第 5 章看过的 `packages/backend/server/src/base/redis/config.ts`），说明**配置 schema 的真相源也在 Rust**。
+此外，后端的 Redis/Prisma/WebSocket 等配置模块也通过 `serverNativeModule.appConfigDescriptors('redis')` 从 Rust 获取配置描述（第 9 章看过的 `packages/backend/server/src/base/redis/config.ts`），说明**配置 schema 的真相源也在 Rust**。
 
 ## 7.10 测试与基准
 
@@ -1583,7 +1583,7 @@ Cargo 规定：位于 workspace 根目录之内的 path 依赖会自动成为 wo
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| `Error: Cannot find module './affine.darwin-arm64.node'` | 原生模块未构建或平台不匹配 | 按第 11 章获取/构建原生模块；检查 `NAPI_RS_NATIVE_LIBRARY_PATH` 是否误设 |
+| `Error: Cannot find module './affine.darwin-arm64.node'` | 原生模块未构建或平台不匹配 | 按第 15 章获取/构建原生模块；检查 `NAPI_RS_NATIVE_LIBRARY_PATH` 是否误设 |
 | 编译 nbstore 报 `error communicating with database` 或 `DATABASE_URL must be set` | build.rs 未成功建库，或在 IDE 中单独检查宏时缺少环境变量 | 通过 `cargo build -p affine_nbstore` 让 build.rs 运行；rust-analyzer 可配置运行构建脚本 |
 | `cannot move out of self.xxx which is behind a mutable reference` | 在 `&mut self` 方法中试图移动字段 | 使用 `std::mem::replace` / `take`，或改为借用 |
 | `borrowed value does not live long enough` | 返回了局部变量的引用 | 返回拥有所有权的值（`String`/`Vec`），或正确标注生命周期 |
@@ -1627,4 +1627,4 @@ Cargo 规定：位于 workspace 根目录之内的 path 依赖会自动成为 wo
 | **合计** | **10 小时** |
 
 ---
-上一章：[第 6 章 前端技术栈：React、Lit、Signals、RxJS](06-前端技术栈-React-Lit-Signals-RxJS.md) ｜ 下一章：[第 8 章 CRDT 与 Yjs 原理](08-CRDT与Yjs原理.md) ｜ [返回目录](../README.md)
+上一章：[第 10 章 前端技术栈：React、Lit、Signals、RxJS](10-前端技术栈-React-Lit-Signals-RxJS.md) ｜ 下一章：[第 12 章 CRDT 与 Yjs 原理](12-CRDT与Yjs原理.md) ｜ [返回目录](../README.md)

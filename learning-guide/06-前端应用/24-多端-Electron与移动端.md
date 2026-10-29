@@ -1,6 +1,6 @@
-# 第 20 章 多端：Electron 与移动端
+# 第 24 章 多端：Electron 与移动端
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 17 章 Core 业务模块与路由、第 19 章 存储与同步引擎 nbstore
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 21 章 Core 业务模块与路由、第 23 章 存储与同步引擎 nbstore
 
 ## 本章导读
 
@@ -80,7 +80,7 @@ mindmap
 
 ## 20.1 为什么是"多个壳 + 一个核"
 
-先建立整体印象。AFFiNE 把所有 UI 与业务都放在 `packages/frontend/core`（第 17 章），而"应用"目录 `packages/frontend/apps/*` 只是一层很薄的**入口壳**：
+先建立整体印象。AFFiNE 把所有 UI 与业务都放在 `packages/frontend/core`（第 21 章），而"应用"目录 `packages/frontend/apps/*` 只是一层很薄的**入口壳**：
 
 | 包名 | 目录 | 运行环境 | distribution |
 | --- | --- | --- | --- |
@@ -655,7 +655,7 @@ contents.setWindowOpenHandler(({ url }) => {
 
 即：**应用内永远不会被导航到外部网页，也永远不会创建新窗口**；外链一律交给系统浏览器，且 `openExternalSafely` 只放行 `http:`、`https:`、`mailto:`，防止 `file://`、`smb://` 之类协议被滥用。
 
-`checkSource` 则是 IPC 层的守门人：它取 `e.senderFrame.url`（子 frame 场景下不信任 `sender.getURL()`），并考虑了"正在导航中"的 pending 状态，确保只有内部源的 frame 能调用 IPC。第 28 章会从安全角度再展开。
+`checkSource` 则是 IPC 层的守门人：它取 `e.senderFrame.url`（子 frame 场景下不信任 `sender.getURL()`），并考虑了"正在导航中"的 pending 状态，确保只有内部源的 frame 能调用 IPC。第 32 章会从安全角度再展开。
 
 ### 20.7.3 web-preferences.ts：统一默认值
 
@@ -715,7 +715,7 @@ helper.connectMain(browserWindow);
 
 ### 20.8.2 background worker：替代 SharedWorker
 
-在浏览器里，多个标签页共享一个 `SharedWorker` 运行 nbstore（第 19 章）。Electron 每个 WebContentsView 是独立进程，AFFiNE 用一个**隐藏 BrowserWindow** 扮演 SharedWorker：
+在浏览器里，多个标签页共享一个 `SharedWorker` 运行 nbstore（第 23 章）。Electron 每个 WebContentsView 是独立进程，AFFiNE 用一个**隐藏 BrowserWindow** 扮演 SharedWorker：
 
 ```mermaid
 sequenceDiagram
@@ -967,12 +967,12 @@ Fuse 是写进 Electron 二进制的开关，运行期无法修改：
 ### 20.11.4 签名与公证
 
 - macOS：`packagerConfig.osxSign` 指定 `Developer ID Application: TOEVERYTHING PTE. LTD.` 与 `hardened-runtime`；当设置 `APPLE_ID` 时用 `notarytool` 公证（`APPLE_PASSWORD`、`APPLE_TEAM_ID`）；设置 `AFFINE_UNSIGNED_PACKAGE` 可跳过签名（本地打包）。`extendInfo.NSAudioCaptureUsageDescription` 是录音功能必需的权限描述。
-- Windows：`scripts/sign-windows.ts` 不在 CI 机器上放私钥，而是下载一个签名客户端（按 `AFFINE_SIGN_CLIENT_HASH` 从 CDN 获取），用 `AFFINE_SIGNER_ADDR`、`AFFINE_SIGNER_TOKEN` 连接远程签名服务，`WINDOWS_SIGNER_PUBLIC_CERT_BASE64` 为公钥证书。第 26 章会讲 CI 中的 `scripts/check-windows-signer.mjs` 如何校验。
+- Windows：`scripts/sign-windows.ts` 不在 CI 机器上放私钥，而是下载一个签名客户端（按 `AFFINE_SIGN_CLIENT_HASH` 从 CDN 获取），用 `AFFINE_SIGNER_ADDR`、`AFFINE_SIGNER_TOKEN` 连接远程签名服务，`WINDOWS_SIGNER_PUBLIC_CERT_BASE64` 为公钥证书。第 30 章会讲 CI 中的 `scripts/check-windows-signer.mjs` 如何校验。
 - 渠道隔离：`scripts/make-env.ts` 中 `productName` 对非 stable 渠道为 `AFFiNE-${buildType}`，`hooks.readPackageJson` 覆写 productName，使 stable 与 canary 的应用数据目录互不干扰。
 
 ## 20.12 桌面原生能力：@affine/native
 
-`packages/frontend/native` 是一个 NAPI-RS 包（第 7 章），`package.json` 的 `napi.targets` 覆盖 macOS/Linux/Windows 的 x64 与 arm64。它本身是一个"聚合 crate"：
+`packages/frontend/native` 是一个 NAPI-RS 包（第 11 章），`package.json` 的 `napi.targets` 覆盖 macOS/Linux/Windows 的 x64 与 arm64。它本身是一个"聚合 crate"：
 
 ```rust
 // 来源：packages/frontend/native/src/lib.rs
@@ -1229,7 +1229,7 @@ function createStoreManagerClient() {
 }
 ```
 
-对比 Electron：Electron 中 nbstore worker 通过 preload 直接拿到 helper 的 `apis.nbstore`；iOS 中 worker 通过 MessagePort 回调主线程的 Capacitor 插件。**两者最终都调用 `bindNativeDBApis(...)` 喂给同一个 `sqliteStorages`**——这就是第 19 章抽象接口的价值。
+对比 Electron：Electron 中 nbstore worker 通过 preload 直接拿到 helper 的 `apis.nbstore`；iOS 中 worker 通过 MessagePort 回调主线程的 Capacitor 插件。**两者最终都调用 `bindNativeDBApis(...)` 喂给同一个 `sqliteStorages`**——这就是第 23 章抽象接口的价值。
 
 ### 20.13.5 mobile-native：uniffi 绑定
 
@@ -1464,7 +1464,7 @@ export function configureMobileHapticsModule(framework: Framework) {
 - `async-call-rpc` 项目文档（AFFiNE 用它在 MessagePort 上跑 JSON-RPC）。
 - Capacitor 8 官方文档：Creating Plugins、iOS/Android 自定义原生代码。
 - Mozilla uniffi-rs 用户指南。
-- 本书第 7 章（NAPI-rs）、第 16 章（DI 与 LiveData）、第 19 章（nbstore）、第 28 章（Electron 安全）。
+- 本书第 11 章（NAPI-rs）、第 20 章（DI 与 LiveData）、第 23 章（nbstore）、第 32 章（Electron 安全）。
 
 ## 学时拆分
 
@@ -1479,4 +1479,4 @@ export function configureMobileHapticsModule(framework: Framework) {
 | **合计** | **10 小时** |
 
 ---
-上一章：[第 19 章 存储与同步引擎 nbstore](./19-存储与同步引擎nbstore.md) ｜ 下一章：[第 21 章 后端架构与基础设施层](../07-后端服务/21-后端架构与基础设施层.md) ｜ [返回目录](../README.md)
+上一章：[第 23 章 存储与同步引擎 nbstore](./23-存储与同步引擎nbstore.md) ｜ 下一章：[第 25 章 后端架构与基础设施层](../07-后端服务/25-后端架构与基础设施层.md) ｜ [返回目录](../README.md)

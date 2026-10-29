@@ -1,6 +1,6 @@
-# 第 8 章 CRDT 与 Yjs 原理
+# 第 12 章 CRDT 与 Yjs 原理
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 6 章
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 8 章（CRDT 基础）、第 10 章
 
 ## 本章导读
 
@@ -322,7 +322,7 @@ Yjs 有两套二进制编码：v1（默认，`encodeStateAsUpdate`）与 v2（`e
 [DeleteSet：clientID → 被删除的 clock 区间列表]
 ```
 
-**AFFiNE 全链路使用 v1**：TS 侧调用的都是无后缀（v1）的 API；Rust 侧 y-octo 的函数名直接带 `_v1` 后缀（`apply_update_from_binary_v1`、`encode_update_v1`、`merge_updates_v1`，见第 7 章）。
+**AFFiNE 全链路使用 v1**：TS 侧调用的都是无后缀（v1）的 API；Rust 侧 y-octo 的函数名直接带 `_v1` 后缀（`apply_update_from_binary_v1`、`encode_update_v1`、`merge_updates_v1`，见第 11 章）。
 
 空 update 有特殊的二进制形态，项目里专门写了判断函数——来源：`packages/common/nbstore/src/utils/is-empty-update.ts`
 
@@ -630,7 +630,7 @@ export class WorkspaceMetaImpl implements WorkspaceMeta {
 | --- | --- | --- |
 | `sys:id` | string | Block ID |
 | `sys:flavour` | string | Block 类型，如 `affine:paragraph` |
-| `sys:version` | number | Schema 版本（对应 `defineBlockSchema` 的 `metadata.version`，不匹配时渲染"Block Version Mismatched"提示，见第 6 章） |
+| `sys:version` | number | Schema 版本（对应 `defineBlockSchema` 的 `metadata.version`，不匹配时渲染"Block Version Mismatched"提示，见第 10 章） |
 | `sys:children` | `Y.Array<string>` | 子 Block 的 ID 列表（**树形结构用 ID 引用表示，而非嵌套 Y.Map**） |
 | `prop:xxx` | 由 `native2Y` 转换 | 业务属性 |
 
@@ -690,7 +690,7 @@ export function native2Y<T>(
 | `Text`（BlockSuite 包装） | `Y.Text`（已挂载的会 `clone()`） | 字符级合并 |
 | `Boxed` | 一个内部 `Y.Map`，原始对象整体存在其 `value` 键中 | 整体覆盖，用于"不希望被拆成 CRDT 的不可分对象" |
 
-`Boxed` 的注释说得很清楚（`blocksuite/framework/store/src/reactive/boxed.ts`）："By default, store will try to convert a object to a Y.Map. If you want to store a raw object ... you can use Boxed."——选择哪种形态，决定了这个属性在协同时的冲突粒度，是设计自定义 Block 时必须考虑的问题（第 15 章）。
+`Boxed` 的注释说得很清楚（`blocksuite/framework/store/src/reactive/boxed.ts`）："By default, store will try to convert a object to a Y.Map. If you want to store a raw object ... you can use Boxed."——选择哪种形态，决定了这个属性在协同时的冲突粒度，是设计自定义 Block 时必须考虑的问题（第 19 章）。
 
 `Text` 类把 `Y.Text` 与 Signals 连接起来——来源：`blocksuite/framework/store/src/reactive/text/text.ts`
 
@@ -722,7 +722,7 @@ BlockSuite 官方博客 `blocksuite/docs-site/blog/crdt-native-data-flow.md` 阐
 > 2. Update the model nodes in the block tree based on the `Y.Event`.
 > 3. Send corresponding slot events after updating the block model, so as to update UI components accordingly.
 
-结合第 6 章看过的 `SyncController`（`blocksuite/framework/store/src/model/block/sync-controller.ts`），整条链路是：
+结合第 10 章看过的 `SyncController`（`blocksuite/framework/store/src/model/block/sync-controller.ts`），整条链路是：
 
 ```mermaid
 flowchart LR
@@ -788,7 +788,7 @@ index d5165426f2314fc3c2388e64841e7cd6498a92a9..4bb2e5a8b79bb59f08a011af77e69af8
 
 ## 8.8 nbstore：前端 update 的存取与合并
 
-nbstore 是 AFFiNE 前端的存储与同步引擎（第 19 章详解）。这里只关注它与 CRDT 相关的部分。
+nbstore 是 AFFiNE 前端的存储与同步引擎（第 23 章详解）。这里只关注它与 CRDT 相关的部分。
 
 ### 8.8.1 从 BlockSuite 文档到 nbstore
 
@@ -979,7 +979,7 @@ flowchart LR
 
 - `await using _lock = ...`：ES 显式资源管理语法（`AsyncDisposable`），作用域结束自动释放文档锁；
 - `squash` 只有一个 update 时快速返回，否则调用 `mergeUpdates`（可通过构造参数注入其他实现）；
-- 存储实现（IndexedDB：`packages/common/nbstore/src/impls/idb/doc.ts`；SQLite：经 `@affine/native` 调用第 7 章讲过的 Rust `affine_nbstore`）只需实现 `getDocSnapshot/setDocSnapshot/getDocUpdates/markUpdatesMerged` 等原语。
+- 存储实现（IndexedDB：`packages/common/nbstore/src/impls/idb/doc.ts`；SQLite：经 `@affine/native` 调用第 11 章讲过的 Rust `affine_nbstore`）只需实现 `getDocSnapshot/setDocSnapshot/getDocUpdates/markUpdatesMerged` 等原语。
 
 Rust 版 nbstore 的 `get_doc`（`packages/frontend/native/nbstore/src/doc.rs`）用 y-octo 做了同样的事，并多做了两步：合并后用 `DocOptions::new().with_guid(..)` 建一个文档 apply 一遍，检查 `has_pending_updates()`，**有缺失依赖就拒绝写回**；写回时用 `UPDATE ... WHERE updated_at = ? AND data = ?` 做乐观并发控制，冲突就重试。
 
@@ -1096,7 +1096,7 @@ model SnapshotHistory {
 
 注意字段名 `guid`：**文档的 `Y.Doc.guid` 就是数据库主键的一部分**；workspace root doc 的 guid 等于 workspaceId。`updatedAt` 的注释也很关键：它记录的是"最后一个被合并进来的 update 的创建时间"，而不是行的修改时间——这让它可以作为文档的逻辑时钟参与同步判断。
 
-数据层的完整讲解见第 22 章，这里只需建立"表 ↔ CRDT 概念"的对应。
+数据层的完整讲解见第 26 章，这里只需建立"表 ↔ CRDT 概念"的对应。
 
 ### 8.9.2 服务端的读时压缩与历史生成
 
@@ -1209,7 +1209,7 @@ export function mergeUpdatesWithYjs(
 | --- | --- | --- |
 | `mergeUpdatesWithYjs` | `Y.mergeUpdates`：**二进制层面**拼接 structs 与 DeleteSet | 快，不构造文档；但不做 GC、不整合 pending |
 | `applyUpdatesWithYjs` | 新建 `Y.Doc`，逐个 `applyUpdate`（每 10 个一批、用 `setImmediate` 让出事件循环），最后 `encodeStateAsUpdate` | 结果是"真正整合过"的文档状态，GC 生效、体积更小；较慢，需防止长时间占用 CPU |
-| `applyUpdatesWithNative` | Rust `merge_updates_in_apply_way`：y-octo 新建 `Doc`，逐个 apply 后 encode（第 7 章 7.8.3） | "apply 方式"的原生实现，更快更省内存 |
+| `applyUpdatesWithNative` | Rust `merge_updates_in_apply_way`：y-octo 新建 `Doc`，逐个 apply 后 encode（第 11 章 7.8.3） | "apply 方式"的原生实现，更快更省内存 |
 
 `recoverDocWithYjs` 中的注释 "avoid applying too many updates in single round which will take the whole cpu time like dead lock" 道出了在 Node 单线程中处理大文档的痛点——这也是引入 Rust 实现的动机之一。
 
@@ -1268,11 +1268,11 @@ y-octo 在服务端的其他用途：
 
 - **实时广播压缩**：`packages/backend/server/src/core/sync/gateway.ts` 中，当一次要广播多个 update 时，用 `applyUpdatesWithNative` 合并为一个再发给其他客户端（`compressed: true`）；
 - **写入前校验**：`DocStorageAdapter.filterValidDocUpdates` 调用 `validateDocUpdate`（Rust 的 `Update::decode_v1`，带 1 秒超时、32MB 上限），丢弃无法解码的 update，防止恶意或损坏数据污染文档；
-- **内容解析**：标题、摘要、Markdown、搜索索引投影都在 Rust 中直接从二进制解析（第 7 章）。
+- **内容解析**：标题、摘要、Markdown、搜索索引投影都在 Rust 中直接从二进制解析（第 11 章）。
 
 ### 8.9.4 历史版本与回滚
 
-版本历史的读取与回滚 API 定义在 `DocStorageAdapter` 上（`listDocHistories`、`getDocHistory`、`rollbackDoc`），前端的"页面历史"弹窗（`packages/frontend/core/src/components/affine/page-history-modal/`）通过 GraphQL 调用它们（第 23 章）。
+版本历史的读取与回滚 API 定义在 `DocStorageAdapter` 上（`listDocHistories`、`getDocHistory`、`rollbackDoc`），前端的"页面历史"弹窗（`packages/frontend/core/src/components/affine/page-history-modal/`）通过 GraphQL 调用它们（第 27 章）。
 
 回滚的实现值得特别注意——来源：`packages/backend/server/src/core/doc/storage/doc.ts`
 
@@ -1528,4 +1528,4 @@ state vector 记录每个 clientID 下一个期望的 clock，即"已经拥有�
 | **合计** | **8 小时** |
 
 ---
-上一章：[第 7 章 Rust 与 NAPI-rs](07-Rust与NAPI-rs.md) ｜ 下一章：[第 9 章 Monorepo 结构与包依赖地图](../04-工程化与开发环境/09-Monorepo结构与包依赖地图.md) ｜ [返回目录](../README.md)
+上一章：[第 11 章 Rust 与 NAPI-rs](11-Rust与NAPI-rs.md) ｜ 下一章：[第 13 章 Monorepo 结构与包依赖地图](../04-工程化与开发环境/13-Monorepo结构与包依赖地图.md) ｜ [返回目录](../README.md)

@@ -1,12 +1,12 @@
-# 第 13 章 BlockSuite Std：视图、扩展、命令、事件
+# 第 17 章 BlockSuite Std：视图、扩展、命令、事件
 
-> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：第 12 章（BlockSuite 架构与 Store 数据层）
+> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：第 16 章（BlockSuite 架构与 Store 数据层）
 
 ---
 
 ## 本章导读
 
-第 12 章我们看到，一篇文档在 BlockSuite 里是一棵存放在 Yjs 中的 Block 树，由 `Store` 管理。但 Store 不认识 DOM：它不知道段落该渲染成什么标签，不知道用户按下 Enter 时该做什么，也不知道光标在哪里。把"数据"变成"可编辑的界面"，是 `@blocksuite/std`（`blocksuite/framework/std`）的工作。
+第 16 章我们看到，一篇文档在 BlockSuite 里是一棵存放在 Yjs 中的 Block 树，由 `Store` 管理。但 Store 不认识 DOM：它不知道段落该渲染成什么标签，不知道用户按下 Enter 时该做什么，也不知道光标在哪里。把"数据"变成"可编辑的界面"，是 `@blocksuite/std`（`blocksuite/framework/std`）的工作。
 
 `std` 是 BlockSuite 的**编辑器标准库**，它提供：
 
@@ -305,7 +305,7 @@ flowchart TD
 | `selected$` | `computed`：当前块是否被 `BlockSelection` 选中 |
 | `parentComponent` / `childBlocks` / `rootComponent` / `widgetComponents` | 组件树导航 |
 | `topContenteditableElement` | 最近的可编辑根（Page 模式为根组件，Edgeless 中为 note） |
-| `isVersionMismatch` / `renderVersionMismatch` | 版本校验（第 12 章 12.5.5） |
+| `isVersionMismatch` / `renderVersionMismatch` | 版本校验（第 16 章 12.5.5） |
 
 ### 13.4.2 渲染管线：renderers
 
@@ -370,7 +370,7 @@ protected override async getUpdateComplete(): Promise<boolean> {
 
 ### 13.4.4 一个最小真实块组件：divider
 
-`blocksuite/affine/blocks/divider/src/divider-block.ts` 只有约 50 行，展示了块组件的三个惯例：继承 `CaptionedBlockComponent<DividerBlockModel>`；`connectedCallback` 中设 `contentEditable = 'false'`（非文本块）并 `handleEvent('click')` 设置 `BlockSelection`；`renderBlock` 中渲染 `<hr />` 并调用 `renderChildren(this.model)`。第 15 章会逐行拆解它。
+`blocksuite/affine/blocks/divider/src/divider-block.ts` 只有约 50 行，展示了块组件的三个惯例：继承 `CaptionedBlockComponent<DividerBlockModel>`；`connectedCallback` 中设 `contentEditable = 'false'`（非文本块）并 `handleEvent('click')` 设置 `BlockSelection`；`renderBlock` 中渲染 `<hr />` 并调用 `renderChildren(this.model)`。第 19 章会逐行拆解它。
 
 ### 13.4.5 WidgetComponent
 
@@ -594,7 +594,7 @@ flowchart BT
 
 ### 13.7.1 选择类型
 
-选择管理器其实在 **Store 层**：`std.selection` 返回 `StoreSelectionExtension`（第 12 章 12.7.3）。std 只提供具体的选择类型（`blocksuite/framework/std/src/selection/`），并由 `FoundationStoreExtension` 统一注册：
+选择管理器其实在 **Store 层**：`std.selection` 返回 `StoreSelectionExtension`（第 16 章 12.7.3）。std 只提供具体的选择类型（`blocksuite/framework/std/src/selection/`），并由 `FoundationStoreExtension` 统一注册：
 
 | 类型 | `type` | `group` | 数据 | 场景 |
 | --- | --- | --- | --- | --- |
@@ -874,9 +874,9 @@ export class ViewExtensionProvider<Options extends object = Empty>
 | `ExtensionManager` | 持有 Provider 类集合与 options；`get(scope)` 实例化（缓存）Provider 并 `setup`，收集 `context.register` 的扩展；`configure(Provider, options)` 修改配置并清除实例缓存 |
 | `StoreExtensionManager` / `ViewExtensionManager` | 在 `get` 结果末尾追加"把 Manager 自身注册进 DI"的扩展 |
 
-以 callout 为例（`blocksuite/affine/blocks/callout/src/view.ts`），`CalloutViewExtension` 在 `effect()` 中调用 `effects()` 定义 `affine-callout` 元素，在 `setup()` 中 `context.register([FlavourExtension('affine:callout'), BlockViewExtension('affine:callout', literal\`affine-callout\`), CalloutKeymapExtension, SlashMenuConfigExtension('affine:callout', calloutSlashMenuConfig), ...createBuiltinToolbarConfigExtension('affine:callout')])`——第 15 章会以此为模板编写自定义块。
+以 callout 为例（`blocksuite/affine/blocks/callout/src/view.ts`），`CalloutViewExtension` 在 `effect()` 中调用 `effects()` 定义 `affine-callout` 元素，在 `setup()` 中 `context.register([FlavourExtension('affine:callout'), BlockViewExtension('affine:callout', literal\`affine-callout\`), CalloutKeymapExtension, SlashMenuConfigExtension('affine:callout', calloutSlashMenuConfig), ...createBuiltinToolbarConfigExtension('affine:callout')])`——第 19 章会以此为模板编写自定义块。
 
-根块 `RootViewExtension`（`blocksuite/affine/blocks/root/src/view.ts`）则在 `isEdgeless(scope)` 时注册 `affine-edgeless-root`、`EdgelessRootService`、`EdgelessClipboardController`，否则注册 `affine-page-root` 与 `PageClipboard`——**同一个 `affine:page` flavour，因 scope 不同而渲染为完全不同的组件**（第 14 章展开）。
+根块 `RootViewExtension`（`blocksuite/affine/blocks/root/src/view.ts`）则在 `isEdgeless(scope)` 时注册 `affine-edgeless-root`、`EdgelessRootService`、`EdgelessClipboardController`，否则注册 `affine-page-root` 与 `PageClipboard`——**同一个 `affine:page` flavour，因 scope 不同而渲染为完全不同的组件**（第 18 章展开）。
 
 ### 13.10.2 应用侧：manager/view.ts
 
@@ -944,7 +944,7 @@ sequenceDiagram
   PE->>STD: render 得到 EditorHost
 ```
 
-应用侧还有 `createBlockStdScope(store)`（同文件末尾）给非编辑器场景（如生成预览、导出）快速创建 page scope 的 std。Store 侧对应的是 `packages/frontend/core/src/blocksuite/manager/store.ts` 的 `getStoreManager()`（第 12 章）。
+应用侧还有 `createBlockStdScope(store)`（同文件末尾）给非编辑器场景（如生成预览、导出）快速创建 page scope 的 std。Store 侧对应的是 `packages/frontend/core/src/blocksuite/manager/store.ts` 的 `getStoreManager()`（第 16 章）。
 
 > 一个隐蔽的坑：`effectRan` 是静态属性。如果你 `class MyParagraph extends ParagraphViewExtension`，而父类已经执行过 `effect`，子类读取 `constructor.effectRan` 会**继承到父类的 `true`**，导致子类的 `effect` 永远不执行。扩展已有 Provider 时要么不依赖 effect，要么显式声明 `static override effectRan = false`。
 
@@ -954,7 +954,7 @@ sequenceDiagram
 
 ## 13.11 gfx 基础：白板的骨架
 
-`@blocksuite/std/gfx`（`blocksuite/framework/std/src/gfx/`）为 Edgeless 白板提供通用基础，第 14 章会在此之上讲具体元素。
+`@blocksuite/std/gfx`（`blocksuite/framework/std/src/gfx/`）为 Edgeless 白板提供通用基础，第 18 章会在此之上讲具体元素。
 
 | 模块 | 关键类 | 职责 |
 | --- | --- | --- |
@@ -987,7 +987,7 @@ setTool = <T extends BaseTool>(toolType: ToolType<T>, options?: ToolOptions<T>):
 };
 ```
 
-`GfxBlockComponent`（`view/element/gfx-block-component.ts`）是白板中块组件的基类：`getCSSTransform()` 根据视口计算 `translate + scale`，`onDragStart` 时 `this.model.stash('xywh')`、`onDragEnd` 时 `pop('xywh')`——这正是第 12 章 stash/pop 的典型用途。
+`GfxBlockComponent`（`view/element/gfx-block-component.ts`）是白板中块组件的基类：`getCSSTransform()` 根据视口计算 `translate + scale`，`onDragStart` 时 `this.model.stash('xywh')`、`onDragEnd` 时 `pop('xywh')`——这正是第 16 章 stash/pop 的典型用途。
 
 **小结**：gfx 层提供视口、空间索引、图层、工具、交互与元素模型的通用骨架，AFFiNE 白板功能都以 GfxExtension / BaseTool / 交互扩展的形式插入。
 
@@ -1172,7 +1172,7 @@ sequenceDiagram
 - `blocksuite/playground/examples/inline/`：脱离 Block 树单独使用 InlineEditor 的示例
 - `blocksuite/framework/std/src/__tests__/`：std 的单元测试
 - Lit 官方文档：Reactive update cycle、`@lit/context`、static html（`literal`/`unsafeStatic`）
-- 本书第 14 章（Affine 块与 Edgeless）、第 15 章（自定义 Block 实战）、第 16 章（应用层 DI，对比两套 DI）
+- 本书第 18 章（Affine 块与 Edgeless）、第 19 章（自定义 Block 实战）、第 20 章（应用层 DI，对比两套 DI）
 
 ---
 
@@ -1192,4 +1192,4 @@ sequenceDiagram
 
 ---
 
-上一章：[第 12 章 BlockSuite 架构与 Store 数据层](./12-BlockSuite架构与Store数据层.md) ｜ 下一章：[第 14 章 Affine 块组件与 Edgeless 白板](./14-Affine块组件与Edgeless白板.md) ｜ [返回目录](../README.md)
+上一章：[第 16 章 BlockSuite 架构与 Store 数据层](./16-BlockSuite架构与Store数据层.md) ｜ 下一章：[第 18 章 Affine 块组件与 Edgeless 白板](./18-Affine块组件与Edgeless白板.md) ｜ [返回目录](../README.md)

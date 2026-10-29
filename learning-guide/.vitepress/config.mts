@@ -93,6 +93,42 @@ export default defineConfig({
           : self.renderToken(tokens, idx, options)
         ).replace(/^<code/, '<code v-pre');
 
+      // 2.5 GitHub 式任务列表：`- [ ]` / `- [x]` 渲染为复选框（VitePress 默认不支持）
+      md.core.ruler.after('inline', 'gfm-task-lists', state => {
+        const tokens = state.tokens;
+        for (let i = 2; i < tokens.length; i++) {
+          const inline = tokens[i];
+          if (
+            inline.type !== 'inline' ||
+            tokens[i - 1].type !== 'paragraph_open' ||
+            tokens[i - 2].type !== 'list_item_open' ||
+            !inline.children?.length ||
+            inline.children[0].type !== 'text' ||
+            !/^\[[ xX]\][ \u00A0]/.test(inline.children[0].content)
+          ) {
+            continue;
+          }
+          const checked = /^\[[xX]\]/.test(inline.children[0].content);
+          inline.children[0].content = inline.children[0].content.replace(
+            /^\[[ xX]\][ \u00A0]/,
+            ''
+          );
+          const checkbox = new state.Token('html_inline', '', 0);
+          checkbox.content = `<input class="task-list-item-checkbox"${
+            checked ? ' checked' : ''
+          } disabled type="checkbox"> `;
+          inline.children.unshift(checkbox);
+          tokens[i - 2].attrJoin('class', 'task-list-item');
+          // 给最外层 <ul> 标记，便于去掉默认项目符号
+          for (let j = i - 2; j >= 0; j--) {
+            if (tokens[j].type === 'bullet_list_open') {
+              tokens[j].attrJoin('class', 'contains-task-list');
+              break;
+            }
+          }
+        }
+      });
+
       // 3. 指向 learning-guide 之外（仓库源码、docs 等）的相对链接 → GitHub 源码链接
       const linkOpen =
         md.renderer.rules.link_open ??

@@ -1,6 +1,6 @@
-# 第 6 章 前端技术栈：React、Lit、Signals、RxJS
+# 第 10 章 前端技术栈：React、Lit、Signals、RxJS
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 5 章
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 6 章（前端框架基础）、第 9 章
 
 ## 本章导读
 
@@ -154,7 +154,7 @@ export function App() {
 从外到内的 Provider 层次：
 
 1. `Suspense`：兜底加载态；
-2. `FrameworkRoot`：注入 DI 容器（第 16 章），之后组件内可 `useService(XxxService)`；
+2. `FrameworkRoot`：注入 DI 容器（第 20 章），之后组件内可 `useService(XxxService)`；
 3. `CacheProvider`：Emotion 的样式缓存（`packages/frontend/core/src/utils/create-emotion-cache.ts`），为组件库中遗留的 `@emotion/styled` 样式服务；
 4. `I18nProvider`：国际化；
 5. `AffineContext`：内部组合了 Jotai `Provider`、主题、确认框/输入框 Provider（`packages/frontend/core/src/components/context/index.tsx`）；
@@ -239,7 +239,7 @@ export const router = (
 - **懒加载 + 魔法注释**：`/* webpackChunkName: "auth" */` 让 Rspack 把多个认证页打进同一个 chunk。
 - **约定导出**：`packages/frontend/core/src/desktop/pages/404/index.tsx` 末尾 `export const Component = () => { return <PageNotFound />; };`，正是 `lazy` 所要求的。
 - **`loader` 做重定向**：旧的分享链接、`/try-cloud`、`/template/preview` 都在导航前用 `redirect()` 转换，组件层无需关心。
-- **`satisfies [RouteObject, ...RouteObject[]]`**：第 5 章讲过的 `satisfies`，确保至少一项路由且保留字面量推导。
+- **`satisfies [RouteObject, ...RouteObject[]]`**：第 9 章讲过的 `satisfies`，确保至少一项路由且保留字面量推导。
 - **Sentry 包装**：生产环境 `window.SENTRY_RELEASE` 存在时，用 Sentry 的包装函数记录路由性能。
 - **`basename: environment.subPath`**：支持自托管部署在子路径下。
 
@@ -394,7 +394,7 @@ export class WorkspacePermission extends Entity {
 - `backoffRetry`：指数退避重试；
 - `onStart/onComplete`（`packages/common/infra/src/livedata/ops.ts`）：维护 loading 状态。
 
-这种写法把"防抖、取消、重试、loading"全部声明式地放进一条管道，是 AFFiNE 业务层最常见的模式之一，第 16 章会更系统地讲。
+这种写法把"防抖、取消、重试、loading"全部声明式地放进一条管道，是 AFFiNE 业务层最常见的模式之一，第 20 章会更系统地讲。
 
 ### 6.4.5 为什么选 RxJS
 
@@ -404,7 +404,7 @@ export class WorkspacePermission extends Entity {
 
 ### 6.5.1 设计要点
 
-`LiveData<T>`（`packages/common/infra/src/livedata/livedata.ts`）的类型设计已在第 5 章分析过，这里关注**运行机制**：
+`LiveData<T>`（`packages/common/infra/src/livedata/livedata.ts`）的类型设计已在第 9 章分析过，这里关注**运行机制**：
 
 ```ts
 // 来源：packages/common/infra/src/livedata/livedata.ts（节选）
@@ -579,7 +579,7 @@ export const useQueryImmutable = createUseQuery(true);
 ```
 
 - **缓存 key** = `['cloud', 查询 id, 变量]`，同一查询同一变量自动去重；
-- **类型**：`QueryResponse<Query>` 直接复用第 5 章讲的 GraphQL 生成类型；
+- **类型**：`QueryResponse<Query>` 直接复用第 9 章讲的 GraphQL 生成类型；
 - **Admin 端**有几乎相同的 `packages/frontend/admin/src/use-query.ts`，但直接用 `gqlFetcherFactory` 而非 DI 服务——Admin 是一个更简单的独立 SPA。
 
 **定位**：SWR 用于"请求-展示"型的服务端数据（设置页、历史版本 `packages/frontend/core/src/components/affine/page-history-modal/data.ts` 等）；需要复杂编排的则走 Service + effect。
@@ -612,7 +612,7 @@ dispose();
 
 ### 6.7.2 Yjs → Signal：Block 属性为何有 `xxx$`
 
-BlockSuite 的文档数据存在 Yjs 里（第 8 章），但 UI 需要的是"能被追踪的响应式值"。`SyncController` 负责双向桥接：
+BlockSuite 的文档数据存在 Yjs 里（第 12 章），但 UI 需要的是"能被追踪的响应式值"。`SyncController` 负责双向桥接：
 
 来源：`blocksuite/framework/store/src/model/block/sync-controller.ts`
 
@@ -826,7 +826,7 @@ export class BlockComponent<
   accessor viewType: BlockViewType = 'display';
 ```
 
-- `@consume({ context: stdContext })`：从上层 `EditorHost` 拿到 `std`（编辑器标准库作用域，第 13 章）；
+- `@consume({ context: stdContext })`：从上层 `EditorHost` 拿到 `std`（编辑器标准库作用域，第 17 章）；
 - `@provide({ context: modelContext })`：把自己的 model 提供给子组件；
 - `render()` 是一条"渲染器管道"：`renderBlock` → 版本不匹配提示 → 视图类型处理，子类只需覆写 `renderBlock()`。
 
@@ -852,7 +852,7 @@ export class BlockComponent<
 
 ### 6.8.5 注册与类型
 
-BlockSuite 组件普遍不用 `@customElement`，而是在 `effects()` 中统一注册（`blocksuite/affine/blocks/paragraph/src/effects.ts`），并通过 `declare global { interface HTMLElementTagNameMap }` 增强类型（第 5 章 5.6.5）。这样做的好处是：注册时机由应用控制（`packages/frontend/core/src/blocksuite/editors/index.ts` 中的 `editorEffects()` 同理），避免模块被多次加载时 `customElements.define` 重复注册报错。
+BlockSuite 组件普遍不用 `@customElement`，而是在 `effects()` 中统一注册（`blocksuite/affine/blocks/paragraph/src/effects.ts`），并通过 `declare global { interface HTMLElementTagNameMap }` 增强类型（第 9 章 5.6.5）。这样做的好处是：注册时机由应用控制（`packages/frontend/core/src/blocksuite/editors/index.ts` 中的 `editorEffects()` 同理），避免模块被多次加载时 `customElements.define` 重复注册报错。
 
 ### 6.8.6 为什么选 Lit
 
@@ -1032,7 +1032,7 @@ export const button = style({
 
 - **变体用 `data-*` 属性 + CSS 变量**表达：`<button data-variant="primary" data-size="large">`。组件 `button.tsx` 中 `ButtonProps` 甚至用模板字面量索引签名 `` [key: `data-${string}`]: string `` 允许任意 data 属性；
 - 外部想覆盖高度，只需设置 `hVar`，**不用和选择器优先级搏斗**（源码注释原话）；
-- 颜色全部来自 `@toeverything/theme` 的 `cssVar` / `cssVarV2`，它们返回 `var(--affine-...)` 字符串，切换明暗主题时只需改根节点变量（第 18 章）。
+- 颜色全部来自 `@toeverything/theme` 的 `cssVar` / `cssVarV2`，它们返回 `var(--affine-...)` 字符串，切换明暗主题时只需改根节点变量（第 22 章）。
 
 ### 6.10.4 为什么选 vanilla-extract
 
@@ -1474,4 +1474,4 @@ React 用于应用壳（布局、设置、列表、弹窗），生态成熟、�
 | **合计** | **10 小时** |
 
 ---
-上一章：[第 5 章 TypeScript 在 AFFiNE 中的应用](05-TypeScript在AFFiNE中的应用.md) ｜ 下一章：[第 7 章 Rust 与 NAPI-rs](07-Rust与NAPI-rs.md) ｜ [返回目录](../README.md)
+上一章：[第 9 章 TypeScript 在 AFFiNE 中的应用](09-TypeScript在AFFiNE中的应用.md) ｜ 下一章：[第 11 章 Rust 与 NAPI-rs](11-Rust与NAPI-rs.md) ｜ [返回目录](../README.md)

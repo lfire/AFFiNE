@@ -1,4 +1,4 @@
-# 第 9 章 Monorepo 结构与包依赖地图
+# 第 13 章 Monorepo 结构与包依赖地图
 
 > **所属部分**：第 4 部分 · 工程化与开发环境 ｜ **难度**：★★☆☆☆ ｜ **建议学时**：4 小时 ｜ **前置章节**：第 1 章
 
@@ -88,7 +88,7 @@ AFFiNE 有三个特点让 Monorepo 几乎成为必选项：
 业界常见的 Monorepo 方案有 Nx、Turborepo、pnpm workspaces、Lerna、Rush 等。AFFiNE 选择的是：
 
 - **Yarn 4 workspaces**：负责依赖安装、链接、版本锁定；
-- **自研 CLI `@affine-tools/cli`**（`tools/cli`）：负责"按包执行脚本、带依赖执行、自动生成 tsconfig references"等编排工作，第 10 章会详细展开；
+- **自研 CLI `@affine-tools/cli`**（`tools/cli`）：负责"按包执行脚本、带依赖执行、自动生成 tsconfig references"等编排工作，第 14 章会详细展开；
 - **TypeScript Project References**：根 `tsconfig.json` 的 `references` 由 CLI 自动生成，`yarn typecheck` 即 `tsc -b`。
 
 这种组合的好处是没有引入额外的任务编排框架，所有逻辑都在仓库内可读可改；代价是缓存、增量构建等高级能力需要自己实现或依赖底层工具（rspack、tsc -b）。
@@ -370,7 +370,7 @@ diff --git a/dist/yjs.cjs b/dist/yjs.cjs
 // ...
 ```
 
-这个补丁把 Yjs 文档的 `clientId` 生成从 32 位随机数扩大到 53 位，显著降低多端协作时 clientId 碰撞的概率（第 8 章讲过，Yjs 用 clientId + clock 唯一标识每个操作）。`yarn.lock` 中可以看到最终解析结果为 `yjs@patch:yjs@npm%3A13.6.21#~/.yarn/patches/yjs-npm-13.6.21-c9f1f3397c.patch`，即**全仓所有 yjs 引用都被统一到打过补丁的 13.6.21**。
+这个补丁把 Yjs 文档的 `clientId` 生成从 32 位随机数扩大到 53 位，显著降低多端协作时 clientId 碰撞的概率（第 12 章讲过，Yjs 用 clientId + clock 唯一标识每个操作）。`yarn.lock` 中可以看到最终解析结果为 `yjs@patch:yjs@npm%3A13.6.21#~/.yarn/patches/yjs-npm-13.6.21-c9f1f3397c.patch`，即**全仓所有 yjs 引用都被统一到打过补丁的 13.6.21**。
 
 补丁不一定都写在根目录。以下三个补丁是在子包的依赖中直接声明的：
 
@@ -787,7 +787,7 @@ flowchart LR
   gql -. 由后端 schema 生成 .-> server
 ```
 
-后端只依赖少量 workspace 包；其中 `@affine/graphql` 是"反向生成"的：后端代码生成 `packages/backend/server/src/schema.gql`，前端的 `@affine/graphql` 再根据它生成 TS 类型（第 10 章）。后端 import `@affine/graphql` 主要用于测试中复用查询语句（如 `packages/backend/server/src/__tests__/e2e/user/account.spec.ts` 中的 `getCurrentUserQuery`）。
+后端只依赖少量 workspace 包；其中 `@affine/graphql` 是"反向生成"的：后端代码生成 `packages/backend/server/src/schema.gql`，前端的 `@affine/graphql` 再根据它生成 TS 类型（第 14 章）。后端 import `@affine/graphql` 主要用于测试中复用查询语句（如 `packages/backend/server/src/__tests__/e2e/user/account.spec.ts` 中的 `getCurrentUserQuery`）。
 
 ### 9.6.3 CLI 对依赖图的约束
 
@@ -912,7 +912,7 @@ JS 包与 Rust crate 共用同一个目录（如 `packages/frontend/native` 下�
   },
 ```
 
-所以 `yarn affine @affine/native build` 本质上就是在该目录执行 `napi build -p affine_native --platform --release`。这一点在第 7 章讲 NAPI-rs 时已有铺垫，第 10、11 章会继续使用。
+所以 `yarn affine @affine/native build` 本质上就是在该目录执行 `napi build -p affine_native --platform --release`。这一点在第 11 章讲 NAPI-rs 时已有铺垫，第 14、15 章会继续使用。
 
 **小结**：Rust workspace 共 7 个显式成员（加 1 个隐式 path 成员），产出两类二进制：napi 的 `.node`（给 Node/Electron）与 uniffi 的静态/动态库（给 iOS/Android）。
 
@@ -1088,7 +1088,7 @@ CI 的 `check-git-status` job 会重新执行 `yarn affine init && yarn affine g
 ### 步骤 5（按需）：其他登记
 
 - 如果希望 PR 标题能用新的 scope（如 `feat(hello): ...`），需要在 `tools/commitlint/.commitlintrc.json` 的 `scope-enum` 中加入；
-- 如果它需要单元测试，`*.spec.ts` 放在 `packages/common/**` 下会被根 `vitest.config.ts` 的 include 自动收集（第 25 章）；
+- 如果它需要单元测试，`*.spec.ts` 放在 `packages/common/**` 下会被根 `vitest.config.ts` 的 include 自动收集（第 29 章）；
 - 如果它需要被 rspack 打包为独立产物，需要在 `tools/cli/src/bundle-shared.ts` 的 `RSPACK_SUPPORTED_PACKAGES` 与 `tools/cli/src/bundle.ts` 中登记（目前只有 admin、web、mobile、ios、android、electron-renderer、server、reader）。
 
 **小结**：新增包的核心是"放对目录 + 写对 package.json/tsconfig + 跑 yarn install + 提交生成物"，其余登记按需进行。
@@ -1241,4 +1241,4 @@ CI 的 `check-git-status` job 会重新执行 `yarn affine init && yarn affine g
 | **合计** | **4 小时** |
 
 ---
-上一章：[第 8 章 CRDT 与 Yjs 原理](../03-编程语言与基础技术/08-CRDT与Yjs原理.md) ｜ 下一章：[第 10 章 构建工具链与代码规范](./10-构建工具链与代码规范.md) ｜ [返回目录](../README.md)
+上一章：[第 12 章 CRDT 与 Yjs 原理](../03-编程语言与基础技术/12-CRDT与Yjs原理.md) ｜ 下一章：[第 14 章 构建工具链与代码规范](./14-构建工具链与代码规范.md) ｜ [返回目录](../README.md)

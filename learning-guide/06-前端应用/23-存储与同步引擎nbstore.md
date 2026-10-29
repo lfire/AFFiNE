@@ -1,6 +1,6 @@
-# 第 19 章 存储与同步引擎 nbstore
+# 第 23 章 存储与同步引擎 nbstore
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★★ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 8 章 CRDT与Yjs原理、第 16 章 前端基础设施-DI与LiveData
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★★ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 12 章 CRDT与Yjs原理、第 20 章 前端基础设施-DI与LiveData
 
 ## 本章导读
 
@@ -592,7 +592,7 @@ private readonly handleDocUpdate = (update: Uint8Array, origin: any, doc: YDoc, 
 
 `NBSTORE_ORIGIN` 作为 Yjs transaction origin，`handleDocUpdate` 见到它就跳过——这是防止"写回自己"的关键。debug 模式下若在应用远端更新期间有代码修改了文档，会打印醒目警告：这会导致"编辑者"被误记为当前用户。
 
-`docState$(docId)` 把自身的 `ready/loaded/updating` 与 `DocSync.docState$` 的 `syncing/synced/retrying/errorMessage` 合并成 `DocFrontendDocState`；第 17 章工作区页面正是等 `docState$(workspace.id)` 的 `ready` 才渲染工作台。`addPriority` 同时调整自身队列与 `sync.addPriority`。
+`docState$(docId)` 把自身的 `ready/loaded/updating` 与 `DocSync.docState$` 的 `syncing/synced/retrying/errorMessage` 合并成 `DocFrontendDocState`；第 21 章工作区页面正是等 `docState$(workspace.id)` 的 `ready` 才渲染工作台。`addPriority` 同时调整自身队列与 `sync.addPriority`。
 
 ### 19.9.2 其他门面
 
@@ -656,7 +656,7 @@ open(key: string, options: StoreInitOptions) {
 ```
 
 - 每个工作区一条**专属 MessageChannel**：管理通道只负责 open/close，数据走 `port1 ↔ port2`；
-- `transfer(..., [port2])` 把端口所有权移交给 Worker（第 16 章 `op` 的 Transferable 机制）；
+- `transfer(..., [port2])` 把端口所有权移交给 Worker（第 20 章 `op` 的 Transferable 机制）；
 - Worker 侧 `StoreManagerConsumer`（`worker/consumer.ts`）按 `key`（如 `workspace:<flavour>:<id>`）维护 `storePool`，**同 key 的第二次 open 复用已有 `StoreConsumer`（引用计数 +1）**，只在远端配置变化时 `reconfigure`；`serialize(key, ...)` 让同一 key 的 open/close 串行执行。结合 SharedWorker，这意味着**多个标签页打开同一工作区，只有一份存储与同步实例**。
 
 ### 19.10.3 StoreClient：远程代理 + 本地门面
@@ -777,7 +777,7 @@ this.publishDocUpdate(
 return { data: { accepted: true, timestamp } };
 ```
 
-（部分参数压缩为单行。）返回的 `timestamp` 就是客户端 `CloudDocStorage.pushDocUpdate` 拿到的远端时钟。抛出的 `DocActionDenied` 到客户端变成 `error.name` 为 `DOC_ACTION_DENIED` 的错误——正是 `DocSyncPeer` 中 `isRemotePermissionError` 识别的名字。服务端细节见第 23 章。
+（部分参数压缩为单行。）返回的 `timestamp` 就是客户端 `CloudDocStorage.pushDocUpdate` 拿到的远端时钟。抛出的 `DocActionDenied` 到客户端变成 `error.name` 为 `DOC_ACTION_DENIED` 的错误——正是 `DocSyncPeer` 中 `isRemotePermissionError` 识别的名字。服务端细节见第 27 章。
 
 ### 19.11.3 两级广播：活跃订阅 vs 失效通知
 
@@ -792,7 +792,7 @@ return { data: { accepted: true, timestamp } };
 
 ### 19.12.1 workspace-engine：配置 + 打开
 
-`WorkspaceFlavourProvider.getEngineWorkerInitOptions(workspaceId)`（第 17 章）生成 `StoreInitOptions`；`WorkspaceEngine.start()`（`core/modules/workspace/entities/engine.ts`）：
+`WorkspaceFlavourProvider.getEngineWorkerInitOptions(workspaceId)`（第 21 章）生成 `StoreInitOptions`；`WorkspaceEngine.start()`（`core/modules/workspace/entities/engine.ts`）：
 
 ```ts
 // 来源：packages/frontend/core/src/modules/workspace/entities/engine.ts（start 节选）
@@ -817,7 +817,7 @@ this.disposables.push(() => this.doc.stop());
 store.blobFrontend.fullDownload('v1').catch(() => {});
 ```
 
-之后 `Workspace.docCollection` 的 `onLoadDoc` 回调对每个子文档 `engine.doc.connectDoc(doc)`，ORM 的表文档也同样 `connectDoc`（第 16 章）。`NbstoreService` 只是 `NbstoreProvider` 的薄包装，Web 端由 `apps/web/src/app.tsx` 用 `storeManagerClient.open` 实现。
+之后 `Workspace.docCollection` 的 `onLoadDoc` 回调对每个子文档 `engine.doc.connectDoc(doc)`，ORM 的表文档也同样 `connectDoc`（第 20 章）。`NbstoreService` 只是 `NbstoreProvider` 的薄包装，Web 端由 `apps/web/src/app.tsx` 用 `storeManagerClient.open` 实现。
 
 ### 19.12.2 Electron 与原生 SQLite
 
@@ -846,7 +846,7 @@ const storeManager = new StoreManagerConsumer([
 ]);
 ```
 
-（oxlint 注释已省略。）`apis.nbstore` 来自 Electron helper 进程：`packages/frontend/apps/electron/src/helper/nbstore/handlers.ts` 把 `@affine/native` 的 `DocStoragePool` 方法一一绑定为 `NativeDBApis`（`connect` 时用 `parseUniversalId` 解析出 peer/type/id 并定位数据库文件路径）。`DocStoragePool` 由 Rust crate `packages/frontend/native/nbstore`（`affine_nbstore`，基于 `sqlx` + SQLite，`#[napi]` 导出 `connect`、`push_update`、`get_doc`、`get_doc_clocks`、`crawl_doc_data` 等）实现，源码分为 `doc.rs`、`blob.rs`、`doc_sync.rs`、`blob_sync.rs`、`indexer_sync.rs`、`indexer/`、`pool.rs`、`storage.rs`。iOS/Android 则在各自 `nbstore.worker.ts` 中 `bindNativeDBApis(rpc)`，经 Capacitor 插件调用同一套 Rust 逻辑（第 7、20 章）。
+（oxlint 注释已省略。）`apis.nbstore` 来自 Electron helper 进程：`packages/frontend/apps/electron/src/helper/nbstore/handlers.ts` 把 `@affine/native` 的 `DocStoragePool` 方法一一绑定为 `NativeDBApis`（`connect` 时用 `parseUniversalId` 解析出 peer/type/id 并定位数据库文件路径）。`DocStoragePool` 由 Rust crate `packages/frontend/native/nbstore`（`affine_nbstore`，基于 `sqlx` + SQLite，`#[napi]` 导出 `connect`、`push_update`、`get_doc`、`get_doc_clocks`、`crawl_doc_data` 等）实现，源码分为 `doc.rs`、`blob.rs`、`doc_sync.rs`、`blob_sync.rs`、`indexer_sync.rs`、`indexer/`、`pool.rs`、`storage.rs`。iOS/Android 则在各自 `nbstore.worker.ts` 中 `bindNativeDBApis(rpc)`，经 Capacitor 插件调用同一套 Rust 逻辑（第 11、24 章）。
 
 ```mermaid
 flowchart LR
@@ -980,7 +980,7 @@ sequenceDiagram
 ### 练习 2：观察浏览器中的本地存储（基础）
 
 - **目标**：把 schema 注释与真实数据对应起来。
-- **步骤**：本地启动 Web 端（第 11 章），创建一个本地工作区并输入几段文字；打开 DevTools → Application → IndexedDB，找到名为 `local:workspace:<id>` 的库，查看 `updates`、`snapshots`、`clocks` 表；刷新页面后再看 `updates` 是否被合并进 `snapshots`。
+- **步骤**：本地启动 Web 端（第 15 章），创建一个本地工作区并输入几段文字；打开 DevTools → Application → IndexedDB，找到名为 `local:workspace:<id>` 的库，查看 `updates`、`snapshots`、`clocks` 表；刷新页面后再看 `updates` 是否被合并进 `snapshots`。
 - **验收标准**：能说明"追加写、惰性压实"在数据上的表现。
 
 ### 练习 3：手推三种时钟（进阶）
@@ -1049,11 +1049,11 @@ sequenceDiagram
 - `packages/frontend/core/src/modules/docs-search/README.md`；
 - Yjs 文档：Document Updates、State Vector、`mergeUpdates`/`diffUpdate`；y-protocols Awareness；
 - 论文/文章：Ink & Switch《Local-first software》；
-- 第 8 章 CRDT 与 Yjs 原理：理解 update 与 state vector；
-- 第 16 章：`op` RPC 与 ORM 如何接入 DocFrontend；
-- 第 20 章：Electron helper 与移动端原生桥；
-- 第 22、23 章：服务端文档存储与 WebSocket 网关；
-- 第 29 章：端到端链路追踪。
+- 第 12 章 CRDT 与 Yjs 原理：理解 update 与 state vector；
+- 第 20 章：`op` RPC 与 ORM 如何接入 DocFrontend；
+- 第 24 章：Electron helper 与移动端原生桥；
+- 第 26、27 章：服务端文档存储与 WebSocket 网关；
+- 第 33 章：端到端链路追踪。
 
 ## 学时拆分
 
@@ -1068,4 +1068,4 @@ sequenceDiagram
 | **合计** | **10 小时** |
 
 ---
-上一章：[第 18 章 组件库、主题与国际化](./18-组件库主题与国际化.md) ｜ 下一章：[第 20 章 多端：Electron 与移动端](./20-多端-Electron与移动端.md) ｜ [返回目录](../README.md)
+上一章：[第 22 章 组件库、主题与国际化](./22-组件库主题与国际化.md) ｜ 下一章：[第 24 章 多端：Electron 与移动端](./24-多端-Electron与移动端.md) ｜ [返回目录](../README.md)
