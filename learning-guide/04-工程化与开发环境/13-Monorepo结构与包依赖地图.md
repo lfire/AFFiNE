@@ -268,7 +268,7 @@ yarnPath: .yarn/releases/yarn-4.18.0.cjs
 
 来源：`.gitignore`
 
-```gitignore
+```text
 .pnp.*
 .yarn/*
 !.yarn/patches

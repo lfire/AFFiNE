@@ -70,6 +70,20 @@ export default defineConfig({
   ignoreDeadLinks: 'localhostLinks',
   head: [['meta', { name: 'theme-color', content: '#1e96eb' }]],
 
+  // 显式提供 esbuild 的 tsconfig，避免它向上读到仓库根 tsconfig.json
+  // （根 tsconfig 的 "target": "ES2024" 是上游 AFFiNE 的配置，不应改动；
+  //  但 VitePress 内置的 esbuild 版本不认识 ES2024，会反复打印告警）
+  vite: {
+    esbuild: {
+      tsconfigRaw: {
+        compilerOptions: {
+          target: 'es2022',
+          useDefineForClassFields: true,
+        },
+      },
+    },
+  },
+
   markdown: {
     lineNumbers: true,
     config(md) {
