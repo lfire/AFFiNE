@@ -1,5 +1,7 @@
 # `@affine/server`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/06-affine-server.md)。
+
 > 一句话定位：AFFiNE 的**全栈后端核心**——一个基于 NestJS 的单仓库服务端，用依赖注入组织 28 个业务模块与 9 个可插拔插件，对外暴露 code-first 的 GraphQL API、文档协同的 socket.io 网关与 REST 控制器，对内以 Prisma 访问 PostgreSQL、以 `@affine/server-native`（Rust）承载计算密集与安全敏感的"控制面"逻辑。它是前端一切数据、权限、协同、计费、AI 能力的来源。
 
 | 项        | 值                                                                                                                                                                        |
@@ -8,7 +10,7 @@
 | 所属层    | L6 · 后端                                                                                                                                                                 |
 | 语言/形态 | TypeScript / NestJS 应用                                                                                                                                                  |
 | 关键依赖  | `@nestjs/*`、`@nestjs/graphql`+`@apollo/server`、`@prisma/client`、`nestjs-cls`+`@nestjs-cls/transactional`、`socket.io`、`@affine/server-native`、`ioredis`、`commander` |
-| 被谁依赖  | 前端经网络消费：`@affine/graphql`（codegen 读 `schema.gql`）、`@affine/error`（镜像 `USER_FRIENDLY_ERRORS`）、`@affine/nbstore`（同步协议）                               |
+| 被谁依赖  | 前端经网络消费：`@affine/graphql`（codegen 读 `schema.gql`）、`@affine/error`（经 `@affine/graphql` 导入 `ErrorNames`/`ErrorDataUnion`）、`@affine/nbstore`（同步协议） |
 | 对外入口  | `src/index.ts`（进程入口：server 或 cli）；网络面 `/graphql`、socket.io、若干 REST                                                                                        |
 
 ## 1. 设计逻辑
@@ -91,11 +93,13 @@ export class AuthModule {}
 AFFiNE 采用 **code-first**：不手写 SDL，而是用 TS 类与装饰器描述类型，运行时由 NestJS 反推 schema。`GqlModule`（`base/graphql/index.ts:25`）配置 `ApolloDriver`，关键在 `autoSchemaFile`（`index.ts:36`）：
 
 ```ts
-autoSchemaFile: env.prod ? true : join(env.projectRoot, './src/schema.gql'),
+autoSchemaFile: env.prod
+  ? true
+  : join(env.projectRoot, env.testing ? './node_modules/.cache/schema.gql' : './src/schema.gql'),
 sortSchema: true,
 ```
 
-开发态下每次启动把推断出的 schema **写回 `src/schema.gql`**（顶部注明"自动生成，勿改"）。这份文件正是前端 `@affine/graphql` 的 codegen 输入——于是 `@ObjectType`/`@Field`/`@Query`/`@Mutation` 这些装饰器成为**前后端类型契约的单一真值源**：后端加一个字段，前端 codegen 后即获得对应 TS 类型（见 affine-graphql.md）。
+开发态下每次启动把推断出的 schema **写回 `src/schema.gql`**（顶部注明"自动生成，勿改"），测试态写入 `node_modules/.cache/schema.gql`。这份文件正是前端 `@affine/graphql` 的 codegen 输入——于是 `@ObjectType`/`@Field`/`@Query`/`@Mutation` 这些装饰器成为**前后端类型契约的单一真值源**：后端加一个字段，前端 codegen 后即获得对应 TS 类型（见 affine-graphql.md）。
 
 `@ObjectType('tokenType') class ClientTokenType { @Field() token!: string }`（`core/auth/resolver.ts:29`）展示了最小单元：类 → GraphQL object type，字段 → GraphQL field。可空性由 `@Field({ nullable: true })` 控制。
 
@@ -135,11 +139,11 @@ async canWorkspace(input) {
 
 ### 3.5 事件总线：声明式、类型安全的解耦
 
-`base/event` 提供 `@OnEvent('doc.created', ...)` 监听与 `EventBus.emit/broadcast` 发布。`OnEvent`（`base/event/def.ts:38`）把事件名首段作为 namespace，用元数据标注到方法上，由 `ScannerModule` 扫描装配。事件名的合法集合来自全局 `interface Events`——各 model/service 用 `declare global` 往里**声明合并**自己的事件（如 `doc.created`、`realtime.connection.disconnected`），从而 `emit` 的事件名与 payload 形状都有编译期校验。`emit` 是进程内同步分发，`broadcast` 经 Redis 跨进程广播（配合多 flavor 部署）。
+`base/event` 提供 `@OnEvent('doc.created', ...)` 监听与 `EventBus.emit/broadcast` 发布。`OnEvent`（`base/event/def.ts:38`）把事件名首段作为 namespace，用元数据标注到方法上，由 `ScannerModule` 扫描装配。事件名的合法集合来自全局 `interface Events`——各 model/service 用 `declare global` 往里**声明合并**自己的事件（如 `doc.created`、`realtime.connection.disconnected`），从而 `emit` 的事件名与 payload 形状都有编译期校验。`emit` 是本进程内不等待的异步分发（需要等待用 `emitAsync`），`broadcast` 经 Redis 跨进程广播（配合多 flavor 部署）。
 
 ### 3.6 实时协同网关
 
-`RealtimeGateway`（`core/realtime/gateway.ts:58`）用 `@WebSocketGateway()` 暴露 socket.io 服务。它校验客户端版本（`MIN_REALTIME_CLIENT_VERSION = >=0.26.0`，`gateway.ts:41`）、管理订阅（`subscribe`/`unsubscribe`），并在断连时清理订阅、发事件。文档内容的增量（Yjs update）经 `sync` 模块的 `DocReader`/`DocWriter` 落到 PostgreSQL，`doc/adapters` 里的 `PgWorkspaceDocStorageAdapter` 负责把 Yjs 二进制 merge（调用 native `mergeUpdatesInApplyWay`）与持久化。`CLS Interceptor`（`gateway.ts:59`）让每个 WS 消息也拥有独立 request-id 以便追踪。
+`RealtimeGateway`（`core/realtime/gateway.ts:58`）用 `@WebSocketGateway()` 暴露 socket.io 服务，是通用的请求/订阅总线。它校验客户端版本（`MIN_REALTIME_CLIENT_VERSION = >=0.26.0`，`gateway.ts:41`）、管理订阅（`subscribe`/`unsubscribe`），并在断连时清理订阅、发事件。文档协同网关是 `SpaceSyncGateway`（`packages/backend/server/src/core/sync/gateway.ts:329`）：客户端推送的 Yjs update 经 `PgWorkspaceDocStorageAdapter` 交给 Rust `appendWorkspaceDocUpdatesV1` 落到 PostgreSQL；`DocWriter` 供 Copilot、MCP 等服务端主动改文档使用。适配器合并默认用 JS yjs，native `mergeUpdatesInApplyWay` 只用于广播压缩、`getDocBinNative` 和 yocto 实验（详见 [精讲](../重点包精讲/06-affine-server.md)）。`CLS Interceptor`（`gateway.ts:59`）让每个 WS 消息也拥有独立 request-id 以便追踪。
 
 ### 3.7 错误契约：后端定义、前端镜像
 
@@ -175,6 +179,6 @@ async canWorkspace(input) {
 ## 7. 延伸
 
 - 原生底座：`@affine/server-native`（Rust napi 控制面，见 affine-server-native.md）——本包的权限、配额、搜索、Yjs、LLM、加密能力均来自它。
-- 前端对接：`@affine/graphql`（codegen 消费 `schema.gql`，见 affine-graphql.md）、`@affine/error`（镜像 `USER_FRIENDLY_ERRORS`，见 affine-error.md）、`@affine/nbstore`（同步协议对端）。
+- 前端对接：`@affine/graphql`（codegen 消费 `schema.gql`，见 affine-graphql.md）、`@affine/error`（经 `@affine/graphql` 导入错误类型，见 affine-error.md）、`@affine/nbstore`（同步协议对端）。
 - 关键机制交叉参考：`base/config`（配置系统）、`models/`（Prisma 数据层）、`core/realtime` 与 `core/sync`（文档协同）。
 - 对应教程：learning-guide 关于"NestJS 后端架构与前后端契约"的章节。

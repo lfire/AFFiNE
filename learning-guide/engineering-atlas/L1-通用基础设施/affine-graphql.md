@@ -1,5 +1,7 @@
 # `@affine/graphql`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/10-affine-graphql.md)。
+
 > 一句话定位：AFFiNE 前端的**自动生成 GraphQL 客户端**——以后端 `schema.gql` 为单一真值源，用 GraphQL Codegen 把每条 `.gql` 操作生成为"带类型的查询对象 + 类型化的变量/响应"，再配一个极简、类型安全、支持文件上传的 `gqlFetcherFactory`，让前端像调用本地函数一样发起强类型 GraphQL 请求。
 
 | 项        | 值                                                                                                 |
@@ -7,7 +9,7 @@
 | 目录      | `packages/common/graphql`                                                                          |
 | 所属层    | L1 · 通用基础设施                                                                                  |
 | 语言/形态 | TypeScript 库（大部分是 codegen 产物）                                                             |
-| 关键依赖  | `graphql`、`@affine/error`（抛 `GraphQLError`）、`@affine/debug`、`lodash-es`                      |
+| 关键依赖  | `graphql`、`@affine/error`（抛 `GraphQLError`）、`@affine/debug`、`lodash-es`、`lodash`（codegen 插件用） |
 | 被谁依赖  | `@affine/core` 所有需要访问后端的模块、`@affine/error`（反向取类型）、`@affine/nbstore`（cloud）等 |
 | 对外入口  | `.`（`gqlFetcherFactory`、全部生成的查询对象与类型）                                               |
 
@@ -64,7 +66,7 @@ generates:
       - ./export-gql-plugin.cjs: { output: ./src/graphql/index.ts } # 自定义插件
 ```
 
-`avoidOptionals.field: true` + `maybeValue: T | null` 是关键取舍：生成的字段**都是必填但可为 `null`**，而非可选 `?`。这逼迫调用方显式处理 `null`，避免"字段忘写却编译通过"的隐患。标量映射把 `DateTime`/`UUID` 等后端标量统一映射为前端易用的类型。
+`avoidOptionals.field: true` + `maybeValue: T | null` 是关键取舍：生成的字段**都是必填但可为 `null`**，而非可选 `?`。这逼迫调用方显式处理 `null`，避免"字段忘写却编译通过"的隐患。当前 `schema.gql` 只有 `DateTime`、`JSON`、`JSONObject`、`SafeInt`、`Upload` 五个自定义标量；`codegen.yml` 里 `Date`/`Decimal`/`UUID` 的映射没有用上，`JSONObject` 没配映射，生成为 `any`。
 
 ### 3.2 自定义插件 `export-gql-plugin.cjs`：把 `.gql` 变成运行时对象
 
@@ -82,7 +84,7 @@ export const createWorkspaceMutation = {
 插件（`export-gql-plugin.cjs`）做了几件精细的事：
 
 - **命名归一**（`getExportedName`，第 13 行）：操作名 + 操作类型后缀（`Query`/`Mutation`/`Fragment`），如 `createWorkspace` mutation → `createWorkspaceMutation`，保证导出名无歧义、不重复（`addDef` 检测重名即抛错）。
-- **文件上传探测**（`containsFile`，第 165 行）：递归检查操作变量类型里是否出现 `Upload` 标量，是则在对象上标记 `file: true`，运行时据此走 multipart 上传。
+- **文件上传探测**（`containsFile`，第 165 行）：检查操作变量类型里是否出现 `Upload` 标量（只剥一层类型，`[Upload!]` 这类非空元素的列表识别不到），是则在对象上标记 `file: true`，运行时据此走 multipart 上传。
 - **弃用字段检测**（`parseDeprecations`，第 54 行）：用 `visitWithTypeInfo` 遍历操作 AST，比对 schema 里字段的 `deprecationReason`，把"本操作用了哪些弃用字段"写进 `deprecations` 数组——运行时在 canary 构建会 `logger.warn` 提示（见 3.4）。
 - **`#import` 片段内联**（`parseImports`，第 115 行）：支持在 `.gql` 里用 `#import "./fragments/xxx.gql"` 复用 fragment，插件把被引片段名以模板插值 `${fragmentName}` 拼接进查询字符串。
 - **生成 `Queries`/`Mutations` 联合**（第 266 行）：把所有 query/mutation 汇成两个判别联合类型追加到 `schema.ts`：
@@ -161,7 +163,7 @@ export const gqlFetcherFactory = (endpoint, fetcher = fetch) => {
 
 文件上传遵循 **GraphQL multipart request 规范**（`transformToForm`，第 114 行）：把变量里的 `File` 抽出，构造 `operations`（含 `null` 占位）+ `map`（文件位置映射）+ 编号的文件字段。`buildMap` 递归处理嵌套对象/数组里的 File。这让"上传头像""导入文件"等带文件的 mutation 能与普通查询用同一套 API。
 
-错误处理上，任何非 2xx、或带 `errors` 的响应都**抛第一个错误**包成 `@affine/error` 的 `GraphQLError`——与第 1 章呼应，下游 `UserFriendlyError.fromAny` 即可归一。`x-operation-name` 请求头便于后端日志按操作名归类。
+错误处理上，注入裸 `fetch` 时，任何非 2xx、或带 `errors` 的响应都**抛第一个错误**包成 `@affine/error` 的 `GraphQLError`；core 和 nbstore 注入的 fetcher 会先把非 2xx 响应转成 `UserFriendlyError`（详见 [精讲](../重点包精讲/10-affine-graphql.md)）——与第 1 章呼应，下游 `UserFriendlyError.fromAny` 即可归一。`x-operation-name` 请求头便于后端日志按操作名归类。
 
 ### 3.5 `RecursiveMaybeFields`：变量的深度可空放宽
 

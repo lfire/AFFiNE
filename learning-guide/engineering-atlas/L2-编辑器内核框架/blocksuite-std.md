@@ -1,5 +1,7 @@
 # `@blocksuite/std`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/03-blocksuite-std.md)。
+
 > 一句话定位：BlockSuite 的**视图层与编辑器运行时框架**——它把 `@blocksuite/store` 的"数据块树"渲染成 Lit 组件树（`EditorHost` + `BlockComponent`），并用一套 DI 驱动的 `Extension` 体系把命令链（`Command`）、UI 事件分发（`UIEventDispatcher`）、选择系统（`Selection`）、剪贴板、内联编辑、以及 edgeless 白板的 gfx 基础设施全部挂进一个 `BlockStdScope`。所有具体块（affine-block-\*）都是在 std 提供的"标准件"上拼装出来的。
 
 | 项        | 值                                                                                                                                                          |

@@ -1,6 +1,8 @@
 # `@affine/core`
 
-> 一句话定位：AFFiNE 前端的**业务总成包**——它用 `@toeverything/infra` 的 `Framework` 把 70 个业务 `module` 装配成一个带作用域的依赖注入世界，用 `@blocksuite/affine` 门面把编辑器内核接进来，再向 web / electron / mobile 各端 `app` 输出同一套业务逻辑与大部分 UI。这是全工程体量最大的包，"把编辑器内核装进真正产品"的那层胶水与骨架都在这里。
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/05-affine-core.md)。
+
+> 一句话定位：AFFiNE 前端的**业务总成包**——它用 `@toeverything/infra` 的 `Framework` 把 69 个业务 `module` 目录装配成一个带作用域的依赖注入世界，用 `@blocksuite/affine` 门面把编辑器内核接进来，再向 web / electron / mobile 各端 `app` 输出同一套业务逻辑与大部分 UI。这是全工程体量最大的包，"把编辑器内核装进真正产品"的那层胶水与骨架都在这里。
 
 | 项        | 值                                                                                                                                                                          |
 | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -8,8 +10,8 @@
 | 所属层    | L4 · 前端应用（业务总成）                                                                                                                                                   |
 | 语言/形态 | TypeScript / React 库（被各 `app` 消费，自身不含最终打包入口）                                                                                                              |
 | 关键依赖  | `@toeverything/infra`（DI/LiveData）、`@blocksuite/affine`（编辑器门面）、`@affine/nbstore`（本地优先存储）、`@affine/graphql`、`@affine/component`、`react`、`rxjs`、`yjs` |
-| 被谁依赖  | `apps/web`、`apps/electron-renderer`、`apps/mobile`、`apps/ios`、`apps/android`                                                                                             |
-| 对外入口  | `./*`（直接映射 `./src/*`）、`./bootstrap`                                                                                                                                  |
+| 被谁依赖  | `apps/web`、`apps/electron-renderer`、`apps/mobile`、`apps/ios`、`apps/android`、`apps/mobile-shared`、`@affine/admin`（`packages/frontend/admin`）                      |
+| 对外入口  | `./*`（直接映射 `./src/*`）；`exports` 里的 `./bootstrap` 指向的 `src/bootstrap/index.ts` 不存在，实际用 `./bootstrap/browser`、`./bootstrap/electron` |
 
 ## 1. 设计逻辑
 
@@ -17,9 +19,9 @@
 
 核心立场有三条：
 
-1. **一切皆 module，一切经 `Framework` 注册**。`src/modules/` 下 70 个子目录各是一个业务域，每个导出一个 `configureXxxModule(framework)` 函数；`src/modules/index.ts` 的 `configureCommonModules` 把它们串成一条注册流水线（`modules/index.ts:73-139`）。注册与解析分离——core 只负责"声明接口→实现+依赖"，运行期由 `FrameworkProvider` 按作用域惰性构造。
+1. **一切皆 module，一切经 `Framework` 注册**。`src/modules/` 下 69 个子目录各是一个业务域，绝大多数导出一个 `configureXxxModule(framework)` 函数（4 个没有）；`src/modules/index.ts` 的 `configureCommonModules` 调用其中大部分（65 次调用），其余由各端外壳装配（`modules/index.ts:73-139`）。注册与解析分离——core 只负责"声明接口→实现+依赖"，运行期由 `FrameworkProvider` 按作用域惰性构造。
 
-2. **作用域对应产品的生命周期层级**。infra 的 `Scope` 机制在 core 里被实化为三条主轴：**global**（应用级，`framework` 顶层直接注册的服务）、**workspace**（`WorkspaceScope`，一个工作区一套实例）、**doc**（`DocScope`，打开一篇文档才创建）。cloud 还另开了 **server** 作用域（`ServerScope`，一台后端服务器一套实例）。切换工作区即换一整套 workspace 作用域实例，切换文档即换一套 doc 作用域实例，互不串扰。
+2. **作用域对应产品的生命周期层级**。infra 的 `Scope` 机制在 core 里被实化为三条主轴：**global**（应用级，`framework` 顶层直接注册的服务）、**workspace**（`WorkspaceScope`，一个工作区一套实例）、**doc**（`DocScope`，打开一篇文档才创建）。cloud 还另开了与 `WorkspaceScope` 平级的 **server** 作用域（`ServerScope`，一台后端服务器一套实例）；此外还有 `ViewScope`、`EditorScope`，共 5 种 Scope。切换工作区即换一整套 workspace 作用域实例，切换文档即换一套 doc 作用域实例，互不串扰。
 
 3. **编辑器内核经门面接入，而非散依赖**。core 只认 `@blocksuite/affine` 一个包名（见 `blocksuite-affine.md`），在 `src/blocksuite/` 里把门面提供的"内置扩展全家桶"与 core 自己的 app 专属扩展拼成 `ViewExtensionManager`。
 
@@ -34,7 +36,7 @@ src/
 │   ├── electron.ts         # 桌面端引导序列
 │   ├── env.ts / public-path.ts / telemetry.ts / cleanup.ts
 │   └── polyfill/
-├── modules/                # ★ 70 个业务域，core 的主体
+├── modules/                # ★ 69 个业务域，core 的主体
 │   ├── index.ts            # configureCommonModules(framework)：注册流水线
 │   ├── doc/                # 文档域（DocScope）
 │   ├── workspace/          # 工作区域（WorkspaceScope）
@@ -60,12 +62,12 @@ src/
 
 ### 3.1 一条注册流水线：`configureCommonModules`
 
-`modules/index.ts` 把 70 个 `configureXxxModule` 顺序调用（`modules/index.ts:73-139`）。顺序有讲究——被依赖的域先注册（`configureWorkspaceModule` 在 `configureDocModule` 之前，`configureCloudModule` 在依赖它的 `configureQuotaModule`/`configurePermissionsModule` 之前）。`app` 拿到同一个 `framework` 后再追加平台模块：
+`modules/index.ts` 顺序调用 65 次 `configureXxx`（`modules/index.ts:73-139`）。解析是惰性的，调用顺序不影响依赖解析，只影响 `override` 谁覆盖谁（后写的生效）。`app` 拿到同一个 `framework` 后再追加平台模块：
 
 ```ts
 // 来源：apps/web/src/app.tsx:56-66
 const framework = new Framework();
-configureCommonModules(framework); // ← core 的 70 个公共模块
+configureCommonModules(framework); // ← core 的公共模块（65 次 configure 调用）
 configureBrowserWorkbenchModule(framework); // ← 平台特化：浏览器版工作台
 configureLocalStorageStateStorageImpls(framework);
 configureBrowserWorkspaceFlavours(framework);
@@ -121,7 +123,7 @@ const { obj, release } = this.pool.put(docId, doc);
 
 `WorkspaceService` 同理，惰性 `createEntity(Workspace)` 并在 `dispose` 时销毁（`workspace/services/workspace.ts:5-18`）——于是"当前工作区"也是作用域内单例。
 
-### 3.4 cloud：第四条作用域轴与 `getOptional`
+### 3.4 cloud：与 workspace 平级的 `ServerScope` 与 `getOptional`
 
 `configureCloudModule` 展示了 global 服务 + `ServerScope` 的混合（`cloud/index.ts:124-198`）。`ServersService`/`RealtimeService` 是全局单例，而 `ServerService`/`FetchService`/`GraphQLService`/`AuthService` 都挂在 `.scope(ServerScope)` 下——因为自建服务器（self-host）可接入多台后端，每台一套鉴权与请求栈。注意 `CaptchaService` 用了**工厂形态**注册并调 `getOptional` 取可选依赖：
 
@@ -171,8 +173,8 @@ const trashActive = useLiveData(globalContextService.globalContext.isTrash.$);
 
 ## 5. 设计 / 实现亮点
 
-- **模块化 DI 架构**：70 个 module 各自 `configureXxxModule`，彼此只通过导出的标识符耦合，新增/删除一个业务域就是在 `configureCommonModules` 里加/减一行——大型前端的可维护性来源于此。
-- **作用域即生命周期**：global→workspace→doc（+server）四轴嵌套，让"当前文档的服务""当前工作区的引擎""当前服务器的鉴权"自动隔离与回收。`DocsService` 的 `ObjectPool` + `createScope`/`release` 把"打开/关闭文档"实现成作用域的创建/销毁，无内存泄漏。
+- **模块化 DI 架构**：69 个 module 目录各自 `configureXxxModule`，彼此只通过导出的标识符耦合，新增/删除一个业务域就是在 `configureCommonModules` 里加/减一行——大型前端的可维护性来源于此。
+- **作用域即生命周期**：global 之下 workspace→doc 嵌套、server 与 workspace 平级，让"当前文档的服务""当前工作区的引擎""当前服务器的鉴权"自动隔离与回收。`DocsService` 的 `ObjectPool` + `createScope`/`release` 把"打开/关闭文档"实现成作用域的创建/销毁，无内存泄漏。
 - **本地优先与 nbstore 衔接**：store 层直接操作 Yjs（`DocsStore` 的 `transact`/`yjsGetPath`），持久化与多端同步由 `WorkspaceEngine` 经 `NbstoreService` 下沉到 SharedWorker 里的 `@affine/nbstore`——业务代码用"表/记录/LiveData"心智，感知不到跨线程与网络。
 - **跨端同构**：web/mobile 的 `app.tsx` 共用 `configureCommonModules`，仅在挑平台模块（`configureBrowserWorkbenchModule`）与填平台 impl（`NbstoreProvider`/`PopupWindowProvider`）上分叉。`workbench` 更把这种分叉做进框架——同一 `configureWorkbenchCommonModule` 配不同 impl：
 
@@ -210,9 +212,9 @@ export function configureDesktopWorkbenchModule(services: Framework) {
 
 ## 6. 对外 API 与注意事项
 
-- **主要导出**：按 `./*` 直接映射源码，`app` 通常从 `@affine/core/modules/<domain>` 具名引入（如 `import { DocsService } from '@affine/core/modules/doc'`），从 `@affine/core/modules` 引入 `configureCommonModules`，从 `@affine/core/bootstrap` 引入引导副作用。
+- **主要导出**：按 `./*` 直接映射源码，`app` 通常从 `@affine/core/modules/<domain>` 具名引入（如 `import { DocsService } from '@affine/core/modules/doc'`），从 `@affine/core/modules` 引入 `configureCommonModules`，从 `@affine/core/bootstrap/browser`（或 `bootstrap/electron`）引入引导副作用。
 - **引导顺序**：`bootstrap/browser.ts` 注释 `ORDER MATTERS`——`env` 必须最先（注入 `BUILD_CONFIG`），`public-path`、`polyfill`、`telemetry` 依次其后；`app` 应在业务代码前 import 它。
-- **注册顺序**：`configureCommonModules` 中被依赖的模块需先注册，否则运行期 `get` 会抛 `Missing dependency`。新增 module 要在此函数登记。
+- **注册顺序**：解析是惰性的，`configureCommonModules` 的调用顺序不影响依赖解析；只要在第一次 `get` 之前注册上即可，漏注册才会抛 `Missing dependency`，详见 [精讲](../重点包精讲/05-affine-core.md)。新增 module 要在此函数登记。
 - **作用域错层**：把本应在 `WorkspaceScope`/`DocScope` 的服务注册到 global，或反之，会导致解析失败或实例串扰。实体（`entity`）是工厂多实例，别当单例缓存——要缓存请像 `DocsService` 那样显式用 `ObjectPool` + `release`。
 - **`core` 不自带 `new Framework()`**：它只提供 `configureXxxModule`，容器的创建、平台 impl 的填充、`framework.provider()` 的时机都由各 `app` 掌握（见 `apps/web/src/app.tsx`、`apps/mobile/src/app.tsx`）。
 
@@ -220,5 +222,5 @@ export function configureDesktopWorkbenchModule(services: Framework) {
 
 - 地基：L1 `@toeverything/infra`（`Framework`/`Scope`/`LiveData`/ORM，见 `toeverything-infra.md`）——core 是它最大的使用者；`@affine/nbstore`（本地优先存储与同步，经 `NbstoreService` 衔接）。
 - 编辑器：L3 `@blocksuite/affine`（聚合门面，见 `blocksuite-affine.md`）——core 在 `blocksuite/manager/` 消费其两份扩展清单与 `AffineSchemas`。
-- 使用方：`apps/web`、`apps/electron-renderer`、`apps/mobile`、`apps/ios`、`apps/android`——它们挑平台模块、填平台 impl、构造 `Framework` 并渲染 `FrameworkRoot`。
+- 使用方：`apps/web`、`apps/electron-renderer`、`apps/mobile`、`apps/ios`、`apps/android`（另有 `apps/mobile-shared`、`@affine/admin` 引用部分模块）——它们挑平台模块、填平台 impl、构造 `Framework` 并渲染 `FrameworkRoot`。
 - 对应教程：learning-guide 第 20 章（DI 与 LiveData）为前置，第 21–24 章讲 `@affine/core` 的模块化架构、作用域模型、本地优先数据流与跨端同构。

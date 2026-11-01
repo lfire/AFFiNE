@@ -1,5 +1,7 @@
 # `@blocksuite/data-view`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/09-blocksuite-data-view.md)。
+
 > 一句话定位：一套**与具体存储/数据库解耦的通用数据视图引擎**——定义 `DataSource` 适配接口、`ViewManager`/`SingleView` 视图模型、以及可插拔的属性（property）、逻辑类型（logical type）、分组/筛选/排序/统计能力；内置 table / kanban / calendar 三种视图预设。AFFiNE 的 `affine:database` 块只是它的一个 `DataSource` 实现者。
 
 | 项        | 值                                                                                                                                                    |
@@ -8,7 +10,7 @@
 | 所属层    | L3 · 编辑器业务层（基座）                                                                                                                             |
 | 语言/形态 | TypeScript 库（含大量 Lit 组件）                                                                                                                      |
 | 关键依赖  | `@blocksuite/std`（std/gfx）、`@blocksuite/affine-shared`、`@blocksuite/affine-components`、`@preact/signals-core`、`lit`、`date-fns`、`@emotion/css` |
-| 被谁依赖  | `@blocksuite/affine-block-database`、`@blocksuite/affine-foundation`（`dataViewEffects`）                                                             |
+| 被谁依赖  | 共 8 个：`@blocksuite/affine-block-database`、`@blocksuite/affine-block-data-view`、`@blocksuite/affine-block-root`、`@blocksuite/affine-foundation`（`dataViewEffects`）、`@blocksuite/affine-widget-keyboard-toolbar`、`@blocksuite/affine`、`@blocksuite/playground`、`@affine/core` |
 | 对外入口  | `.`（core 全量）、`./view-presets`、`./property-presets`、`./property-pure-presets`、`./widget-presets`、`./effects`                                  |
 
 ## 1. 设计逻辑
@@ -56,7 +58,7 @@ src/
 ├── view-presets/                # ★ table / kanban / calendar 三种视图预设
 │   ├── index.ts                 # viewPresets = { tableViewMeta, kanbanViewMeta, calendarViewMeta }
 │   └── table/define.ts          # viewType('table').createModel(...) 示例
-├── property-presets/            # 内置属性类型：text/number/select/date/checkbox/progress...
+├── property-presets/            # 内置属性类型（8 种）：checkbox/date/image/multi-select/number/progress/select/text
 └── widget-presets/              # 工具条、视图切换条等
 ```
 
@@ -137,7 +139,7 @@ currentView$ = computed(() => {
 });
 ```
 
-`viewAdd(type)`（`:75-86`）向 DataSource 读取该 type 的 meta、调 `meta.model.defaultData(this)` 生成初始数据、分配 `nanoid()`、写回数据源；`viewChangeType`（`:88-109`）切换视图类型时会查 `dataSource.viewConverts` 找到 `from→to` 的转换器迁移数据（如 table 转 kanban 保留分组），没有则用默认数据。`viewGet`（`:125-129`）**每次都 `new meta.model.dataViewManager(this, id)`**——SingleView 是轻量包装，状态都在数据源，所以可随取随建。
+`viewAdd(type)`（`:75-86`）向 DataSource 读取该 type 的 meta、调 `meta.model.defaultData(this)` 生成初始数据、分配 `nanoid()`、写回数据源；`viewChangeType`（`:88-109`）切换视图类型时会查 `dataSource.viewConverts` 找到 `from→to` 的转换器迁移数据（如 kanban 转 table 保留 `groupBy`），没有则用默认数据。`viewGet`（`:125-129`）**每次都 `new meta.model.dataViewManager(this, id)`**——状态虽都在数据源，但构造并不轻量（会注册带 `effect` 的 trait，并可能排一次写入），UI 层按 `id + mode` 缓存而非随取随建（详见 [精讲](../重点包精讲/09-blocksuite-data-view.md)）。
 
 ### 3.4 SingleView：视图内的响应式投影
 
@@ -145,7 +147,7 @@ currentView$ = computed(() => {
 
 ### 3.5 property 与 logical：可插拔的类型系统
 
-`propertyType(type).modelConfig(ops)`（`core/property/property-config.ts:49+`）用同款链式工厂产出 `PropertyModel`，内含 `create`（建默认数据）与 `createPropertyMeta`（绑定渲染器）。`property-presets/` 下的 text/number/select/date/checkbox/progress 等都是它的产物，经 `./property-presets` 子入口导出，可按需摇树。
+`propertyType(type).modelConfig(ops)`（`core/property/property-config.ts:49+`）用同款链式工厂产出 `PropertyModel`，内含 `create`（建默认数据）与 `createPropertyMeta`（绑定渲染器）。`property-presets/` 下的 checkbox/date/image/multi-select/number/progress/select/text 共 8 种都是它的产物，经 `./property-presets` 子入口导出，可按需摇树。
 
 `logical/` 是一套独立的**运行时逻辑类型系统**（`type-system`、`type-presets`、`composite-type`、`matcher`），用于描述属性值的类型、并让 filter/sort 根据类型匹配可用操作——这是把"筛选条件对什么类型的列可用"做成数据驱动的关键。
 
@@ -164,11 +166,11 @@ currentView$ = computed(() => {
 
 ## 5. 设计 / 实现亮点
 
-- **DataSource 适配层是全局解耦点**：引擎零感知 Yjs/数据库，`affine:database` 只是实现者之一。这让 data-view 可独立演进、独立测试，也为"接别的数据后端"留了口子。
+- **DataSource 适配层是全局解耦点**：引擎基本不感知数据库存储（但声明了 `yjs` 依赖、有三处直接使用 Yjs，类型上依赖 `affine-model`），`affine:database` 只是实现者之一。这让 data-view 可独立演进、独立测试，也为"接别的数据后端"留了口子。
 - **全响应式投影**：从 DataSource 到 ViewManager 到 SingleView，视图层只是数据源之上的一串 `computed`，数据一变视图自动更新，不需要手写同步逻辑。
 - **预设 + matcher 的可插拔横切能力**：property 类型、logical 类型、filter/sort/group-by 全部用"工厂产出 meta + matcher 按类型匹配"注册，新增一种列类型不改引擎核心。
 - **视图模型与 UI 分离**：`ViewMeta` 把 `model`（数据）与 `renderer`（`pcLogic`/`mobileLogic`/`icon`，见 `view/data-view.ts:51-56`）拆开，同一数据模型可在 PC/移动端用不同 UI 逻辑渲染。
-- **轻量 SingleView**：视图实例无自有持久态、随取随建，避免了"视图对象与数据不一致"的常见 bug。
+- **SingleView 无自有持久态**：状态都在数据源（构造会注册 trait 的 `effect`，UI 层按 `id + mode` 缓存），避免了"视图对象与数据不一致"的常见 bug。
 
 ## 6. 对外 API 与注意事项
 
@@ -179,6 +181,6 @@ currentView$ = computed(() => {
 
 ## 7. 延伸
 
-- 使用方：`@blocksuite/affine-block-database`（提供把数据库块适配成 `DataSource` 的实现）、`@blocksuite/affine-foundation`（装配 `dataViewEffects`）。
+- 主要使用方：`@blocksuite/affine-block-database`（提供把数据库块适配成 `DataSource` 的实现）、`@blocksuite/affine-foundation`（装配 `dataViewEffects`）。
 - 依赖的响应式底座：`@preact/signals-core`（`computed`/`signal`），与 L1 `@toeverything/infra` 的 `LiveData` 思路一致。
 - 相关：同层 `@blocksuite/affine-model` 的 `database` 块模型（`ColumnDataType` 等），`@blocksuite/affine-shared` 的 `InsertToPosition`、telemetry 事件类型。

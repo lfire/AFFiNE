@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { type DefaultTheme, defineConfig } from 'vitepress';
 
+import { tableLayoutPlugin } from './table-layout';
+
 const guideRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** 仓库信息：CI 中读取 GitHub 注入的环境变量，本地默认为 fork 仓库 */
@@ -61,6 +63,8 @@ function buildSidebar(): DefaultTheme.SidebarItem[] {
 /** 工程图谱（engineering-atlas）目录 */
 const atlasDir = 'engineering-atlas';
 const atlasRoot = path.join(guideRoot, atlasDir);
+/** 重点包精讲专区（位于工程图谱目录下） */
+const atlasDeepDir = '重点包精讲';
 
 /** 侧边栏文字：去掉标题中的反引号 */
 function plainTitle(file: string): string {
@@ -98,6 +102,18 @@ function buildAtlasSidebar(): DefaultTheme.SidebarItem[] {
         { text: '单包文档模板', link: `/${atlasDir}/TEMPLATE` },
         { text: '← 返回学习指南', link: '/README' },
       ],
+    },
+    {
+      text: '重点包精讲',
+      collapsed: false,
+      items: fs
+        .readdirSync(path.join(atlasRoot, atlasDeepDir))
+        .filter(f => /^\d{2}-.+\.md$/.test(f))
+        .sort()
+        .map(f => ({
+          text: `${f.slice(0, 2)} · ${plainTitle(path.join(atlasRoot, atlasDeepDir, f)).replace(/^重点包精讲 · /, '').replace(/ 精讲/, '')}`,
+          link: `/${atlasDir}/${atlasDeepDir}/${f.replace(/\.md$/, '')}`,
+        })),
     },
     ...layers.map(layer => {
       const files = fs
@@ -237,6 +253,9 @@ export default defineConfig({
         }
         return linkOpen(tokens, idx, options, env, self);
       };
+
+      // 4. 表格列宽：按内容估算，短列不换行、长列给最小宽度、长路径只在分隔符处断行
+      tableLayoutPlugin(md);
     },
   },
 

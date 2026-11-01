@@ -1,6 +1,8 @@
 # `@affine/nbstore`
 
-> 一句话定位：AFFiNE 的**本地优先存储与同步引擎**——定义一套"文档/Blob/Awareness/索引"的 Storage 抽象，为其提供 IndexedDB、SQLite、Cloud（socket.io）、磁盘、BroadcastChannel 等多种实现，用基于 Yjs 状态向量的增量同步算法把本地与多个远端对等体（peer）双向合流，并把整套引擎跑在 SharedWorker 里、通过 Op RPC 对主线程透明暴露。它是 AFFiNE "离线可用 + 实时协同"的心脏。
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/04-affine-nbstore.md)。
+
+> 一句话定位：AFFiNE 的**本地优先存储与同步引擎**——定义一套"文档/Blob/Awareness/索引"的 Storage 抽象，为其提供 IndexedDB、SQLite、Cloud（socket.io）、磁盘、BroadcastChannel 等多种实现，用基于 Yjs 状态向量的增量同步算法把本地与多个远端对等体（peer）双向合流，并把整套引擎跑在后台 Worker（Web 端优先 SharedWorker）里、通过 Op RPC 对主线程透明暴露。它是 AFFiNE "离线可用 + 实时协同"的心脏。
 
 | 项        | 值                                                                                                                                          |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,7 +22,7 @@ nbstore 的架构由四层正交抽象支撑：
 1. **Storage 抽象层**：把"存什么"拆成七种正交的 `StorageType`——`doc`/`blob`/`awareness`/`indexer` 四种数据，各配一个 `xxxSync` 记录同步元数据。每种都是接口 + 抽象基类，具体后端只实现差异部分。
 2. **多后端实现（impls）**：`idb`/`sqlite`/`cloud`/`disk`/`broadcast-channel` 各提供一组实现，用静态 `identifier` 字符串注册、可按需组合。**本地后端**（IDB/SQLite）负责持久化，**Cloud 后端**负责与服务器同步。
 3. **同步引擎（sync）**：核心是 `DocSyncPeer`——一个"本地 Storage ↔ 单个远端 Storage"的双向增量同步状态机，用 Yjs 状态向量计算最小 diff、用优先级任务队列调度 pull/push/save。
-4. **Worker 层**：整套引擎跑在 SharedWorker 里（多标签页共享一个同步引擎），主线程通过 `@toeverything/infra` 的 Op RPC（`OpClient`/`OpConsumer`）调用，`frontend` 提供面向业务的 YDoc 绑定。
+4. **Worker 层**：整套引擎跑在后台线程里——Web/移动 Web 在浏览器支持时用 SharedWorker（多标签页共享一个同步引擎），否则用独立 Worker；Electron 用后台渲染页，iOS/Android 用普通 Worker。主线程通过 `@toeverything/infra` 的 Op RPC（`OpClient`/`OpConsumer`）调用，`frontend` 提供面向业务的 YDoc 绑定。
 
 **核心立场——本地优先 + CRDT**：因为数据是 Yjs CRDT，合并天然无冲突；nbstore 只需负责"把 update 搬来搬去并持久化"，无需实现冲突解决。读时按需合并快照（见 3.2）则在"写入快、读取新"之间取得平衡。
 
@@ -127,7 +129,7 @@ override async getDoc(docId: string) {
 
 注释道破缘由（`storage/doc.ts:293`）：_"A huge amount of write time will be saved if we don't merge updates into snapshot immediately. Updates will be merged into snapshot when the latest doc is requested."_ 即**写放大换读延迟**——高频编辑只追加、不重写整个文档；读取时一次性合并并落盘新快照，分摊成本。`setDocSnapshot` 的注释还提醒：多线程下可能用过期快照调用，实现须"仅当新快照时间戳更新时才写入"。
 
-`DocStorageBase.getDocDiff`（基类，`storage/doc.ts:156`）则基于 Yjs 的 `diffUpdate`/`encodeStateVectorFromUpdate` 返回"相对给定状态向量的缺失部分 + 自身状态向量"——这是增量同步的数据基础。IDB 与 Cloud 的 doc storage 都继承 `SnapshotDocStorageBase`；SQLite 继承更底层的 `DocStorageBase`（因其有原生事务，合并策略不同）。
+`DocStorageBase.getDocDiff`（基类，`storage/doc.ts:156`）则基于 Yjs 的 `diffUpdate`/`encodeStateVectorFromUpdate` 返回"相对给定状态向量的缺失部分 + 自身状态向量"——这是增量同步的数据基础。IDB 与 Cloud 的 doc storage 都继承 `SnapshotDocStorageBase`；SQLite 继承更底层的 `DocStorageBase`，但合并策略相同（快照 + update 队列、读时合并），只是放在 Rust 侧 `packages/frontend/native/nbstore/src/doc.rs` 实现并用乐观 CAS 重试。
 
 ### 3.3 多后端：静态 `identifier` + `satisfies` 注册
 
@@ -181,7 +183,7 @@ function docDiffUpdate(local, localSv, remoteDiff, remoteSv) {
 
 **(c) 时钟去重（ClockMap + pushed/pulled clock）**：用 `syncMetadata` 持久化"对每个 peer 已推送/已拉取到的时间戳"，`connect` 时比较本地 clock 与 pushedClock 决定是否需要推送，避免重复同步已同步过的内容。
 
-**(d) 回环防护**：每个 peer 有唯一 `uniqueId = sync:${peerId}:${nanoid()}`，`pushDocUpdate` 带上它作为 origin；订阅本地/远端 update 时**跳过自己产生的 origin**（`peer.ts:762`），防止把刚同步下来的 update 又同步回去形成死循环。
+**(d) 回环防护**：每个 peer 有唯一 `uniqueId = sync:${peerId}:${nanoid()}`，`pushDocUpdate` 带上它作为 origin；订阅远端 update 时跳过自己的 `uniqueId`，订阅本地 update 时**跳过整个 `sync:${peerId}:` 前缀**（同一 peerId 其他上下文写入的也跳过，`peer.ts:762`），防止把刚同步下来的 update 又同步回去形成死循环。
 
 **(e) 健壮的主循环**：`mainLoop` → `retryLoop`，断线后 5 秒退避重试；但遇到**权限错误**（`DOC_ACTION_DENIED`/`SPACE_ACCESS_DENIED`）则停止重试（`isRemotePermissionError`）。doc 级错误被 `runRemoteDocJob` 隔离——单个文档同步失败只暂停该文档、记入 `docErrors`，不拖垮整个 peer。根文档（`spaceId`）的 Job 优先级为 `Infinity`（`peer.ts:977`），保证"新文档的成员关系先同步"。
 
@@ -216,11 +218,11 @@ class WorkerDocStorage implements DocStorage {
 
 `StoreManagerClient.open`（`client.ts:96`）为每个 store 新建一个 `MessageChannel`，把 `port2` 用 `transfer(..., [port2])` 转移给 worker，自己持有 `port1` 上的 `OpClient`——**每个 store 一条独立 RPC 通道**。关闭时用 `closeKey`（uuid）通知 worker 释放。
 
-Worker 侧 `StoreManagerConsumer`（`worker/consumer.ts`）维护一个 **store 池 + 引用计数**：同一个工作区被多个标签页打开时**复用同一个 `StoreConsumer`、共享同一套同步引擎**，`refCount` 归零才真正销毁。`serialize(key, op)` 用 per-key 的 Promise 链把 open/close 串行化，杜绝并发开关的竞态（与 `@affine/auth` 的 `mutateStorage` 异曲同工）。这正是"多标签页只跑一份同步"的实现根基，也呼应了 `@toeverything/infra` 第 5 章"Op 让多线程像本地调用"。
+Worker 侧 `StoreManagerConsumer`（`worker/consumer.ts`）维护一个 **store 池 + 引用计数**：SharedWorker 模式下同一个工作区被多个标签页打开时**复用同一个 `StoreConsumer`、共享同一套同步引擎**，`refCount` 归零才真正销毁；独立 Worker 模式下每个标签页各有一套引擎，靠 IDB 的 BroadcastChannel 和 `IndexedDBLocker` 协调。`serialize(key, op)` 用 per-key 的 Promise 链把 open/close 串行化，杜绝并发开关的竞态（与 `@affine/auth` 的 `mutateStorage` 异曲同工）。这正是"多标签页只跑一份同步"的实现根基，也呼应了 `@toeverything/infra` 第 5 章"Op 让多线程像本地调用"。
 
 ### 3.7 `AutoReconnectConnection`：统一的连接生命周期
 
-所有 storage 的连接继承 `AutoReconnectConnection`（`connection/connection.ts:24`），统一提供 `idle→connecting→connected→error→closed` 状态机、引用计数、指数退避重连（`retryDelay=3s`、`maxRetryDelay=60s`、`connectingTimeout=15s`）与 `onStatusChanged` 订阅。同步引擎正是监听它的状态变化，断线即 abort 当前同步、择机重连。
+除 `DummyConnection` 及其子类（`HttpConnection`、`WorkerDocConnection`、`WorkerBlobConnection`）外，storage 的连接都继承 `AutoReconnectConnection`（`connection/connection.ts:24`），统一提供 `idle→connecting→connected→error→closed` 状态机、引用计数、指数退避重连（`retryDelay=3s`、`maxRetryDelay=60s`、`connectingTimeout=15s`）与 `onStatusChanged` 订阅。同步引擎正是监听它的状态变化，断线即 abort 当前同步、择机重连。
 
 ## 4. 语法特色
 
@@ -242,7 +244,7 @@ Worker 侧 `StoreManagerConsumer`（`worker/consumer.ts`）维护一个 **store 
 - **peer 化同步**：`DocSyncPeer` 把"本地↔一个远端"做成可复用单元，`Sync` 按多 peer 组装，天然支持多远端（如主云端 + 协作服务器）与动态 `reconfigure`。
 - **SharedWorker + 引用计数 store 池**：多标签页共享一份同步引擎，既省资源又避免多端重复同步；Op RPC 让主线程对"引擎在别的线程"完全无感。
 - **故障隔离粒度到单文档**：`runRemoteDocJob` + `docErrors` 让一个文档的权限/导出错误不影响其余文档继续同步；根文档 `Infinity` 优先级保证成员关系先行。
-- **统一自动重连连接**：所有后端共享一套退避重连状态机，上层只需订阅状态。
+- **统一自动重连连接**：需要长连接的后端共享一套退避重连状态机，上层只需订阅状态。
 
 ## 6. 对外 API 与注意事项
 
@@ -254,7 +256,7 @@ Worker 侧 `StoreManagerConsumer`（`worker/consumer.ts`）维护一个 **store 
 - **坑**：
   - `setDocSnapshot` 可能被过期快照并发调用——务必"仅更新更新的时间戳"，否则多线程下会回退数据。
   - origin 命名必须遵循 `sync:${peerId}:` / `nbstore-frontend` 等约定，自定义 origin 若与之冲突会破坏回环去重。
-  - Cloud 后端依赖 `socket.io-client`、`@affine/realtime`，且这些在 `peerDependencies` 中——使用方须提供。
+  - Cloud 后端依赖 `socket.io-client`、`@affine/realtime`，二者都在 `peerDependencies` 中，其中 `@affine/realtime` 同时也在 `dependencies` 里；`socket.io-client` 须由使用方提供。
   - 遇到 `DOC_ACTION_DENIED`/`SPACE_ACCESS_DENIED` 同步会**停止重试**（权限问题重试无意义），需上层处理鉴权后再触发。
 
 ## 7. 延伸

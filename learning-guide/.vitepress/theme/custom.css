@@ -21,6 +21,39 @@ html.dark:root {
   overflow-x: auto;
 }
 
+/* 列宽由构建期插件（.vitepress/table-layout.ts）估算：
+ * .tc-nw 整列/整段不换行，长列的最小宽度写在表头的 style 上。
+ * （VitePress 固定把 table_open 渲染成 <table tabindex="0">，无法给 table 加类，故直接作用于 .vp-doc table） */
+.vp-doc table {
+  /* 让单元格的 min-width 可以用 cqw（相对表格宽度）随正文宽度缩放 */
+  container-type: inline-size;
+}
+
+.vp-doc table th,
+.vp-doc table td {
+  padding: 8px 12px;
+  line-height: 1.65;
+  vertical-align: top;
+}
+
+.vp-doc table th {
+  vertical-align: bottom;
+}
+
+.vp-doc table .tc-nw {
+  white-space: nowrap;
+}
+
+/* 长行内代码只在插件插入的 wbr 处断行 */
+.vp-doc table code {
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.vp-doc table td code {
+  font-size: 0.86em;
+}
+
 /* GitHub 式任务列表（学习目标 / 动手实践的 - [ ]） */
 .vp-doc .contains-task-list {
   padding-left: 0;

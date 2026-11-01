@@ -1,5 +1,7 @@
 # `@blocksuite/store`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/02-blocksuite-store.md)。
+
 > 一句话定位：BlockSuite 的**文档数据层**——把一棵"块树"持久化到 Yjs CRDT，同时向上暴露一套**响应式、强类型、可观察**的数据 API。它用 `Y.Map` 承载每个块、用 `defineBlockSchema` 描述块结构、用 Proxy + Preact Signal 把"改 JS 对象"自动翻译成"改 Yjs"（反之亦然），并用 `Transformer` 在块树与 JSON `Snapshot` 之间双向转换。编辑器里一切"数据"都从这里来。
 
 | 项        | 值                                                                                                              |
@@ -26,7 +28,7 @@
 - **`Store`**：一棵块树的门面，提供 `addBlock`/`updateBlock`/`deleteBlock`/`getParent` 等 CRUD，并把 Yjs 事件翻译成 `slots`（RxJS Subject）。
 - **`reactive/`**：最底层的 `Y.Map↔对象`、`Y.Array↔数组`、`Y.Text↔Text`、`Boxed`（存原始对象）转换引擎。
 - **`Transformer` + `Snapshot`**：块树 ↔ JSON 的双向序列化。
-- **`Workspace` / `Doc`**：接口抽象，把"一个工作区里有多个文档、每个文档一个子 Y.Doc"的结构交给上层实现（store 只定义 interface）。
+- **`Workspace` / `Doc`**：接口抽象，把"一个工作区里有多个文档、每个文档一个独立的 spaceDoc（Y.Doc，非 subdoc）"的结构交给上层实现（store 只定义 interface）。
 
 **边界**：`store` 不碰 DOM、不碰视图。它和 `@blocksuite/sync` 的分工是——sync 负责"Y.Doc 怎么和远端/本地存储同步"，store 负责"Y.Doc 里的数据怎么变成好用的块树"；store 通过 `Workspace.blobSync: BlobEngine` 等接口向 sync 要能力。
 
@@ -34,7 +36,7 @@
 
 ```text
 src/
-├── index.ts               # 汇总导出；并用 __$BLOCKSUITE_STORE$__ 检测"重复打包"
+├── index.ts               # 汇总导出；并用 __ $BLOCKSUITE_STORE$ __ 检测"重复打包"
 ├── consts.ts              # NATIVE_UNIQ_IDENTIFIER（Boxed 标记）等常量
 ├── schema/
 │   ├── schema.ts          # Schema 类：注册/校验 flavour 的父子关系（支持 role 与通配）
@@ -163,12 +165,12 @@ type SignaledProps<Props> = Props & {
 ## 4. 语法特色
 
 - **模板字面量键重映射**：`SignaledProps<Props>` 用 `` [P in keyof Props & string as `${P}$`] ``自动派生出`xxx$: Signal<...>` 伴生类型（`block-model.ts:11`），让一个声明同时拥有值和 Signal 两套 API 的类型。
-- **zod 作"运行时类型"**：`BlockSchema`/`BlockSnapshotSchema` 既是校验器又是类型源（`z.infer`）。`z.function().args(...).returns(...)` 甚至给 `props`/`toModel`/`transformer` 这些**函数字段**做签名校验（`model/block/zod.ts:33-44`）；`z.lazy` 表达递归结构。
+- **zod 作"运行时类型"**：`BlockSchema`/`BlockSnapshotSchema` 既是校验器又是类型源（`z.infer`）。`z.function().args(...).returns(...)` 对 `props`/`toModel`/`transformer` 这些**函数字段**实际只校验"是函数"，因为 `defineBlockSchema` 丢弃了 parse 结果、不做签名校验（`model/block/zod.ts:33-44,115-116`）；`z.lazy` 表达递归结构。
 - **Proxy 元编程**：`SyncController` 与 `ReactiveYMap/Array` 大量用 `new Proxy(target, { get/set/deleteProperty })` + `Reflect.*`，把"改对象"透明翻译成"改 Yjs"。这是整个"看起来像普通对象、其实是 CRDT"幻觉的实现手段。
 - **`Symbol` 做私有标记与可释放协议**：`BlockModel` 用 `const modelLabel = Symbol('model_label')` 携带幻影泛型（规避 TS 泛型类推断问题，`block-model.ts:15,59`）；并实现 `[Symbol.dispose]()`（显式资源管理提案）。`Boxed` 用 `NATIVE_UNIQ_IDENTIFIER` 字符串标记做 `is` 判定。
 - **Yjs API 精化类型**：`YBlock = Y.Map<unknown> & { get(prop:'sys:children'): Y.Array<string>; ... }`（`model/block/types.ts`）用交叉类型给 `get` 加重载，让 `yBlock.get('sys:children')` 直接拿到 `Y.Array` 类型。
 - **`satisfies` 校验形状**：`defineBlockSchema` 内 `const schema = {...} satisfies z.infer<typeof BlockSchema>`，在不拓宽类型的前提下确保结构匹配（`model/block/zod.ts:114`）。
-- **防重复打包的运行时自检**：`index.ts:17-23` 在 `globalThis` 挂 `__$BLOCKSUITE_STORE$__` 标记，二次 import 时 `console.error`——因为 Yjs 的 `instanceof` 依赖单例构造器，重复打包会引发隐蔽 bug。
+- **防重复打包的运行时自检**：`index.ts:17-23` 在 `globalThis` 挂 `__ $BLOCKSUITE_STORE$ __` 标记，二次 import 时 `console.error`——因为 Yjs 的 `instanceof` 依赖单例构造器，重复打包会引发隐蔽 bug。
 
 ## 5. 设计 / 实现亮点
 
@@ -185,8 +187,8 @@ type SignaledProps<Props> = Props & {
 - **改数据务必在 `store.transact` 内**（CRUD 方法已自带）。脱离 Yjs 文档的响应式对象直接写会抛 `ReactiveProxyError`。
 - **`getBlock`（peek）与 `getBlock$`（响应式）别用混**：在 `computed`/`effect`/render 里要用 `$` 版本才能建立依赖。
 - **`props` 访问限制**：非 flatData 模型直接读 `model.props` 没问题，但其 getter 要求模型已初始化；`props is only supported in flat data model` 的报错多来自错误地在裸 `BlockModel` 上访问。
-- **version 不一致**：schema 升级后旧数据的 `sys:version` 与 schema version 不符时，上层需做迁移（`MigrationError`）；store 本身在解析时会用 schema version 兜底。
-- **不要重复打包**：monorepo 里确保 `@blocksuite/store`/`yjs` 单实例，否则命中 `__$BLOCKSUITE_STORE$__` 警告并出现 `instanceof` 诡异失败。
+- **version 不一致**：`MigrationError` 只是枚举值，没有抛出点，store 里也没有迁移流程；`model.version` 直接返回 schema 版本，`isVersionMismatch` 恒为 false，导入快照时新块一律写当前 schema 版本，详见 [精讲](../重点包精讲/02-blocksuite-store.md)。
+- **不要重复打包**：monorepo 里确保 `@blocksuite/store`/`yjs` 单实例，否则命中 `__ $BLOCKSUITE_STORE$ __` 警告并出现 `instanceof` 诡异失败。
 
 ## 7. 延伸
 

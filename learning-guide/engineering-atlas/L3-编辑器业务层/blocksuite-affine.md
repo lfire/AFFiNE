@@ -1,5 +1,7 @@
 # `@blocksuite/affine`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/12-扩展装配.md)。
+
 > 一句话定位：BlockSuite 的**聚合门面包**——它几乎不含自有逻辑，而是把散落在数十个 `affine-block-*` / `affine-gfx-*` / `affine-inline-*` / `affine-widget-*` / `affine-fragment-*` 以及 `foundation` 里的扩展，用两个工厂函数 `getInternalViewExtensions()` / `getInternalStoreExtensions()` 汇成"一份现成的编辑器扩展清单"，再通过一张庞大的 `exports` 子路径表把底层所有能力**单一入口**转出。它是 `@affine/core` 使用整个 BlockSuite 的唯一门面。
 
 | 项        | 值                                                                                                                                                                                                                                                      |
@@ -9,7 +11,7 @@
 | 语言/形态 | TypeScript 库（聚合再导出，几乎无自有实现）                                                                                                                                                                                                             |
 | 关键依赖  | 全部 `@blocksuite/affine-*`（blocks/gfx/inlines/widgets/fragments）、`foundation`、`ext-loader`、`@blocksuite/std`/`store`/`global`/`sync`/`data-view`                                                                                                  |
 | 被谁依赖  | `@affine/core`（经 `@blocksuite/affine/*` 子路径引入一切并构建 Manager）                                                                                                                                                                                |
-| 对外入口  | `.`（空）、`./extensions/view`、`./extensions/store`、`./ext-loader`、`./std`、`./store`、`./foundation/*`、`./blocks/*`、`./gfx/*`、`./inlines/*`、`./widgets/*`、`./fragments/*`、`./components/*`、`./shared/*`、`./schemas`、`./model` 等（上百条） |
+| 对外入口  | `.`（空）、`./extensions/view`、`./extensions/store`、`./ext-loader`、`./std`、`./store`、`./foundation/*`、`./blocks/*`、`./gfx/*`、`./inlines/*`、`./widgets/*`、`./fragments/*`、`./components/*`、`./shared/*`、`./schemas`、`./model` 等（共 207 条） |
 
 ## 1. 设计逻辑
 
@@ -29,8 +31,8 @@ BlockSuite/AFFiNE 把编辑器能力拆成了**极其细粒度的几十个包**�
 src/
 ├── index.ts               # export {}（空；门面的"值"全走子路径，主入口零副作用）
 ├── extensions/
-│   ├── view.ts            # ★ getInternalViewExtensions()：汇总 ~50 个 ViewExtension
-│   └── store.ts           # ★ getInternalStoreExtensions()：汇总 ~30 个 StoreExtension
+│   ├── view.ts            # ★ getInternalViewExtensions()：汇总 58 个 ViewExtension
+│   └── store.ts           # ★ getInternalStoreExtensions()：汇总 32 个 StoreExtension
 ├── effects.ts             # 仅 type 聚合（declare const _GLOBAL_）：声明各包 effects 的类型并集
 ├── schemas.ts             # AffineSchemas：内置块模型 schema 数组
 ├── ext-loader/index.ts    # export * from '@blocksuite/affine-ext-loader'
@@ -53,7 +55,7 @@ src/
 
 ### 3.1 getInternalViewExtensions：视图扩展全家桶
 
-`extensions/view.ts` 顶部 import 近 50 个 `XxxViewExtension`（分 Gfx / Block / Inline / Widget / Fragment 五组），函数返回一个**有序数组**（`view.ts:60-132`）：
+`extensions/view.ts` 顶部 import 58 个 `XxxViewExtension`（分 Gfx / Block / Inline / Widget / Fragment 五组），函数返回一个**有序数组**（`view.ts:60-132`）：
 
 ```ts
 export function getInternalViewExtensions() {
@@ -90,7 +92,7 @@ export function getInternalViewExtensions() {
 
 ### 3.2 getInternalStoreExtensions：数据层扩展全家桶
 
-`extensions/store.ts` 同理，import ~30 个 `XxxStoreExtension` 并返回数组（`store.ts:34-72`），同样 `FoundationStoreExtension` 置顶。store 扩展是**纯数据层**（schema、selection、adapter、序列化），不含 UI——因此 fragment/widget 不出现在这里（它们没有 store 扩展），而 adapter-panel 预览用到的 `MarkdownAdapterFactory` 等正是经由此处的 `FoundationStoreExtension` 注册进容器的。
+`extensions/store.ts` 同理，import 32 个 `XxxStoreExtension` 并返回数组（`store.ts:34-72`），同样 `FoundationStoreExtension` 置顶。store 扩展是**纯数据层**（schema、selection、adapter、序列化），不含 UI——因此 fragment/widget 不出现在这里（它们没有 store 扩展），而 adapter-panel 预览用到的 `MarkdownAdapterFactory` 等正是经由此处的 `FoundationStoreExtension` 注册进容器的。
 
 ### 3.3 两份清单如何被 @affine/core 消费
 
@@ -114,7 +116,7 @@ this._manager = new ViewExtensionManager([
 
 ### 3.4 exports 子路径：把内部包结构命名空间化
 
-`package.json` 的 `exports` 有上百条，规律是**把底层包的子路径平移到 `@blocksuite/affine/` 命名空间**。对照 `blocks/paragraph/view`：
+`package.json` 的 `exports` 共 207 条，规律是**把底层包的子路径平移到 `@blocksuite/affine/` 命名空间**。对照 `blocks/paragraph/view`：
 
 ```jsonc
 "./blocks/paragraph/view": "./src/blocks/paragraph/view.ts"

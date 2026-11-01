@@ -1,5 +1,7 @@
 # `@blocksuite/affine-block-surface`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/08-blocksuite-affine-block-surface.md)。
+
 > 一句话定位：AFFiNE **白板（edgeless）的画布层**——它是承载所有图形元素（shape/connector/text/brush/group/mindmap…）的宿主块 `affine:surface`。它独有的核心是：把一批**非块结构的图元（ElementModel）装进一个 `Y.Map` 容器**（而非块树）、提供一条**基于 Canvas 2D 的高性能渲染管线**（分层 canvas、脏区刷新、视口裁剪、占位降级）、一套**元素渲染器注册机制**（按 `type` 分发绘制函数）、以及围绕视口的**坐标系与 CRUD / 序列化**。一句话：note/image 等块是"浮在画布上的 DOM 块"，而 shape/connector 等图元是"画在 surface canvas 上的像素"——surface 就是这块 canvas 及其数据容器。
 
 | 项        | 值                                                                                                                                                                                                                                                                                                                        |
@@ -108,7 +110,7 @@ export const SurfaceBlockSchema = defineBlockSchema({
 - `firstUpdated`（`:230-237`）：`renderer.attach(container)`，首次渲染并把分层 canvas 追加进 DOM。
 - **`fitToViewport`**（`:109-120`）：带节流缓存（200ms）的"把某 bound 纳入视口"工具，用 `viewport.setViewportByBound`。
 
-CSS 里 `.affine-block-children-container.edgeless` 用 `touch-action:none`（修手势中途停止 firing）、radial-gradient 画网格背景；canvas `pointer-events:none`（交互走元素块/overlay 层而非 canvas 本身）。
+CSS 里 `.affine-block-children-container.edgeless` 用 `touch-action:none`（修手势中途停止 firing）、radial-gradient 画网格背景；canvas `pointer-events:none`（overlay 也画在主 canvas 上，同样不接收指针事件；图元交互由 `ToolController` 全局事件加 `GridManager` 命中测试完成）。
 
 ### 3.4 ★Canvas 渲染管线：分层 + 脏区 + 裁剪
 
@@ -116,13 +118,13 @@ CSS 里 `.affine-block-children-container.edgeless` 用 `touch-action:none`（�
 
 - **`refresh(target)`**（`:1367-1379`）：外部唯一入口。它 `_invalidate(target)` 标脏，再用 `requestConnectedFrame` 把真正的 `_render` 合并到下一帧（`_refreshRafId` 去重，多次 refresh 只渲一次）——rAF 节流是流畅平移缩放的基础。
 - **`_watchSurface`**（`:1223-1254`）：订阅 model 的 `elementAdded/Removed/Updated`、`localElement*`，据变化类型调 `refresh({type:'all'|'element'})`——元素加删触发全量、单元素更新只标记该元素脏。注意它**忽略 `externalXYWH` 更新**（那是 renderer 自己写回的，避免回环）。
-- **`_render`**（`:966-1086`）：一帧的主体。
+- **`_render`**（`:966-1124`）：一帧的主体。
   - 算 `dpr = getEffectiveDpr(zoom)`、`scale = zoom*dpr`，建 `DOMMatrix().scaleSelf(scale)` 作为变换矩阵——模型坐标经此矩阵映射到 canvas 像素。
   - `getStackingCanvasBypassState`：iOS 低缩放/手势期间可**绕过分层 canvas**降级渲染（省内存）。
   - 对每个**脏的** stacking canvas（`_dirtyStackingCanvasIndexes`，全量时为所有层）：算该层渲染 bound、`clearRect` + `setTransform(matrix)` + `_renderByBound(...)` 只画该层元素。
-  - 主 canvas 画"没有对应 stacking canvas 的回退元素"与 overlay。
-- **`_renderByBound`**（`:1147-1211`）：真正遍历元素绘制。元素来源是 `grid.search(cullBound, {filter:['canvas','local']})`——用 `GridManager` 空间索引**只取与裁剪框相交的元素**；逐个判断 `display && !hidden && intersects(getBoundWithRotation(element), cullBound)`；可见则：
-  - 若 `usePlaceholder`（低缩放/性能模式）且非 `forceFullRender`，只画一个灰色占位矩形（`fillRect`）——元素太小时不值得精细绘制。
+  - 主 canvas 画"没有对应 stacking canvas 的回退元素"（含最上层，stacking canvas 只分配给其余层）与 overlay。
+- **`_renderByBound`**（`:1147-1211`）：真正遍历元素绘制。元素来源是调用方传入的 `layer.elements` 或回退元素数组；只有未传元素时（如 `getCanvasByBound`）才用 `grid.search(cullBound, {filter:['canvas','local']})` 取与裁剪框相交的元素；逐个判断 `display && !hidden && intersects(getBoundWithRotation(element), cullBound)`；可见则：
+  - 若 `usePlaceholder`（iOS 低缩放手势，或开启 turbo renderer 且正在缩放）且非 `forceFullRender`，只画一个灰色占位矩形（`fillRect`）——元素太小时不值得精细绘制。
   - 否则按 `element.type` 取 `ElementRendererIdentifier(type)` 对应的 `renderFn`，`ctx.globalAlpha=opacity`、平移到元素位置、调 `renderFn(element, ctx, matrix.translate(dx,dy), this, rc, bound)` 绘制。
   - 最后画 overlay（选框、辅助线等非 CRDT 层）。
 - **canvas 尺寸**：`_canvasSizeUpdater`（`:426-450`）按 `zoom*dpr` 计算 canvas 的实际 `width/height` 与 CSS `transform`——"指定真实像素尺寸而非 100%，跨浏览器更一致"（源码注释）。
@@ -190,7 +192,7 @@ export type ElementRenderer<T = GfxPrimitiveElementModel> = (
   - 分清两类对象：`children`（frame/image/embed…）是 GFX 块（有 DOM），`elements` 里的是图元（canvas 绘制）——它们的查找、渲染、交互路径不同。
   - renderer 的 `refresh` 已 rAF 合并，不要手动同步调 `_render`；元素更新经 `elementUpdated` 自动触发重绘，但 `externalXYWH` 更新被刻意忽略以防回环。
   - canvas 尺寸按 `zoom*dpr` 精确设置，改渲染尺寸逻辑要同时顾及 DPR 与低缩放/手势降级分支，否则高分屏模糊或 iOS 卡顿。
-  - surface 排除 range 同步（`RANGE_SYNC_EXCLUDE_ATTR`）；canvas `pointer-events:none`，交互在元素块/overlay 层处理。
+  - surface 排除 range 同步（`RANGE_SYNC_EXCLUDE_ATTR`）；canvas `pointer-events:none`，图元交互走 `ToolController` 全局事件加 `GridManager` 命中测试。
   - 序列化图元时 `Y.Text`/`Y.Map` 必须经 transformer 的标识符桥接，直接 JSON 化会丢失协同结构。
   - 非白板 scope 下是 `affine-surface-void`（不渲染），别期待页面模式能看到画布。
 

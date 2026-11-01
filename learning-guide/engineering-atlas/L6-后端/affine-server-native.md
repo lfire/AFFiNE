@@ -1,5 +1,7 @@
 # `@affine/server-native`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/11-affine-server-native.md)。
+
 > 一句话定位：AFFiNE 后端的 **Rust 原生模块**——用 napi-rs 把一套"计算密集 + 安全敏感 + 需强一致"的能力编译成 Node 可直接 `require` 的 `.node` 动态库，供 `@affine/server` 调用。它既提供 Yjs 二进制处理、hashcash、JWT 签名、图像处理、SSRF 安全抓取、内容合规扫描等无状态工具，也托管一个持有 PostgreSQL 连接池的有状态"控制面" `BackendRuntime`（权限、配额、搜索、嵌入、Copilot LLM、计费）。
 
 | 项                | 值                                                                                                                                                                                                                                                 |
@@ -9,7 +11,7 @@
 | 语言/形态         | Rust（`crate-type = ["cdylib"]`）→ napi-rs 绑定 → Node 原生插件                                                                                                                                                                                    |
 | 关键依赖（crate） | `napi`/`napi-derive`、`y-octo`(Yjs)、`sqlx`(postgres)、`affine_core`/`affine_common`、`llm_adapter`/`llm_runtime`、`aes-gcm`/`argon2`/`hmac`/`jsonwebtoken`/`p256`、`image`/`libwebp-sys`、`safefetch`、`tiktoken-rs`、`reqwest`/`rustls`、`tokio` |
 | 被谁依赖          | `@affine/server`（经 `src/native.ts` 门面）；`env.ts` 直接用其 `ServerConfigHandle`                                                                                                                                                                |
-| 产物              | `server-native.node`（按 6 个目标三元组交叉编译）+ `index.d.ts`（napi 自动生成的 TS 声明）                                                                                                                                                         |
+| 产物              | `server-native.node`（构建镜像的 CI 编译 3 个 Linux 目标）+ `index.d.ts`（napi 自动生成的 TS 声明）                                                                                                                                               |
 
 ## 1. 设计逻辑
 
@@ -33,15 +35,15 @@ packages/backend/native/
 ├── Cargo.toml              # crate-type=cdylib；edition 2024；依赖清单（见上表）
 ├── package.json            # @affine/server-native；napi.targets 6 三元组；build=napi build
 ├── build.rs                # napi-build：生成绑定样板
-├── index.js / index.d.ts   # napi 产物：JS 加载器 + 自动生成的 TS 声明
+├── index.js / index.d.ts   # 手写的 JS 加载器 + napi 自动生成的 TS 声明
 ├── dts-header.d.ts         # 注入 index.d.ts 顶部的手写类型头
 └── src/
     ├── lib.rs              # crate 根：声明各 mod；导出 merge_updates/validate_doc_update 等顶层 napi 函数；全局 mimalloc 分配器
     ├── doc.rs              # Yjs 文档解析/投影：project_doc_canvas / parse_doc_to_markdown / read_all_doc_ids...
-    ├── doc_loader.rs       # 文档加载辅助（affine_doc_loader 桥接）
+    ├── doc_loader.rs       # 上传文件解析：包装 doc_extractor，切成文本块
     ├── hashcash.rs         # 工作量证明：mint/verify_challenge_response（AsyncTask）
     ├── auth_session.rs     # 会话 token：HS256 access token 签名/校验、refresh token 生成（crate 内部）
-    ├── license.rs / license_import.rs  # 许可证签发/校验（与 app.affine.pro 交互，P256）
+    ├── license.rs / license_import.rs  # 访问 app.affine.pro 的 license HTTP 客户端 / 导入归一
     ├── content_policy.rs   # 内容合规：Unicode 归一 + 混淆字 skeleton + url/域名扫描
     ├── html_sanitize.rs    # HTML 转义（v_htmlescape）
     ├── image.rs            # 图像处理：缩放/转 webp/EXIF（AsyncTask，限像素/边长）
@@ -49,7 +51,7 @@ packages/backend/native/
     ├── safe_fetch.rs       # SSRF 安全抓取：safe_fetch / assert_safe_url（含私网拦截、ECH）
     ├── url_policy.rs       # 回调/重定向 URL 策略：build_safe_callback_url / evaluate_redirect_uri
     ├── tiktoken.rs         # tiktoken 分词器（Tokenizer，供 token 计数）
-    ├── entitlement.rs      # 权益解析 resolve_entitlement_v1
+    ├── entitlement.rs      # 权益解析 resolve_entitlement_v1；license 签发 issue_license_v1
     ├── permission/         # 权限：canonicalize_document_identity + 决策类型（委托 affine_core）
     ├── llm/                # LLM：规范化请求构造、内置 prompt 目录、BYOK、JSON schema 校验、工具循环
     ├── search_index/       # 内存搜索索引：schema/query/document/result
@@ -84,9 +86,9 @@ pub fn merge_updates_in_apply_way(updates: Vec<Buffer>) -> Result<Buffer> {
 }
 ```
 
-`#[napi]` 过程宏把 Rust 函数名 `merge_updates_in_apply_way` 自动转成 JS 的 `mergeUpdatesInApplyWay`（snake→camel），参数 `Vec<Buffer>` 映射为 `Buffer[]`，`Result<Buffer>` 映射为"返回 `Buffer` 或抛 JS 异常"。`catch_unwind` 让 Rust panic 不会直接杀进程而是转成 JS 错误。server 侧在 `native.ts:209` 直接 `export const mergeUpdatesInApplyWay = serverNativeModule.mergeUpdatesInApplyWay`，用于文档增量合并落库。
+`#[napi]` 过程宏把 Rust 函数名 `merge_updates_in_apply_way` 自动转成 JS 的 `mergeUpdatesInApplyWay`（snake→camel），参数 `Vec<Buffer>` 映射为 `Buffer[]`，`Result<Buffer>` 映射为"返回 `Buffer` 或抛 JS 异常"。`catch_unwind` 让 Rust panic 不会直接杀进程而是转成 JS 错误。server 侧在 `native.ts:209` 直接 `export const mergeUpdatesInApplyWay = serverNativeModule.mergeUpdatesInApplyWay`。注意默认的落库合并走 JS yjs，这个 native 合并只用于同步网关的广播合并、存储层的 native 合并入口和 yocto 编解码对比实验（`packages/backend/server/src/core/doc/merge-updates.ts`）。
 
-**(b) 异步 Task**（`hashcash.rs:13`）：对可能耗时的计算实现 `napi::Task`，用 `AsyncTask` 投递到 libuv 线程池，不阻塞主事件循环：
+**(b) 异步 Task**（`hashcash.rs:13`）：对可能耗时的计算实现 `napi::Task`，用 `AsyncTask` 投递到 libuv 线程池，不阻塞主事件循环（这里只借它演示形态：生产验证码走 `BackendRuntime.verifyAuthCaptchaV1`，这个顶层导出已无生产调用者）：
 
 ```rust
 #[napi]
@@ -136,10 +138,10 @@ impl BackendRuntime {
 
 ### 3.3 安全相关：license / auth / safe_fetch / content_policy
 
-- **license**（`license.rs`）：许可证签发与校验，与 `app.affine.pro` 交互，用 `AFFINE_PRO_PUBLIC_KEY`（`lib.rs:80`，P256 公钥，编译期由 `option_env!` 注入，debug 下有内置 key）验签。server 侧经 `issueLicenseV1`/`validateLicenseSeatQuantityV1`（`native.ts:513`）调用。
+- **license**（`license.rs`）：访问 `app.affine.pro` 的 HTTP 客户端；签发在 `entitlement.rs` 的 `issue_license_v1`，验签在 `affine_core` 的权益解析里，用 `AFFINE_PRO_PUBLIC_KEY`（`lib.rs:80`，P256 公钥，编译期由 `option_env!` 注入，debug 下有内置 key）。`issueLicenseV1`/`validateLicenseSeatQuantityV1` 只在 `native.ts:513` 导出，server 里没有调用者。
 - **auth_session**（`auth_session.rs`）：crate 内部函数，用 `Hmac<Sha256>` 签 HS256 access token、`rand` 生成 refresh token、`Sha256` 存 secret 哈希。放 Rust 保证签名实现稳定、带 `CLOCK_TOLERANCE_SECONDS` 的严谨过期判定。
 - **safe_fetch**（`safe_fetch.rs`）：`safe_fetch`/`assert_safe_url` 做 SSRF 防护——限制方法、校验目标是否私网（`allow_private_target_origin`）、限制重定向与响应体大小、支持 ECH。server 用它安全抓取用户提供的远程附件/URL（`native.ts:309-312`）。
-- **content_policy**（`content_policy.rs:40`）：`scan_content_policy_v1` 先做 Unicode NFC 归一，再用 `unicode_skeleton` 生成"混淆字骨架"，检测伪装成合法域名的欺诈文本，返回 `matched`/`matches`/`flags`。
+- **content_policy**（`content_policy.rs:40`）：`scan_content_policy_v1` 先做 Unicode NFKC 归一，再用 `unicode_skeleton` 生成"混淆字骨架"，检测伪装成合法域名的欺诈文本，返回 `matched`/`matches`/`flags`。
 
 ### 3.4 Yjs 与文档：和前端共享的二进制处理
 
@@ -147,7 +149,7 @@ impl BackendRuntime {
 
 ### 3.5 构建与分发
 
-`package.json` 的 `napi.targets` 声明 6 个目标三元组（darwin/linux/windows × arm64/x64），CI 交叉编译出各平台 `.node`。`index.js` 是 napi 生成的加载器，按当前平台 `require` 对应二进制；`index.d.ts` 顶部拼接 `dts-header.d.ts` 后，其余由 napi 根据 `#[napi]` 标注**自动生成 TS 声明**——于是 server 侧 `import ... from '@affine/server-native'` 拥有完整类型。Cargo 里还按平台选用 `mimalloc` 作为全局分配器（`lib.rs:28`）以提升吞吐。
+`package.json` 的 `napi.targets` 声明 6 个目标三元组（darwin/linux/windows × arm64/x64），但构建镜像的 CI（`.github/workflows/build-images.yml`）只编译 x64、arm64、armv7 三个 Linux 目标，其中 armv7 不在 `napi.targets` 里。`index.js` 是手写的 14 行加载器，只按 CPU 架构 `require` 对应二进制，不区分操作系统（详见 [精讲](../重点包精讲/11-affine-server-native.md)）；`index.d.ts` 顶部拼接 `dts-header.d.ts` 后，其余由 napi 根据 `#[napi]` 标注**自动生成 TS 声明**——于是 server 侧 `import ... from '@affine/server-native'` 拥有完整类型。Cargo 里还按平台选用 `mimalloc` 作为全局分配器（`lib.rs:28`）以提升吞吐。
 
 ## 4. 语法特色
 
@@ -174,7 +176,7 @@ impl BackendRuntime {
 - **改 Rust 要重新 `napi build`**：`.node` 是二进制产物，改签名后需重建并同步 `index.d.ts`；未重建会导致 TS 类型与运行时不符。本任务不执行 build。
 - **`BackendRuntime` 有启动顺序**：`new` 之后需先 `start`/`run_migrations` 等（`pool()` 在未启动时抛 "must be started before using postgres operations"，`mod.rs:178`），否则读 Postgres 会报 `invalid_state`。
 - **与前端 native 的异同**：前端 `@affine/native`（crate `affine_native`，`packages/frontend/native`）同样用 napi-rs，但面向**本地/桌面**：SQLite 本地存储（`nbstore`/`sqlite_v1`）、磁盘同步、媒体采集、预览、import。二者**都含 hashcash**，但 server-native 面向**服务端 Postgres 控制面 + 安全抓取 + LLM**，frontend-native 面向**端侧本地持久化**；它们是"同一绑定技术、不同部署侧"的两套原生模块。
-- **平台限制**：仅随 `napi.targets` 列出的 6 个平台分发；非目标平台无预编译二进制。
+- **平台限制**：构建镜像的 CI 只产出 x64、arm64、armv7 三个 Linux 二进制；其他平台无预编译二进制。
 
 ## 7. 延伸
 

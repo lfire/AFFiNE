@@ -1,5 +1,7 @@
 # `@toeverything/infra`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/01-toeverything-infra.md)。
+
 > 一句话定位：AFFiNE 前端的**自研基础设施层**——提供一套轻量依赖注入容器（`Framework`）、响应式数据类型（`LiveData`）、把 Yjs 当数据库用的 ORM，以及跨 Worker/标签页的 Op RPC。它是 `@affine/core` 及几乎所有前端业务模块的地基。
 
 | 项        | 值                                                                           |
@@ -75,7 +77,7 @@ framework.override(Id, MockImpl); // 测试时覆盖
 
 ### 3.3 LiveData：一个值，两种消费方式
 
-`LiveData<T>` 内部用 `@preact/signals-core` 的 `signal` 持有当前值，同时实现 RxJS `Observable` 接口（`livedata.ts` 顶部导入了大量 rxjs 操作符）。于是：
+`LiveData<T>` 内部用 RxJS `BehaviorSubject` 持有当前值，首次访问 `.signal` 时才懒创建 `@preact/signals-core` 的 `signal` 并同步，同时实现 RxJS `Observable` 接口（`livedata.ts` 顶部导入了大量 rxjs 操作符）。于是：
 
 - 在 **Lit/命令式** 场景当 Signal 用（`.value`，细粒度依赖追踪）；
 - 在 **RxJS 流式** 场景当 Observable 用（`.pipe(map, switchMap, ...)`）；

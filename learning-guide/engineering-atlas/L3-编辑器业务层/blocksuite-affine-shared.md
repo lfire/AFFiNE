@@ -1,5 +1,7 @@
 # `@blocksuite/affine-shared`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/07-blocksuite-affine-shared.md)。
+
 > 一句话定位：AFFiNE 编辑器的**跨块共享工具箱**——把不属于任何单一块、却被所有块共用的东西集中成一个包：各类 services（主题/文档模式/特性开关/工具栏注册/链接预览…）、通用 commands（选区与模型增删改查）、序列化 adapters（Markdown/HTML/PlainText/Notion/剪贴板）、共享 consts/types、以及海量 utils。它是 model 之上、块实现之下的"公共设施层"。
 
 | 项        | 值                                                                                                                                                                                                       |
@@ -8,7 +10,7 @@
 | 所属层    | L3 · 编辑器业务层（基座）                                                                                                                                                                                |
 | 语言/形态 | TypeScript 库                                                                                                                                                                                            |
 | 关键依赖  | `@blocksuite/affine-model`、`@blocksuite/std`、`@blocksuite/store`、`@preact/signals-core`、`rxjs`、`lit`、`zod`、`unified`/`mdast`/`micromark`（Markdown）、`rehype`（HTML）、`dompurify`、`ts-pattern` |
-| 被谁依赖  | `@blocksuite/affine-foundation`、`@blocksuite/affine-rich-text`、`@blocksuite/data-view`、所有 `affine-block-*`                                                                                          |
+| 被谁依赖  | 共 63 个，主要包括 `@blocksuite/affine-foundation`、`@blocksuite/affine-rich-text`、`@blocksuite/data-view`、`@blocksuite/affine-components`、所有 `affine-block-*`、widgets、gfx、inlines、fragments，以及 `@blocksuite/affine`、playground、`@affine/core` |
 | 对外入口  | `./services`、`./commands`、`./adapters`、`./selection`、`./utils`、`./consts`、`./types`、`./theme`、`./styles`、`./test-utils`（`.` 为空）                                                             |
 
 ## 1. 设计逻辑
@@ -87,7 +89,7 @@ export function DocModeExtension(service: DocModeProvider): ExtensionType {
 
 这套"接口 + 同名 Identifier + Extension 默认实现 + override 工厂"是 shared 服务的通用骨架：块代码只依赖 `DocModeProvider` 接口/标识符，运行时实现可被宿主替换（AFFiNE 主应用常把它接到自己的 LiveData 状态）。
 
-`ThemeService`（`services/theme-service.ts`）类似，暴露 `ThemeProvider`/`ThemeExtension` 两个标识符，用 `signal` 持有 `app$`/`edgeless$` 两套主题，并用 `isInsideEdgelessEditor(host)` 动态选择当前应生效的主题——`theme$` getter 据此在 page/edgeless 间切换。
+`ThemeService`（`services/theme-service.ts`）类似，暴露 `ThemeProvider`/`ThemeExtensionIdentifier` 两个标识符（`ThemeExtension` 是接口名），用 `signal` 持有 `app$`/`edgeless$` 两套主题，并用 `isInsideEdgelessEditor(host)` 动态选择当前应生效的主题——`theme$` getter 据此在 page/edgeless 间切换。
 
 `FeatureFlagService`（`services/feature-flag-service.ts`）继承 `StoreExtension`（挂在 store 层），用一个 `signal<BlockSuiteFlags>` 持有约二十个布尔开关（`enable_edgeless_text`、`enable_turbo_renderer`…），`setFlag`/`getFlag` 读写——特性开关做成响应式，UI 可随之显隐。
 
@@ -119,7 +121,7 @@ next({ selectedModels });
 
 `adapters/` 是最重的子系统，负责文档与各种外部格式的互转。它建立在 `unified` 生态上：Markdown 用 `remark`/`mdast`/`micromark`（含 gfm 表格、脚注、删除线、任务列表等扩展），HTML 用 `rehype`，并用 `dompurify` 净化。每种格式提供一个 `XxxAdapterFactoryExtension`（如 `MarkdownAdapterFactoryExtension`）和一组可注册的 matcher（`BlockMarkdownAdapterMatcher`、`InlineDeltaToMarkdownAdapterMatcher` 等，见 `adapters/index.ts`）。
 
-转换是**块级 + 行内级**双层 matcher：块 matcher 处理块到 AST 节点的映射，inline-delta matcher 处理行内样式（delta）到 AST 的映射。`foundation` 的 store 扩展正是把这些 Factory 注册进去（见 `foundation/src/store.ts`），`clipboard` 适配器再按 MIME 优先级调用它们。
+转换是**块级 + 行内级**双层 matcher：块 matcher 处理块到 AST 节点的映射，inline-delta matcher 处理行内样式（delta）到 AST 的映射。`foundation` 的 store 扩展正是把这些 Factory 注册进去（见 `foundation/src/store.ts`）；剪贴板则由 std 的 `Clipboard` 按 `blocksuite/affine/foundation/src/clipboard.ts` 里的 MIME 优先级表依次调用各 adapter 类。
 
 ### 3.4 selection：扩展编辑器的选区种类
 
@@ -128,12 +130,12 @@ next({ selectedModels });
 ### 3.5 consts / types / utils：共享词汇表
 
 - `consts/`（`consts/index.ts`）集中跨块常量，典型是 `EMBED_CARD_WIDTH`/`EMBED_CARD_HEIGHT`——以 `EmbedCardStyle` 为键给每种卡片样式定尺寸（`:23-53`），值引用自 `affine-model`。
-- `types/`（`types/index.ts`）定义 `AffineTextAttributes`（bold/italic/link/reference/latex/footnote/mention…，`:44+`）这类被 rich-text 和所有文本块共用的核心类型，以及 `NoteChildrenFlavour`、`UniComponent`。
+- `types/`（`types/index.ts`）定义 `AffineTextAttributes`（bold/italic/link/reference/latex/footnote/mention…，`:48`）这类被 rich-text 和所有文本块共用的核心类型，以及 `NoteChildrenFlavour`、`UniComponent`。
 - `utils/`（`utils/index.ts`）汇出三十余个工具域：`dom`、`dnd`（拖拽）、`file`、`model`（`isFixedProperty` 之外的块模型操作 `block-props`/`checker`/`transform-model` 等）、`reference`、`url`、`fractional-indexing`、`zod-schema`、`signal` 等，连 `bytes` 库都重导出成 `formatSize`。
 
 ### 3.6 为何主入口为空
 
-`index.ts` 仅 `export {}`。所有能力必须经 `./services`、`./commands` 等子入口导入。配合 `sideEffects: false`，这保证"用谁引谁"，不会因导入整包而拉入 Markdown/HTML 解析器等重依赖——对一个被所有块依赖的基础包，摇树友好至关重要。
+`index.ts` 仅 `export {}`。所有能力必须经 `./services`、`./commands` 等子入口导入。配合 `sideEffects: false`，子路径之间能做到"用谁引谁"，不导入 `./adapters` 就不会拉入 Markdown/HTML 解析器；但子路径内部互相引用，`./adapters` 还会转出 `PdfAdapter`（详见 [精讲](../重点包精讲/07-blocksuite-affine-shared.md)）——对一个被所有块依赖的基础包，摇树友好至关重要。
 
 ## 4. 语法特色
 
@@ -162,5 +164,5 @@ next({ selectedModels });
 ## 7. 延伸
 
 - 向下依赖：`@blocksuite/affine-model`（常量/类型来源）、`@blocksuite/std`（Command/Selection/Extension/DI）。
-- 向上消费：`@blocksuite/affine-foundation`（把 shared 的 service/adapter/selection 注册进编辑器）、`@blocksuite/affine-rich-text`（用 `AffineTextAttributes`、dom 工具依赖的 `matchModels`）、各 `affine-block-*`。
+- 向上消费：`@blocksuite/affine-foundation`（把 shared 的 service/adapter/selection 注册进编辑器）、`@blocksuite/affine-rich-text`（用 `AffineTextAttributes`、`blocksuite/affine/shared/src/utils/model/checker.ts` 里的 `matchModels`）、各 `affine-block-*`。
 - 对照：L1 `@toeverything/infra` 的 DI 思路——shared 的服务注册用的是 `@blocksuite/std`/`@blocksuite/global` 的 DI（`createIdentifier`/`Container`），与 infra 的 `Framework` 同源异流。

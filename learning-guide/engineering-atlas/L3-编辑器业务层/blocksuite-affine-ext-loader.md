@@ -1,5 +1,7 @@
 # `@blocksuite/affine-ext-loader`
 
+> 本包是重点包，运行机制、关键流程和易错点见 [重点包精讲](../重点包精讲/12-扩展装配.md)。
+
 > 一句话定位：BlockSuite/AFFiNE 编辑器的**扩展装载机**——用一组 `ViewExtensionProvider` / `StoreExtensionProvider` 声明"在某个场景（page / edgeless / store…）下需要哪些扩展"，再由 `ViewExtensionManager` / `StoreExtensionManager` 按 scope 把它们**组合**成一份可注入 DI 容器的 `ExtensionType[]`。它是"编辑器能力按环境拼装"的总开关。
 
 | 项        | 值                                                                                                                     |
@@ -154,13 +156,13 @@ override get(scope: ViewScope) {
 
 - **机制与内容彻底分离**：`ext-loader` 不含任何具体能力，只定义"怎么装"；具体"装什么"全部外置到各块包的 provider。新增一个块＝新增一个 provider 类并加入 Manager 的构造参数，零侵入。
 - **scope 驱动的多环境复用**：同一批 provider，`get('page')` 与 `get('edgeless')` 产出不同扩展集，一次声明覆盖 PC/移动端/预览六种环境，避免条件分支外溢。
-- **实例缓存 + 配置即重建**：`get` 多次调用不会重复 new provider（测试验证 `setup` 只被调一次），而 `configure` 通过"删缓存"优雅触发精确重建——没有引入脏标记或事件总线。
+- **实例缓存 + 配置即重建**：`get` 多次调用不会重复 new provider（测试验证构造函数只被调一次；`setup` 每次 `get` 仍会执行），而 `configure` 通过"删缓存"优雅触发精确重建——没有引入脏标记或事件总线。
 - **effect 一次性守护**：用类静态标志解决"全局副作用（定义自定义元素）只能跑一次"的经典难题，比模块级布尔更贴合"按 provider 类"的粒度。
 - **Manager 自注入闭环**：装载产物里塞入 Manager 自身，打通"运行时反查装载器"的能力，支撑动态换 scope 场景。
 
 ## 6. 对外 API 与注意事项
 
-- 主要导出：`BaseExtensionProvider` / `ExtensionManager`（通用底座），`ViewExtensionProvider` / `ViewExtensionManager` / `ViewExtensionManagerIdentifier` / `ViewScope` / `ViewExtensionContext`，`StoreExtensionProvider` / `StoreExtensionManager` / `StoreExtensionManagerIdentifier` / `StoreExtensionContext`。
+- 主要导出：`ViewExtensionProvider` / `ViewExtensionManager` / `ViewExtensionManagerIdentifier` / `ViewScope` / `ViewExtensionContext`，`StoreExtensionProvider` / `StoreExtensionManager` / `StoreExtensionManagerIdentifier` / `StoreExtensionContext`；通用底座 `BaseExtensionProvider` / `ExtensionManager` 不从 `index.ts` 导出。
 - **约定**：provider 子类覆写 `setup` 时**必须先 `super.setup(context, options)`**，否则 schema 校验与 effect 守护都不会触发。
 - **注意**：`get(scope)` 对未知 scope 会抛 `BlockSuiteError`，而非返回空数组；`effect()` 内放"全局只应执行一次"的副作用（如 `customElements.define`），不要放依赖 scope 的逻辑——它只跑一次且与 scope 无关。
 - `configure` 传入与上次**引用相等**的对象不会触发重建；要强制重建需传新对象或函数式更新。
