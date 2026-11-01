@@ -10,6 +10,9 @@ hero:
       text: 开始学习
       link: /README
     - theme: alt
+      text: 工程图谱
+      link: /engineering-atlas/README
+    - theme: alt
       text: 配套演示
       link: /slides/
     - theme: alt
@@ -53,4 +56,8 @@ features:
     details: 归纳仓库里散落的 shell/Node 脚本：环境、版本发布、iOS 原生构建、自托管启动链、Git 钩子与测试资源。
     link: /11-附录/35-脚本与自动化工具
     linkText: 第 35 章
+  - title: 工程图谱 · 逐包详解
+    details: 按 L0–L7 八层自底向上拆解全部子包：每包一篇，讲清设计逻辑、关键文件、实现细节、语法特色与设计亮点，共 112 篇。
+    link: /engineering-atlas/README
+    linkText: 进入工程图谱
 ---

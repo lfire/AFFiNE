@@ -35,6 +35,7 @@ function buildSidebar(): DefaultTheme.SidebarItem[] {
       items: [
         { text: '首页', link: '/' },
         { text: '学习路线与总目录', link: '/README' },
+        { text: '工程图谱 · 分层详解', link: `/${atlasDir}/README` },
         { text: '配套演示总览', link: '/slides/' },
         { text: '站点部署与维护', link: '/DEPLOY' },
       ],
@@ -53,6 +54,78 @@ function buildSidebar(): DefaultTheme.SidebarItem[] {
           link: `/${part}/${file.replace(/\.md$/, '')}`,
         })),
       };
+    }),
+  ];
+}
+
+/** 工程图谱（engineering-atlas）目录 */
+const atlasDir = 'engineering-atlas';
+const atlasRoot = path.join(guideRoot, atlasDir);
+
+/** 侧边栏文字：去掉标题中的反引号 */
+function plainTitle(file: string): string {
+  return readTitle(file).replace(/`/g, '');
+}
+
+/** L3 编辑器业务层包很多，按文件名前缀再细分 */
+const atlasL3Groups: { text: string; match: (name: string) => boolean }[] = [
+  { text: '内容块 blocks', match: n => n.startsWith('blocksuite-affine-block-') },
+  { text: '图形元素 gfx', match: n => n.startsWith('blocksuite-affine-gfx-') },
+  { text: '行内元素 inlines', match: n => n.startsWith('blocksuite-affine-inline-') },
+  { text: '浮层控件 widgets', match: n => n.startsWith('blocksuite-affine-widget-') },
+  { text: '宿主面板 fragments', match: n => n.startsWith('blocksuite-affine-fragment-') },
+  { text: '聚合门面', match: n => n === 'blocksuite-affine.md' },
+];
+
+/** 根据 `L<N>-层名/*.md` 目录结构生成工程图谱侧边栏 */
+function buildAtlasSidebar(): DefaultTheme.SidebarItem[] {
+  const toItem = (layer: string, file: string): DefaultTheme.SidebarItem => ({
+    text: plainTitle(path.join(atlasRoot, layer, file)),
+    link: `/${atlasDir}/${layer}/${file.replace(/\.md$/, '')}`,
+  });
+
+  const layers = fs
+    .readdirSync(atlasRoot, { withFileTypes: true })
+    .filter(d => d.isDirectory() && /^L\d+-/.test(d.name))
+    .map(d => d.name)
+    .sort();
+
+  return [
+    {
+      text: '工程图谱',
+      items: [
+        { text: '总览与分层地图', link: `/${atlasDir}/README` },
+        { text: '单包文档模板', link: `/${atlasDir}/TEMPLATE` },
+        { text: '← 返回学习指南', link: '/README' },
+      ],
+    },
+    ...layers.map(layer => {
+      const files = fs
+        .readdirSync(path.join(atlasRoot, layer))
+        .filter(f => f.endsWith('.md'))
+        .sort();
+      const [num, ...rest] = layer.split('-');
+      const text = `${num} · ${rest.join('-')}（${files.length}）`;
+
+      if (layer.startsWith('L3-')) {
+        const grouped = new Set<string>();
+        const subGroups = atlasL3Groups.map(group => {
+          const matched = files.filter(group.match);
+          matched.forEach(f => grouped.add(f));
+          return { text: group.text, collapsed: true, items: matched.map(f => toItem(layer, f)) };
+        });
+        const base = files.filter(f => !grouped.has(f));
+        return {
+          text,
+          collapsed: true,
+          items: [
+            { text: '基座', collapsed: true, items: base.map(f => toItem(layer, f)) },
+            ...subGroups.filter(g => g.items.length > 0),
+          ],
+        };
+      }
+
+      return { text, collapsed: true, items: files.map(f => toItem(layer, f)) };
     }),
   ];
 }
@@ -178,10 +251,15 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: '学习路线', link: '/README' },
+      { text: '工程图谱', link: `/${atlasDir}/README`, activeMatch: `^/${atlasDir}/` },
       { text: '配套演示', link: '/slides/' },
       { text: '源码仓库', link: `${repoUrl}/tree/${branch}` },
     ],
-    sidebar: buildSidebar(),
+    // 工程图谱使用独立侧边栏；其余页面沿用学习指南侧边栏
+    sidebar: {
+      [`/${atlasDir}/`]: buildAtlasSidebar(),
+      '/': buildSidebar(),
+    },
     outline: { level: [2, 3], label: '本页目录' },
     socialLinks: [{ icon: 'github', link: repoUrl }],
     editLink: {
