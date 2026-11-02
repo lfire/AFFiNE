@@ -622,6 +622,8 @@ html.dark:root {
 
 .deck__nav-list button {
   display: flex;
+  /* 文字换行成多行时，序号徽标贴着第一行（而不是被拉伸或被整块居中） */
+  align-items: flex-start;
   gap: 10px;
   width: 100%;
   padding: 8px 12px;
@@ -664,15 +666,17 @@ html.dark:root {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 22px;
-  height: 20px;
-  padding: 0 4px;
-  border-radius: 6px;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 7px;
   background: var(--vp-c-default-soft);
   font-variant-numeric: tabular-nums;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--vp-c-text-3);
+  /* 文本行高 13px × 1.5 = 19.5px，徽标 22px：上移 1px 让徽标中心对上首行中心 */
+  margin-top: -1px;
 }
 
 .deck__nav-list .is-active .deck__nav-no {
@@ -1386,7 +1390,8 @@ html.dark .deck__scene--section::before {
   content: counter(step);
   position: absolute;
   left: 0;
-  top: 0;
+  /* 与第一行（h4）垂直居中：padding-top 2 + h4 margin-top 7 + 行高/2 − 图标高 36/2 ≈ 3 */
+  top: 3px;
   width: 36px;
   height: 36px;
   display: flex;
@@ -1406,7 +1411,8 @@ html.dark .deck__scene--section::before {
   content: '';
   position: absolute;
   left: 17px;
-  top: 42px;
+  /* 圆点下移后同步下移，保持 6px 间距 */
+  top: 45px;
   bottom: 2px;
   width: 2px;
   background: linear-gradient(var(--vp-c-brand-1), color-mix(in srgb, var(--vp-c-brand-1) 20%, transparent));
@@ -1493,7 +1499,8 @@ html.dark .deck__scene--section::before {
   content: 'i';
   position: absolute;
   left: 16px;
-  top: 15px;
+  /* 与第一行文本垂直居中：padding-top 15 + 行高(16px×1.8)/2 − 图标高 20/2 ≈ 19.4 */
+  top: 19px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1671,7 +1678,8 @@ html.dark .deck__scene--section::before {
   content: '✓';
   position: absolute;
   left: 16px;
-  top: 12px;
+  /* 与第一行文本垂直居中：padding-top 12 + 行高(16px×1.75)/2 − 图标高 20/2 = 16 */
+  top: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1706,7 +1714,8 @@ html.dark .deck__scene--section::before {
   content: counter(goal);
   position: absolute;
   left: 14px;
-  top: 12px;
+  /* 与第一行文本垂直居中 */
+  top: 11px;
   width: 26px;
   height: 26px;
   display: flex;
