@@ -228,9 +228,10 @@ function tuneInlineCode() {
 }
 
 /**
- * 分栏版式：右栏内容明显比左栏矮时（典型是右栏只有一小段代码），并排会在右栏下方
- * 空出一大片。这种情况改为上下堆叠，宁可让页面短一点，也不要留一块空洞。
- * 阈值 0.7：右栏高度不足左栏的 70% 就判定为「悬殊」，改为上下布局。
+ * 分栏版式在两种情况下改成上下堆叠：
+ * 1. 右栏内容明显比左栏矮（典型是右栏只有一小段代码），并排会在右栏下方空出一大片；
+ * 2. 某一栏里的表格横向放不下（半栏宽度不够），堆叠后表格能吃满整行，不用横向滚动。
+ * 宁可让页面长一点，也不要留空洞或让人横向拖表格。
  */
 function tuneSplitLayout() {
   const root = stageEl.value;
@@ -242,9 +243,19 @@ function tuneSplitLayout() {
     // 先复位再量，否则量到的是上一次改成单列后的高度
     split.classList.remove('is-stacked');
     if (getComputedStyle(split).gridTemplateColumns.split(' ').length < 2) continue;
+
     const mainH = main.getBoundingClientRect().height;
     const asideH = aside.getBoundingClientRect().height;
-    if (mainH > 0 && asideH < mainH * 0.7) split.classList.add('is-stacked');
+    const tableTooNarrow = (el: Element) =>
+      [...el.querySelectorAll('.deck-table')].some(w => w.scrollWidth > w.clientWidth + 1);
+
+    if (
+      (mainH > 0 && asideH < mainH * 0.7) ||
+      tableTooNarrow(main) ||
+      tableTooNarrow(aside)
+    ) {
+      split.classList.add('is-stacked');
+    }
   }
 }
 

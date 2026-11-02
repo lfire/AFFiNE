@@ -466,6 +466,8 @@ html.dark:root {
   --deck-shadow-1: 0 1px 2px rgba(20, 20, 43, 0.05), 0 4px 14px rgba(20, 20, 43, 0.07);
   --deck-shadow-2: 0 6px 16px rgba(20, 20, 43, 0.09), 0 22px 48px rgba(20, 20, 43, 0.12);
   --deck-grad: linear-gradient(120deg, var(--vp-c-brand-1), var(--deck-accent-2));
+  /* 承载白色文字时用的加深版渐变：白字对比度 5.8~7.1:1（原渐变只有约 3.7:1，不满足 AA） */
+  --deck-grad-strong: linear-gradient(120deg, #1565c0, #6d28d9);
   position: fixed;
   inset: 0;
   z-index: 20;
@@ -1367,8 +1369,20 @@ html.dark .deck__scene--section::before {
 }
 
 .deck__scene .compare__col--good h4 {
-  background: var(--deck-grad);
+  background: var(--deck-grad-strong);
   color: #fff;
+}
+
+/* 深色/渐变徽标里的行内代码：跟随亮色文字，不再套「浅底 + 深字」 */
+.deck__scene .compare__col--good h4 code,
+.deck__scene .tag code {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.94em;
+  white-space: nowrap;
 }
 
 /* 步骤流 */
