@@ -79,6 +79,19 @@ function escapeHtml(text: string): string {
 }
 
 /**
+ * 估算行内代码的显示宽度（中日韩字符按两个西文字符算）。
+ * 超过阈值的片段由样式层放开折行，短的则整块不拆行，中文段落里看起来更规整。
+ */
+const INLINE_CODE_WIDTH_LIMIT = 34;
+const CJK = /[\u1100-\u11FF\u2E80-\uA4CF\uA960-\uA97F\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/;
+
+function isLongInlineCode(text: string): boolean {
+  let width = 0;
+  for (const ch of text) width += CJK.test(ch) ? 2 : 1;
+  return width > INLINE_CODE_WIDTH_LIMIT;
+}
+
+/**
  * 行内语法预处理（跳过代码围栏）：把 `代码` 与 **加粗** 预先转成 <code>/<strong>。
  * 原因有二：
  * 1. CommonMark 下 **紧贴中文全角标点（如 **“…”**）不构成强调，会原样显示；
@@ -102,19 +115,48 @@ function preprocessInline(markdown: string): string {
         return `\uE000${codes.length - 1}\uE000`;
       });
       text = text.replace(/\*\*(?=\S)([^*]+?)\*\*/g, '<strong>$1</strong>');
-      return text.replace(
-        /\uE000(\d+)\uE000/g,
-        (_m, i: string) => `<code>${escapeHtml(codes[Number(i)])}</code>`
-      );
+      return text.replace(/\uE000(\d+)\uE000/g, (_m, i: string) => {
+        const code = codes[Number(i)];
+        const long = isLongInlineCode(code) ? ' data-long' : '';
+        return `<code${long}>${escapeHtml(code)}</code>`;
+      });
     })
     .join('\n');
 }
 
+/**
+ * 去掉“独占一行的闭合标签”的缩进（跳过代码围栏）。
+ *
+ * 富组件的写法是：`<div class="compare__col">` 里放一个 Markdown 列表，末尾再写 `  </div>`。
+ * 列表项 `- ` 的内容缩进正好是 2 格，缩进了的 `  </div>` 会被 markdown-it 当成列表项续行，
+ * 于是列表不闭合、`</ul>` 被推到下一栏，出现「左栏没圆点、右栏有圆点，两栏缩进不一致」的错版。
+ * 闭合标签顶格写即可让列表正常结束，对 HTML 本身没有影响。
+ */
+function dedentClosingTags(markdown: string): string {
+  let inFence = false;
+  return markdown
+    .split('\n')
+    .map(line => {
+      if (line.trimStart().startsWith('```')) {
+        inFence = !inFence;
+        return line;
+      }
+      if (inFence) return line;
+      return /^\s+(<\/(?:div|section|ul|ol|li|aside|figure)>)\s*$/.exec(line)?.[1] ?? line;
+    })
+    .join('\n');
+}
+
+/**
+ * 去掉标题里的 Markdown 记号，用于左侧目录与底部标题。
+ * 注意不要把下划线一起删掉：目录里大量 snake_case（如 pull_request_target）会被读成
+ * 连在一起的一串字母，反而看不懂。
+ */
 function plainTitle(text: string): string {
   return text
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/[*_~]/g, '')
+    .replace(/[*~]/g, '')
     .trim();
 }
 
@@ -150,11 +192,13 @@ async function getRenderer(): Promise<MarkdownIt> {
       breaks: false,
       highlight(code, lang) {
         const language = SHIKI_LANGS.includes(lang) ? lang : 'text';
-        return highlighter.codeToHtml(code, {
+        const html = highlighter.codeToHtml(code, {
           lang: language,
           themes: { light: 'github-light', dark: 'github-dark' },
           defaultColor: false,
         });
+        // 把语言写进 data-lang，播放器据此显示语言标签
+        return html.replace(/^<pre/, `<pre data-lang="${language}"`);
       },
     });
     return md;
@@ -181,7 +225,12 @@ function renderScene(md: MarkdownIt, raw: string): Scene {
   const headingMatch = body.match(/^#{1,2}\s+(.+)$/m);
   const title = headingMatch ? plainTitle(headingMatch[1]) : '';
 
-  return { kind, title, html: md.render(preprocessInline(body)), mermaid };
+  return {
+    kind,
+    title,
+    html: md.render(preprocessInline(dedentClosingTags(body))),
+    mermaid,
+  };
 }
 
 export async function renderDeck(id: string): Promise<Scene[]> {

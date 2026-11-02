@@ -188,13 +188,27 @@ export default defineConfig({
           : self.renderToken(tokens, idx, options);
       };
 
-      // 2. 行内代码加 v-pre，避免 `{{ x }}`、`<T>` 等内容被 Vue 模板编译器解析
+      // 2. 行内代码加 v-pre，避免 `{{ x }}`、`<T>` 等内容被 Vue 模板编译器解析；
+      //    过长的再补 data-long，让样式层只对长片段放开折行（短的整块不拆，版面更规整）
       const codeInline = md.renderer.rules.code_inline;
-      md.renderer.rules.code_inline = (tokens, idx, options, env, self) =>
-        (codeInline
+      md.renderer.rules.code_inline = (tokens, idx, options, env, self) => {
+        const html = codeInline
           ? codeInline(tokens, idx, options, env, self)
-          : self.renderToken(tokens, idx, options)
-        ).replace(/^<code/, '<code v-pre');
+          : self.renderToken(tokens, idx, options);
+        // 中日韩字符按两个西文字符宽估算，超过约 34 个西文字符宽度就不适合整体不换行
+        let width = 0;
+        for (const ch of tokens[idx].content) {
+          width += /[\u1100-\u11FF\u2E80-\uA4CF\uA960-\uA97F\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(
+            ch
+          )
+            ? 2
+            : 1;
+        }
+        return html.replace(
+          /^<code/,
+          width > 34 ? '<code data-long v-pre' : '<code v-pre'
+        );
+      };
 
       // 2.5 GitHub 式任务列表：`- [ ]` / `- [x]` 渲染为复选框（VitePress 默认不支持）
       md.core.ruler.after('inline', 'gfm-task-lists', state => {
