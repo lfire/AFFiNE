@@ -93,6 +93,7 @@ html.dark:root {
 
 /* ===================== Mermaid（文档页） ===================== */
 .mermaid-diagram {
+  position: relative;
   margin: 16px 0;
   padding: 16px;
   border: 1px solid var(--vp-c-divider);
@@ -105,6 +106,164 @@ html.dark:root {
 .mermaid-diagram__svg svg {
   max-width: 100%;
   height: auto;
+  cursor: zoom-in;
+}
+
+/* 右上角"放大"按钮：鼠标移入图表时显示，触屏设备常驻 */
+.mermaid-diagram__zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--vp-c-text-2);
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.mermaid-diagram:hover .mermaid-diagram__zoom,
+.mermaid-diagram__zoom:focus-visible {
+  opacity: 1;
+}
+
+.mermaid-diagram__zoom:hover {
+  color: var(--vp-c-brand-1);
+  border-color: var(--vp-c-brand-1);
+}
+
+@media (hover: none) {
+  .mermaid-diagram__zoom {
+    opacity: 1;
+  }
+}
+
+/* ===================== 图表放大弹层 ===================== */
+.dl {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  background: var(--vp-c-bg);
+}
+
+.dl__bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--vp-c-bg-soft);
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.dl__title {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+}
+
+.dl__tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.dl__tools button {
+  min-width: 30px;
+  height: 28px;
+  padding: 0 9px;
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--vp-c-text-1);
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.dl__tools button:hover {
+  color: var(--vp-c-brand-1);
+  border-color: var(--vp-c-brand-1);
+}
+
+.dl__pct {
+  min-width: 52px;
+  font-size: 12px;
+  color: var(--vp-c-text-2);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dl__viewport {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  cursor: grab;
+  /* 触屏上交给 pointer 事件处理拖动与缩放，禁用浏览器默认手势 */
+  touch-action: none;
+}
+
+.dl__viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.dl__inner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.dl__hint {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+  text-align: center;
+  background: var(--vp-c-bg-soft);
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.dl-enter-active,
+.dl-leave-active {
+  transition: opacity 0.16s ease;
+}
+
+.dl-enter-from,
+.dl-leave-to {
+  opacity: 0;
+}
+
+/* 窄屏：隐去标题，压缩工具栏，保证按钮在一行内 */
+@media (max-width: 640px) {
+  .dl__title {
+    display: none;
+  }
+
+  .dl__bar {
+    padding: 6px 10px;
+  }
+
+  .dl__tools {
+    gap: 4px;
+    margin-left: 0;
+  }
+
+  .dl__tools button {
+    padding: 0 7px;
+  }
+
+  .dl__hint {
+    padding: 6px 10px;
+  }
 }
 
 .mermaid-diagram__loading {
