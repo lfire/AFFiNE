@@ -112,6 +112,25 @@ flowchart LR
   </details>
   ```
 
+### 章节 / 小节编号（不要手工改）
+
+编号的**唯一真相源**是 `NN-部分名/NN-章节.md` 的目录与文件名，`.vitepress/outline.mjs` 每次构建都重新扫描它。侧边栏、正文标题编号、交叉引用、README 目录、页脚导航、演示封面全部由此推导：
+
+| 想做的事 | 怎么做 |
+| --- | --- |
+| 插入、删除、交换章节 | 重命名 `NN-` 前缀使其连续，运行 `npm run numbering:fix` |
+| 增删或调整某章的小节 | 直接改带编号的 `## N.M` / `### N.M.K` 标题顺序，运行 `npm run numbering:fix` 自动顺延 |
+| 只想知道有没有漂移 | `node scripts/numbering.mjs --check`（已并入 `npm run check`，CI 会拦截） |
+| 预演改动不落盘 | `node scripts/numbering.mjs --fix --dry-run --verbose` |
+
+正文里的交叉引用写成**语义引用**，例如 `<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>` 与 `<a href="./09-TypeScript在AFFiNE中的应用.md#sec-9-1">9.1 节</a>`。`#ch-N` / `#sec-N-M[-K]` 是稳定标记，由 `.vitepress/semantic-refs.mjs` 在构建期按真相源重算标签、改成 `.html` 链接，并给带编号标题注入 `#sec-N-M` 锚点。这种写法在 GitHub 上也是能点开的真实链接，不是自定义协议。
+
+标题编号变化时（插入、删除、交换章节或小节），`numbering:fix` 会一并重算这些引用里的章号、节号与锚点，并按文件名主体校准链接里过期的 `NN-` 前缀；`--check` 还会校验 `#sec-*` 是否指向真实存在的小节，编号重排后遗留的旧引用会直接让 CI 失败。因此调整文档结构时只改文件名与标题顺序即可，**不要手工批量替换正文里的编号**。
+
+交换章节时注意：`slides/decks/NN.md` 存的是演示内容而不是编号产物，需要随文档一起手工交换，脚本只校准封面上的章号，不搬运场景内容。
+
+批量把遗留的硬编码引用转成语义引用：`npm run numbering:refs`（幂等，可重复执行）。工程图谱里 `N.M 节` 指的是精讲文档自身的章节，不参与全书编号，脚本只对明确写了 `learning-guide 第 N 章` 的引用做迁移。
+
 ### 修改或新增演示
 
 1. 编写规范见 [`slides/decks/_FORMAT.md`](https://github.com/lfire/AFFiNE/blob/guide/learning-guide/slides/decks/_FORMAT.md)（场景分隔、封面/过渡页、富组件库、容量上限）；

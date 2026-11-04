@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 
 import { type DefaultTheme, defineConfig } from 'vitepress';
 
+import { loadOutline } from './outline.mjs';
+import { expandRefs, stableSectionIds } from './semantic-refs.mjs';
 import { tableLayoutPlugin } from './table-layout';
 
 const guideRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -23,13 +25,9 @@ function readTitle(file: string): string {
   return match ? match[1].trim() : path.basename(file, '.md');
 }
 
-/** 根据 `NN-部分名/NN-章节.md` 目录结构自动生成侧边栏 */
+/** 侧边栏由 outline（唯一真相源）生成：文件名变了，编号自动跟着变 */
 function buildSidebar(): DefaultTheme.SidebarItem[] {
-  const parts = fs
-    .readdirSync(guideRoot, { withFileTypes: true })
-    .filter(d => d.isDirectory() && /^\d{2}-/.test(d.name))
-    .map(d => d.name)
-    .sort();
+  const outline = loadOutline();
 
   return [
     {
@@ -42,21 +40,14 @@ function buildSidebar(): DefaultTheme.SidebarItem[] {
         { text: '站点部署与维护', link: '/DEPLOY' },
       ],
     },
-    ...parts.map(part => {
-      const [num, ...rest] = part.split('-');
-      const chapters = fs
-        .readdirSync(path.join(guideRoot, part))
-        .filter(f => /^\d{2}-.+\.md$/.test(f))
-        .sort();
-      return {
-        text: `第 ${Number(num)} 部分 · ${rest.join('-')}`,
-        collapsed: false,
-        items: chapters.map(file => ({
-          text: readTitle(path.join(guideRoot, part, file)).replace(/^第\s*(\d+)\s*章\s*/, '$1. '),
-          link: `/${part}/${file.replace(/\.md$/, '')}`,
-        })),
-      };
-    }),
+    ...outline.parts.map(part => ({
+      text: `第 ${part.no} 部分 · ${part.name}`,
+      collapsed: false,
+      items: outline.partChapters(part.no).map(ch => ({
+        text: `${ch.no}. ${ch.title.replace(/`/g, '')}`,
+        link: ch.pagePath,
+      })),
+    })),
   ];
 }
 
@@ -176,6 +167,19 @@ export default defineConfig({
   markdown: {
     lineNumbers: true,
     config(md) {
+      // 0. 语义引用展开（L2）：必须在 block 解析之前改写 state.src，
+      //    否则 <p>/<div> 这类 HTML 块里的引用不会被 markdown-it 当作 Markdown 解析。
+      //    展开结果统一输出 <a>，因此相对路径要直接写成 .html，不能依赖 linkPlugin 转换。
+      md.core.ruler.after('normalize', 'semantic_refs', state => {
+        state.src = expandRefs(state.src, {
+          context: 'doc',
+          relativePath: state.env?.relativePath ?? '',
+        });
+      });
+      // 0.5 给「N.M / N.M.N」标题注入稳定锚点，使 #sec-N-M[-K] 可跳转；
+      //     无编号标题（本章导读、常见坑…）保留 VitePress 默认锚点，避免打断已有链接。
+      stableSectionIds(md);
+
       // 1. ```mermaid 围栏 → <MermaidDiagram> 组件（客户端渲染，跟随明暗主题）
       const fence = md.renderer.rules.fence;
       md.renderer.rules.fence = (tokens, idx, options, env, self) => {

@@ -1,10 +1,10 @@
 # 第 21 章 Core 业务模块与路由
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：第 20 章 前端基础设施-DI与LiveData
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a> 前端基础设施-DI与LiveData
 
 ## 本章导读
 
-第 20 章我们拆开了 `@toeverything/infra` 这把"螺丝刀"。本章要用它去看清整台机器——`@affine/core`（目录 `packages/frontend/core`）。这是 AFFiNE 前端体量最大的包：桌面版与移动版的所有页面、69 个业务模块、编辑器集成、命令系统都在这里；而 `packages/frontend/apps/web`、`apps/electron-renderer`、`apps/mobile` 等"应用壳"只做一件事——**按平台挑选模块并组装 Framework，然后把根组件挂到 DOM 上**。
+<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>我们拆开了 `@toeverything/infra` 这把"螺丝刀"。本章要用它去看清整台机器——`@affine/core`（目录 `packages/frontend/core`）。这是 AFFiNE 前端体量最大的包：桌面版与移动版的所有页面、69 个业务模块、编辑器集成、命令系统都在这里；而 `packages/frontend/apps/web`、`apps/electron-renderer`、`apps/mobile` 等"应用壳"只做一件事——**按平台挑选模块并组装 Framework，然后把根组件挂到 DOM 上**。
 
 读完本章，你应当能回答三个问题：
 
@@ -44,7 +44,7 @@ flowchart LR
   Common --> Domains[工作区 文档 编辑器 导航 组织 搜索 云 AI 系统]
 ```
 
-## 17.1 core/src 目录结构
+## 21.1 core/src 目录结构
 
 ```
 packages/frontend/core/src
@@ -84,9 +84,9 @@ import './telemetry';
 
 `env.ts` 调用 `setupGlobal()` 设置 `environment` 等全局对象，后续模块在顶层就会读取它们，所以必须最先执行。`cleanup.ts` 则清理历史版本遗留的 IndexedDB 库（如以 `:server-clock`、`:sync-metadata` 结尾的库），属于"静默迁移"。
 
-## 17.2 Web 入口链路
+## 21.2 Web 入口链路
 
-### 17.2.1 三个文件
+### 21.2.1 三个文件
 
 ```tsx
 // 来源：packages/frontend/apps/web/src/index.tsx（节选）
@@ -149,9 +149,9 @@ window.addEventListener('focus', () => {
 frameworkProvider.get(LifecycleService).applicationStart();
 ```
 
-`App` 组件依次包裹 `Suspense` → `FrameworkRoot` → emotion `CacheProvider` → `I18nProvider` → `AffineContext`（Jotai、ThemeProvider、ConfirmModalProvider、PromptModalProvider）→ `RouterProvider router={router}`。`nbstore.worker.ts` 是 Worker 侧入口（注册 idb、broadcast-channel、cloud 存储实现），第 23 章展开。
+`App` 组件依次包裹 `Suspense` → `FrameworkRoot` → emotion `CacheProvider` → `I18nProvider` → `AffineContext`（Jotai、ThemeProvider、ConfirmModalProvider、PromptModalProvider）→ `RouterProvider router={router}`。`nbstore.worker.ts` 是 Worker 侧入口（注册 idb、broadcast-channel、cloud 存储实现），<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>展开。
 
-### 17.2.2 启动到渲染的时序
+### 21.2.2 启动到渲染的时序
 
 ```mermaid
 sequenceDiagram
@@ -179,7 +179,7 @@ sequenceDiagram
 
 `RootWrapper`（`desktop/pages/root/index.tsx`）在最外层包了 `<FrameworkScope scope={defaultServerService.server.scope}>`，挂载 `GlobalDialogs`、`NotificationCenter`、`CustomThemeModifier`，Electron 下还有 `FindInPagePopup`。
 
-### 17.2.3 三端组装差异
+### 21.2.3 三端组装差异
 
 | 入口 | 共同部分 | 平台专属 configure |
 |---|---|---|
@@ -200,9 +200,9 @@ export function configureBrowserWorkbenchModule(services: Framework) {
 }
 ```
 
-这就是"同一份业务代码，多端换实现"的落地方式。第 24 章会展开 Electron 与移动端。
+这就是"同一份业务代码，多端换实现"的落地方式。<a href="./24-多端-Electron与移动端.md#ch-24">第 24 章</a>会展开 Electron 与移动端。
 
-## 17.3 modules 全景：configureCommonModules
+## 21.3 modules 全景：configureCommonModules
 
 `packages/frontend/core/src/modules/index.ts` 的 `configureCommonModules` 依次调用了 60 余个 `configureXxx`。把 69 个模块目录按领域分组：
 
@@ -224,9 +224,9 @@ export function configureBrowserWorkbenchModule(services: Framework) {
 - 不在 `configureCommonModules` 里的：`workbench`、`workspace-engine`（由平台入口调用）、`app-tabs-header`、`find-in-page`、`desktop-api`、`backup`（Electron 专属）；`share-menu`、`mermaid`、`typst`、`shared` 只提供视图/渲染器/工具，没有 configure 函数；
 - `configureCommonModules` 的**调用顺序不影响依赖解析**（注册的是工厂），但会影响 `DuplicateDefinitionError`——同一标识符只能有一个模块注册。
 
-## 17.4 workspace 模块：工作区的生与死
+## 21.4 workspace 模块：工作区的生与死
 
-### 17.4.1 目录与注册
+### 21.4.1 目录与注册
 
 ```
 modules/workspace/
@@ -239,7 +239,7 @@ modules/workspace/
 
 `configureWorkspaceModule` 把一半组件注册在根作用域（`WorkspacesService`、`WorkspaceFlavoursService`、`WorkspaceListService`、`WorkspaceRepositoryService` 等），另一半注册在 `WorkspaceScope`（`WorkspaceService`、`Workspace`、`WorkspaceEngineService`、`WorkspaceEngine`、`WorkspaceLocalState`/`WorkspaceLocalCache` 实现）。**根作用域负责"管理所有工作区"，工作区作用域负责"一个工作区的内部"**。
 
-### 17.4.2 元数据与 flavour
+### 21.4.2 元数据与 flavour
 
 ```ts
 // 来源：packages/frontend/core/src/modules/workspace/metadata.ts
@@ -268,7 +268,7 @@ flowchart TB
 
 `WorkspaceFlavoursService` 用依赖 `[[WorkspaceFlavoursProvider]]` 收集所有变体并 `combineLatest` 拍平；`WorkspaceList.workspaces$` 再把每个 flavour 的 `workspaces$` 合并成总列表。云端 provider 内部用 `ObjectPool` 按服务器缓存 `CloudWorkspaceFlavourProvider` 实例。
 
-### 17.4.3 open：对象池 + 作用域
+### 21.4.3 open：对象池 + 作用域
 
 ```ts
 // 来源：packages/frontend/core/src/modules/workspace/services/repo.ts（open 节选；部分 return 语句压缩为单行）
@@ -293,7 +293,7 @@ open = (options: WorkspaceOpenOptions, customEngineWorkerInitOptions?: WorkerIni
 - 分享页（`isSharedMode`）不进池，每次独立实例；
 - `instantiate` 依次：找到 flavour provider → 取 `engineWorkerInitOptions` → `createScope(WorkspaceScope, {...})` → `workspace.engine.start()` → `emitEvent(WorkspaceInitialized)` → `flavourProvider.onWorkspaceInitialized` → 同步 profile。
 
-### 17.4.4 Workspace 与 WorkspaceEngine 实体
+### 21.4.4 Workspace 与 WorkspaceEngine 实体
 
 ```ts
 // 来源：packages/frontend/core/src/modules/workspace/entities/workspace.ts（节选）
@@ -321,7 +321,7 @@ export class Workspace extends Entity {
 }
 ```
 
-`Workspace` 是工作区作用域内的"根实体"：持有根 YDoc（guid = 工作区 id），懒创建 BlockSuite 的 `docCollection`（`impls/workspace.ts` 的 `WorkspaceImpl`），并把文档加载、Blob 读写、Awareness 全部委托给 `engine`。`WorkspaceEngine.start()` 通过 `NbstoreService.openStore` 打开存储（key 形如 `workspace:<flavour>:<id>`），得到 `StoreClient`，再暴露 `doc`/`blob`/`indexer`/`awareness` 四个 frontend——这正是第 23 章的入口。
+`Workspace` 是工作区作用域内的"根实体"：持有根 YDoc（guid = 工作区 id），懒创建 BlockSuite 的 `docCollection`（`impls/workspace.ts` 的 `WorkspaceImpl`），并把文档加载、Blob 读写、Awareness 全部委托给 `engine`。`WorkspaceEngine.start()` 通过 `NbstoreService.openStore` 打开存储（key 形如 `workspace:<flavour>:<id>`），得到 `StoreClient`，再暴露 `doc`/`blob`/`indexer`/`awareness` 四个 frontend——这正是<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>的入口。
 
 ```mermaid
 classDiagram
@@ -357,7 +357,7 @@ classDiagram
   Workspace --> WorkspaceEngine : via WorkspaceEngineService
 ```
 
-### 17.4.5 页面中如何使用
+### 21.4.5 页面中如何使用
 
 ```tsx
 // 来源：packages/frontend/core/src/desktop/pages/workspace/index.tsx（WorkspacePage 节选）
@@ -388,9 +388,9 @@ return (
 
 组件卸载即 `dispose`，工作区引用计数 -1。根文档就绪前只渲染 `<AppContainer fallback />` 骨架。页面还把 `workspaceId`/`workspaceFlavour` 写入 `GlobalContextService.globalContext`，并挂了 `window.currentWorkspace`、`exportWorkspaceSnapshot` 等调试入口。
 
-## 17.5 doc 模块：文档记录与文档作用域
+## 21.5 doc 模块：文档记录与文档作用域
 
-### 17.5.1 两类对象：DocRecord 与 Doc
+### 21.5.1 两类对象：DocRecord 与 Doc
 
 ```ts
 // 来源：packages/frontend/core/src/modules/doc/index.ts（节选）
@@ -415,7 +415,7 @@ export function configureDocModule(framework: Framework) {
 
 列表页只需要 `DocRecord`（轻量），打开文档才创建 `DocScope` + `Doc`。
 
-### 17.5.2 DocsService.open
+### 21.5.2 DocsService.open
 
 ```ts
 // 来源：packages/frontend/core/src/modules/doc/services/docs.ts（open 节选）
@@ -450,11 +450,11 @@ open(docId: string) {
 
 与工作区完全同构：**对象池 + createScope + 事件**。`Doc` 实体构造时会 `engine.doc.addPriority(this.id, 100)` 与 `engine.indexer.addPriority(this.id, 100)`——打开的文档在同步与索引队列中优先，`dispose` 时自动撤销优先级。它还监听 YDoc 的 `afterTransaction`，本地事务节流 1 秒更新 `updatedAt`。
 
-### 17.5.3 createDoc 与中间件
+### 21.5.3 createDoc 与中间件
 
 `createDoc(options)` 先依次执行所有 `DocCreateMiddleware.beforeCreate`，调用 `store.createDoc` 创建 BlockSuite 文档，`initDocFromProps` 初始化内容，设置 `primaryMode`/`isTemplate`，执行 `afterCreate`，写入创建/更新时间，最后 `this.eventBus.emit(DocCreated, ...)`。`DocCreateMiddleware` 是一个标识符，依赖写成 `[DocCreateMiddleware]` 收集所有实现——又一个"开放扩展、封闭修改"的例子。`cloud` 模块的 `DocCreatedByService` 订阅 `DocCreated` 写入"创建者"。
 
-## 17.6 editor 模块与"打开文档"全链路
+## 21.6 editor 模块与"打开文档"全链路
 
 ```ts
 // 来源：packages/frontend/core/src/modules/editor/index.ts（节选）
@@ -517,9 +517,9 @@ sequenceDiagram
   Note over Route: 卸载时 unbind 再 editor.dispose 再 release
 ```
 
-## 17.7 workbench：AFFiNE 的窗口管理器
+## 21.7 workbench：AFFiNE 的窗口管理器
 
-### 17.7.1 概念
+### 21.7.1 概念
 
 `modules/workbench/README.md` 用一张 ASCII 图描述了 Workbench：顶部若干 Tab，主区若干并排的 View，右侧 Sidebar。要点：
 
@@ -529,7 +529,7 @@ sequenceDiagram
 - 永远有一个**活动 View**，其 URL 被视为整个应用的 URL；
 - 只显示活动 View 的侧栏；浏览器中，Workbench 把浏览器前进/后退转发给活动 View。
 
-### 17.7.2 实体
+### 21.7.2 实体
 
 ```ts
 // 来源：packages/frontend/core/src/modules/workbench/entities/workbench.ts（节选）
@@ -564,9 +564,9 @@ export class Workbench extends Entity {
 
 `View` 实体（`entities/view.ts`）构造时 `createScope(ViewScope, { view: this })`，用 `createNavigableHistory`（`utils/navigable-history.ts`）创建内存历史，暴露 `location$`、`entries$`、`sidebarTabs$` 等。
 
-`WorkbenchService` 监听 `location$` 变化后通过 **`this.eventBus.root.emit(WorkbenchLocationChanged, ...)`** 向根总线广播（第 20 章讲过，根总线发出的事件能到达所有已创建子作用域），`PeekViewService` 用 `@OnEvent(WorkbenchLocationChanged, e => () => e.peekView.close())` 在路由变化时关闭预览层。
+`WorkbenchService` 监听 `location$` 变化后通过 **`this.eventBus.root.emit(WorkbenchLocationChanged, ...)`** 向根总线广播（<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>讲过，根总线发出的事件能到达所有已创建子作用域），`PeekViewService` 用 `@OnEvent(WorkbenchLocationChanged, e => () => e.peekView.close())` 在路由变化时关闭预览层。
 
-### 17.7.3 渲染：SplitView + 每个 View 一个 MemoryRouter
+### 21.7.3 渲染：SplitView + 每个 View 一个 MemoryRouter
 
 ```tsx
 // 来源：packages/frontend/core/src/modules/workbench/view/view-root.tsx（节选）
@@ -616,17 +616,17 @@ flowchart TB
   WBR --> SB[WorkbenchSidebar 活动视图的侧栏]
 ```
 
-### 17.7.4 与浏览器 URL 同步
+### 21.7.4 与浏览器 URL 同步
 
 `useBindWorkbenchToBrowserRouter`（`view/browser-adapter.ts`）的注释说明了策略：活动 View 历史与浏览器历史是**两个栈**。View 历史 PUSH/REPLACE 时同步到浏览器（POP 无法同步，跳过）；浏览器地址变化时仅以 PUSH 更新活动 View；为避免死循环，在 location state 上标记来源（`'fromView,'`、`'fromBrowser'`）。Electron 下改用 `useBindWorkbenchToDesktopRouter`（`view/desktop-adapter.ts`），由 `WorkbenchRoot` 依据 `BUILD_CONFIG.isElectron` 选择。
 
-### 17.7.5 ViewIsland
+### 21.7.5 ViewIsland
 
 `view/view-islands.tsx` 导出 `ViewHeader`、`ViewBody`、`ViewSidebarTab` 及对应的 `*Target`。路由页面写 `<ViewHeader>...</ViewHeader>`，内容会被"传送"到 `RouteContainer` 中的 `ViewHeaderTarget` 位置（基于 `utils/island.tsx` 的 `createIsland`，思路类似 Portal）。这样页面组件只关心"我要什么头部和侧栏"，布局由 Workbench 统一控制。
 
-## 17.8 路由体系
+## 21.8 路由体系
 
-### 17.8.1 顶层路由：desktop/router.tsx
+### 21.8.1 顶层路由：desktop/router.tsx
 
 ```ts
 // 来源：packages/frontend/core/src/desktop/route-paths.ts
@@ -655,7 +655,7 @@ export function getWorkspaceDocPath(workspaceId: string, docId: string) {
 | `/redirect-proxy` | `redirect` | 外链跳转代理（配合 `PopupWindowProvider`） |
 | `/subscribe`、`/upgrade-to-team` | `subscribe`、`upgrade-to-team` | 订阅流程 |
 | `/try-cloud`、`/template/preview` | —（loader 重定向） | 营销入口 |
-| `/theme-editor` | `theme-editor` | 主题编辑器（第 22 章） |
+| `/theme-editor` | `theme-editor` | 主题编辑器（<a href="./22-组件库主题与国际化.md#ch-22">第 22 章</a>） |
 | `/clipper/import`、`/template/import` | `import-clipper`、`import-template` | 导入 |
 | `/auth/:authType`、`/sign-In`、`/magic-link`、`/oauth/login`、`/oauth/callback` | `auth` | 认证（同一 webpackChunkName `auth`） |
 | `/desktop-signin`、`/signIn` | `auth` | 已废弃，兼容旧客户端 |
@@ -663,7 +663,7 @@ export function getWorkspaceDocPath(workspaceId: string, docId: string) {
 
 `desktop/pages/root` 不是路由页面，而是根包装（含 `custom-theme`、`find-in-page`、`global-loading`）。
 
-### 17.8.2 工作台路由：workbench-router.ts
+### 21.8.2 工作台路由：workbench-router.ts
 
 ```ts
 // 来源：packages/frontend/core/src/desktop/workbench-router.ts（节选；为节省篇幅，每个路由对象压缩为单行）
@@ -685,7 +685,7 @@ export const workbenchRoutes = [
 
 注意这些路径**没有** `/workspace/:id` 前缀——它们是 View 内部 MemoryRouter 的路径，前缀由 `basename$` 补上。`/:pageId` 会吞掉所有未匹配的单段路径，所以 `desktop/pages/workspace/index.tsx` 判断"是否是文档详情页"时，会用 `workbenchRoutes.find(route => matchPath(route.path, '/' + docId))?.path === '/:pageId'`（注释里也写了 TODO 希望有更好的方式）。
 
-### 17.8.3 packages/frontend/routes：类型安全路由生成
+### 21.8.3 packages/frontend/routes：类型安全路由生成
 
 `@affine/routes` 是一个小型代码生成器：
 
@@ -716,13 +716,13 @@ for (const token of tokens) {
 
 运行方式是包内 `yarn build`（`r build.ts`）。admin 的 `app.tsx` 用 `ROUTES.admin.accounts` 等常量注册路由。**注意**：仓库当前的 `src/routes.ts` 中没有 `queue`，而 `routes.json` 已经有了——说明生成产物与源 JSON 暂时不同步，修改 `routes.json` 后务必重新生成。主应用（desktop/mobile）目前仍使用手写的 `route-paths.ts` 与 `workbench-router.ts`。
 
-## 17.9 导航与组织
+## 21.9 导航与组织
 
-### 17.9.1 navigation
+### 21.9.1 navigation
 
 `modules/navigation/README.md` 只有一句："Provide support for forward and back buttons."。`Navigator` 实体（`entities/navigator.ts`）从 `workbench.activeView$` 取出 `history`，派生 `backable$`、`forwardable$`；`back()` 在浏览器中直接 `window.history.back()`，在 Electron 中调用活动 View 的 `history.back()`。`navigation/utils.ts` 的 `toDocSearchParams` 负责把编辑器定位参数（mode、blockIds 等）编码进 URL。
 
-### 17.9.2 collection 与 collection-rules
+### 21.9.2 collection 与 collection-rules
 
 收藏夹（Collection，即"智能文件夹"）数据存在根 YDoc 的 `setting` Map 里（`collection/stores/collection.ts`），`Collection` 实体的 `watch()` 把规则交给 `CollectionRulesService.watch`，并额外追加"不在回收站""不是空日记"两条系统过滤器。
 
@@ -743,19 +743,19 @@ export interface OrderByProvider {
 
 `configureCollectionRulesModule` 用 `FilterProvider('system:tags')`、`GroupByProvider('property:date')`、`OrderByProvider('system:title')` 等几十个变体注册实现（目录 `collection-rules/impls/{filters,group-by,order-by}`），服务按 `${type}:${key}` 查找对应变体。新增一种过滤条件 = 新写一个 Provider + 注册一个变体，**无需修改引擎本身**。"所有文档"页的筛选、分组、排序也复用这套引擎。
 
-### 17.9.3 tag、favorite、organize
+### 21.9.3 tag、favorite、organize
 
 | 模块 | 存储位置 | 核心实体 | 备注 |
 |---|---|---|---|
 | `tag` | 根 YDoc `meta.properties.tags.options`（`TagStore` 用 `yjsGetPath` 观察） | `TagList`、`Tag` | 标签与文档的关联存在文档 meta 的 tags 字段 |
-| `favorite` | userdata DB `favorite` 表 | `FavoriteList` | 按用户隔离（第 20 章案例） |
+| `favorite` | userdata DB `favorite` 表 | `FavoriteList` | 按用户隔离（<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>案例） |
 | `organize` | workspace DB `folders` 表 | `FolderTree`、`FolderNode` | 文件夹树，`index` 为分数索引 |
 
 `navigation-panel` 模块管理左侧导航树的展开/折叠状态，`desktop/components/navigation-panel` 与 `mobile/components/navigation` 消费上述三个模块渲染"收藏 / 文件夹 / 标签 / 收藏夹"分区。
 
-## 17.10 quicksearch、peek-view 与 commands
+## 21.10 quicksearch、peek-view 与 commands
 
-### 17.10.1 quicksearch：会话插件化
+### 21.10.1 quicksearch：会话插件化
 
 `QuickSearch` 实体（`quicksearch/entities/quick-search.ts`）维护一个 `state$`，`show(sources, callback, options)` 接收一组"会话"（Session），每个会话负责一类结果。CMD-K 就是把七种会话一起塞进去：
 
@@ -775,9 +775,9 @@ this.quickSearchService.quickSearch.show(
 );
 ```
 
-`DocsQuickSearchSession` 依赖 `DocsSearchService`（`docs-search` 模块，查询 nbstore 索引，见第 23 章）；`CommandsQuickSearchSession`（`impls/commands.ts`）通过 `AffineCommandRegistry.getAll()` 取出所有命令；`JournalsQuickSearchSession`、`ExternalLinksQuickSearchSession` 等则在编辑器侧（`blocksuite/view-extensions/editor-view/quick-search-service.ts`）按需组合使用。
+`DocsQuickSearchSession` 依赖 `DocsSearchService`（`docs-search` 模块，查询 nbstore 索引，见<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>）；`CommandsQuickSearchSession`（`impls/commands.ts`）通过 `AffineCommandRegistry.getAll()` 取出所有命令；`JournalsQuickSearchSession`、`ExternalLinksQuickSearchSession` 等则在编辑器侧（`blocksuite/view-extensions/editor-view/quick-search-service.ts`）按需组合使用。
 
-### 17.10.2 commands：VSCode 风格的命令注册表
+### 21.10.2 commands：VSCode 风格的命令注册表
 
 `commands/registry/README.md` 说明该抽象"highly inspired by VSCode Command Abstractions"。
 
@@ -820,13 +820,13 @@ registerAffineCommand({
 
 `$mod` 在 macOS 上是 ⌘，其他系统是 Ctrl。`preconditionStrategy`（`Always`、`InPaper`、`InEdgeless` 等）只控制命令在 CMD-K 中是否可见，不影响快捷键。
 
-### 17.10.3 peek-view
+### 21.10.3 peek-view
 
 `PeekViewEntity.open(target)` 以浮层预览文档、图片、附件、AI 对话块等，`view/peek-view-manager.tsx` 负责渲染。它注册在 `WorkspaceScope`，依赖 `WorkbenchService`（从预览"展开"时调用 `workbench.openDoc`）。如前所述，路由变化时由 `@OnEvent(WorkbenchLocationChanged)` 自动关闭。
 
-## 17.11 cloud、permissions 与系统模块
+## 21.11 cloud、permissions 与系统模块
 
-### 17.11.1 cloud：服务器即作用域
+### 21.11.1 cloud：服务器即作用域
 
 `configureCloudModule` 在根作用域注册 `ServersService`、`DefaultServerService`、`RealtimeService`、`Server` 实体；然后 `.scope(ServerScope)` 下注册**每台服务器一套**的 `ServerService`、`FetchService`、`GraphQLService`、`AuthService`、`AuthStore`、`AuthSession`、`SubscriptionService`、`UserQuotaService`、`UserFeatureService`、`InvoicesService` 等；再在 `WorkspaceScope` 下注册 `WorkspaceServerService`（把工作区与所属服务器关联）、`WorkspaceSubscriptionService` 等，在 `DocScope` 下注册 `DocUpdatedByService`、`CloudDocMetaService`。
 
@@ -842,20 +842,20 @@ flowchart TB
 
 这让"同时登录官方云与自托管服务器，各自有独立会话与订阅"成为自然的结构。`AuthSession.revalidate` 是一个 effect；登录状态变化发出 `AccountChanged` 等事件（`cloud/events/`），`UserQuotaService`、`SubscriptionService` 等通过 `@OnEvent(AccountChanged, ...)` 刷新。
 
-### 17.11.2 permissions
+### 21.11.2 permissions
 
 在 `WorkspaceScope` 注册 `WorkspacePermissionService`、`WorkspaceMembersService`、`MemberSearchService`、`GuardService`；在 `DocScope` 注册 `DocGrantedUsersService`。UI 侧最常用的是 `components/guard/use-guard.tsx` 的 `useGuard(action, docId?)`，详情页入口就调用了 `useGuard('Doc_Read', pageId)` 决定显示内容还是"无权限"页面。
 
-### 17.11.3 feature-flag、dialogs、global-context、lifecycle
+### 21.11.3 feature-flag、dialogs、global-context、lifecycle
 
 - **feature-flag**：`constant.ts` 的 `AFFINE_FLAGS` 定义了 34 个开关（`enable_ai`、`enable_edgeless_text`、`enable_theme_editor` 等），字段包括 `category`、`displayName`（i18n key）、`configurable`、`defaultState`、可选 `bsFlag`（同步给 BlockSuite）。`FeatureFlagService.flags.enable_xxx.$` 是 LiveData；`enable_ai`、`enable_disk_sync` 变化时自动刷新页面（`bindReloadOnFlagChange`）。
 - **dialogs**：`GlobalDialogService`（根）与 `WorkspaceDialogService`（工作区）维护 `dialogs$` 列表，`open(type, props, callback)` 返回 id。对话框类型由 `constant.ts` 的 `GLOBAL_DIALOG_SCHEMA`/`WORKSPACE_DIALOG_SCHEMA` 以"函数签名"描述 props 与返回值，`desktop/dialogs/index.tsx` 把类型映射到组件并用 `satisfies` 保证类型一致。**调用方不需要渲染对话框组件**，只需 `globalDialogService.open('sign-in', {})`。
 - **global-context**：`GlobalContext` 实体用 `MemoryMemento` 定义 `workspaceId`、`workspaceFlavour`、`serverId`、`docId`、`docMode`、`isDoc`、`isCollection`、`isTrash`、`isTag` 等键，每个键返回 `{ get, set, $ }`。页面写入，命令前置条件、埋点等读取——它是"当前在哪"的唯一真相来源。
 - **lifecycle**：`ApplicationStarted`、`ApplicationFocused` 两个事件，由 app 入口触发。
 
-## 17.12 mobile 差异与本章小结
+## 21.12 mobile 差异与本章小结
 
-### 17.12.1 mobile：同一套模块，另一套界面
+### 21.12.1 mobile：同一套模块，另一套界面
 
 `packages/frontend/core/src/mobile` 与 `desktop` 平行：
 
@@ -867,9 +867,9 @@ flowchart TB
 | 专属模块 | Electron 专属在 apps 层 configure | `mobile/modules`：`configureMobileBackCoordinator`、`configureMobileSearchModule`、`configureMobileVirtualKeyboardModule`、`configureMobileNavigationProjection`、`configureMobileHapticsModule` |
 | UI 组件 | `desktop/components` | `mobile/components`（`app-tabs` 底部标签栏、`swipe-menu`、`page-header` 等）与 `mobile/views` |
 
-`@affine/component` 内部也有移动分支：如 `ui/menu/index.ts` 根据 `BUILD_CONFIG.isMobileEdition` 导出 `MobileMenu` 或 `DesktopMenu`（第 22 章）。**业务模块（modules）完全共享**，差异只在页面与少量平台模块。
+`@affine/component` 内部也有移动分支：如 `ui/menu/index.ts` 根据 `BUILD_CONFIG.isMobileEdition` 导出 `MobileMenu` 或 `DesktopMenu`（<a href="./22-组件库主题与国际化.md#ch-22">第 22 章</a>）。**业务模块（modules）完全共享**，差异只在页面与少量平台模块。
 
-### 17.12.2 本章小结
+### 21.12.2 本章小结
 
 - 应用壳只负责"启动 Worker + 组装 Framework + 挂载路由"，业务全部在 `@affine/core`；
 - 作用域树 Root → Server / Workspace → Doc → Editor、Workspace → View 是理解所有模块的骨架，`ObjectPool + createScope + emitEvent` 是工作区与文档打开的统一套路；
@@ -914,7 +914,7 @@ flowchart TB
 ### 练习 3：在 Workbench 中分屏打开（进阶）
 
 - **目标**：理解 `Workbench.open` 的 `at` 参数。
-- **步骤**：本地启动开发环境（参考第 15 章）后，在浏览器控制台利用 `WorkbenchRoot` 挂出的调试变量 `window.workbench` 执行 `workbench.openAll({ at: 'beside' })`，再执行 `workbench.views$.value.length`、`workbench.active(0)`。
+- **步骤**：本地启动开发环境（参考<a href="../04-工程化与开发环境/15-本地开发环境搭建与调试.md#ch-15">第 15 章</a>）后，在浏览器控制台利用 `WorkbenchRoot` 挂出的调试变量 `window.workbench` 执行 `workbench.openAll({ at: 'beside' })`，再执行 `workbench.views$.value.length`、`workbench.active(0)`。
 - **验收标准**：界面出现两个并排 View；能解释浏览器地址栏为什么跟随活动 View 变化。
 
 ### 练习 4：新增一个 CMD-K 命令（进阶）
@@ -975,10 +975,10 @@ flowchart TB
 - `packages/frontend/core/src/modules/workbench/README.md`：Workbench 设计说明；
 - `packages/frontend/routes/README.md`：路由工厂与参数类型用法；
 - `packages/frontend/core/src/commands/registry/README.md`：命令抽象说明；
-- 第 20 章：作用域、事件、LiveData 原理；
-- 第 22 章：组件库与 i18n（命令 label、对话框 UI）；
-- 第 23 章：`WorkspaceEngine` 背后的 nbstore；
-- 第 24 章：Electron 与移动端入口的完整组装；
+- <a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>：作用域、事件、LiveData 原理；
+- <a href="./22-组件库主题与国际化.md#ch-22">第 22 章</a>：组件库与 i18n（命令 label、对话框 UI）；
+- <a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>：`WorkspaceEngine` 背后的 nbstore；
+- <a href="./24-多端-Electron与移动端.md#ch-24">第 24 章</a>：Electron 与移动端入口的完整组装；
 - React Router 文档 `createMemoryRouter`、`lazy` 路由；VSCode 文档 Commands。
 
 ## 学时拆分
@@ -995,4 +995,4 @@ flowchart TB
 | **合计** | **12 小时** |
 
 ---
-上一章：[第 20 章 前端基础设施：DI 与 LiveData](./20-前端基础设施-DI与LiveData.md) ｜ 下一章：[第 22 章 组件库、主题与国际化](./22-组件库主题与国际化.md) ｜ [返回目录](../README.md)
+上一章：[第 20 章 前端基础设施：DI 与 LiveData](20-前端基础设施-DI与LiveData.md) ｜ 下一章：[第 22 章 组件库、主题与国际化](22-组件库主题与国际化.md) ｜ [返回目录](../README.md)

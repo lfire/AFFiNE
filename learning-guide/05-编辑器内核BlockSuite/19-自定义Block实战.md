@@ -1,6 +1,6 @@
 # 第 19 章 自定义 Block 实战
 
-> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 18 章（Affine 块组件与 Edgeless 白板）
+> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：<a href="./18-Affine块组件与Edgeless白板.md#ch-18">第 18 章</a>（Affine 块组件与 Edgeless 白板）
 
 ---
 
@@ -51,7 +51,7 @@ mindmap
 
 ---
 
-## 15.1 为什么选 divider，以及要对照 callout
+## 19.1 为什么选 divider，以及要对照 callout
 
 | 块 | 源码规模 | 特点 | 适合学习 |
 | --- | --- | --- | --- |
@@ -62,7 +62,7 @@ mindmap
 
 ---
 
-## 15.2 divider 的包结构与 package.json
+## 19.2 divider 的包结构与 package.json
 
 ```text
 blocksuite/affine/blocks/divider/
@@ -118,7 +118,7 @@ blocksuite/affine/blocks/divider/
 
 ---
 
-## 15.3 Model：Schema 定义
+## 19.3 Model：Schema 定义
 
 ```ts
 // 来源：blocksuite/affine/model/src/blocks/divider/divider-model.ts
@@ -150,13 +150,13 @@ export const DividerBlockSchemaExtension = BlockSchemaExtension(DividerBlockSche
 - **`children: []`**：不允许子块——但组件里仍调用了 `renderChildren`，这是所有块的统一写法（防御性地渲染，若数据异常也不丢失内容）；
 - **三件套导出**：`XxxBlockSchema`、`XxxBlockModel`、`XxxBlockSchemaExtension`，这是所有块模型文件的固定模式。
 
-对照 callout 的 Schema（第 16 章 12.5 已展示），它声明了 `props`（`icon`、`text`、`backgroundColorName` 与 4 个 `meta:*` 字段）、`role: 'hub'`、显式的 `parent` 列表与 `children: ['affine:paragraph', 'affine:list']`。
+对照 callout 的 Schema（<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.5 已展示），它声明了 `props`（`icon`、`text`、`backgroundColorName` 与 4 个 `meta:*` 字段）、`role: 'hub'`、显式的 `parent` 列表与 `children: ['affine:paragraph', 'affine:list']`。
 
 ---
 
-## 15.4 Store 侧：StoreExtension 与 Adapters
+## 19.4 Store 侧：StoreExtension 与 Adapters
 
-### 15.4.1 store.ts
+### 19.4.1 store.ts
 
 ```ts
 // 来源：blocksuite/affine/blocks/divider/src/store.ts
@@ -178,7 +178,7 @@ export class DividerStoreExtension extends StoreExtensionProvider {
 
 Store 侧只放**与 DOM 无关**的东西：Schema 与 Adapter。这样服务端渲染、Worker 中的 Markdown 导出、单元测试都能只加载 store 扩展。
 
-### 15.4.2 Markdown Adapter
+### 19.4.2 Markdown Adapter
 
 ```ts
 // 来源：blocksuite/affine/blocks/divider/src/adapters/markdown.ts（节选）
@@ -228,11 +228,11 @@ export const DividerBlockMarkdownAdapterExtension =
 
 ---
 
-## 15.5 View 侧：组件、effects 与 ViewExtension
+## 19.5 View 侧：组件、effects 与 ViewExtension
 
-### 15.5.1 组件
+### 19.5.1 组件
 
-`DividerBlockComponent`（`blocksuite/affine/blocks/divider/src/divider-block.ts`）已在第 17 章 13.4.4 介绍，这里补充几个细节：
+`DividerBlockComponent`（`blocksuite/affine/blocks/divider/src/divider-block.ts`）已在<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a> 13.4.4 介绍，这里补充几个细节：
 
 ```ts
 // 来源：blocksuite/affine/blocks/divider/src/divider-block.ts（节选）
@@ -275,11 +275,11 @@ declare global {
 ```
 
 - `contentEditable = 'false'`：非文本块必须关闭可编辑，否则浏览器会把光标放进 `<hr>` 周围；
-- `handleEvent('click', ...)`：默认以本块 `blockId` 为作用域（第 17 章 13.6.3），点击时以 `setGroup('note', ...)` 设置块选择；
+- `handleEvent('click', ...)`：默认以本块 `blockId` 为作用域（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a> 13.6.3），点击时以 `setGroup('note', ...)` 设置块选择；
 - `useZeroWidth = true`：`CaptionedBlockComponent` 的选项，在块末尾渲染零宽占位（`block-zero-width`），使用户点击块下方空白时能创建新段落（`tests/blocksuite/e2e/zero-width.spec.ts` 覆盖了这一行为）；
 - `declare global` 为 `HTMLElementTagNameMap` 补充类型，让 `document.querySelector('affine-divider')` 有正确类型。
 
-### 15.5.2 effects.ts 与 view.ts
+### 19.5.2 effects.ts 与 view.ts
 
 ```ts
 // 来源：blocksuite/affine/blocks/divider/src/effects.ts
@@ -314,7 +314,7 @@ export class DividerViewExtension extends ViewExtensionProvider {
 
 > 有趣的是 divider 的 View Provider 没有注册 `FlavourExtension('affine:divider')`，而 callout、paragraph、code 都注册了。`FlavourExtension` 只在需要按 flavour 注入依赖时才必需（如已弃用的 `BlockService`），对纯视图块不是必选项；但为一致性起见，新块建议注册。
 
-### 15.5.3 行内 Markdown 快捷输入
+### 19.5.3 行内 Markdown 快捷输入
 
 ```ts
 // 来源：blocksuite/affine/blocks/divider/src/markdown.ts（节选）
@@ -342,11 +342,11 @@ export const DividerMarkdownExtension = InlineMarkdownExtension<AffineTextAttrib
 });
 ```
 
-在段落开头输入 `---` + 空格即转换为分割线。这个扩展注册在 **View 侧**（它依赖 InlineEditor 与组件），由 `InlineManager.markdownMatches` 收集后交给 `<rich-text>` 执行（第 17 章 13.8）。注意 `store.captureSync()` 让"转换"成为独立的撤销步骤。
+在段落开头输入 `---` + 空格即转换为分割线。这个扩展注册在 **View 侧**（它依赖 InlineEditor 与组件），由 `InlineManager.markdownMatches` 收集后交给 `<rich-text>` 执行（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a> 13.8）。注意 `store.captureSync()` 让"转换"成为独立的撤销步骤。
 
 ---
 
-## 15.6 注册链路：从块包到编辑器
+## 19.6 注册链路：从块包到编辑器
 
 一个块要被用户看见，需要经过四层注册：
 
@@ -368,9 +368,9 @@ flowchart LR
 
 ---
 
-## 15.7 斜杠菜单接入：两种方式
+## 19.7 斜杠菜单接入：两种方式
 
-### 15.7.1 divider：经由 note 与 textConversionConfigs
+### 19.7.1 divider：经由 note 与 textConversionConfigs
 
 在 divider 包里你找不到任何斜杠菜单配置。它的菜单项来自 rich-text 包的 `textConversionConfigs`：
 
@@ -388,7 +388,7 @@ flowchart LR
 
 再由 note 块的 `NoteSlashMenuConfigExtension`（`blocksuite/affine/blocks/note/src/configs/slash-menu.ts`）把 `type` 为 `divider`、`quote` 的条目转成菜单项，并加上 `when: ({ model }) => model.store.schema.flavourSchemaMap.has(config.flavour) && !isInsideBlockByFlavour(model.store, model, 'affine:edgeless-text')`——**只有当前 Store 注册了该 flavour 时才显示**。同一份配置还驱动了快捷键 `Mod-Alt-d` 与格式工具栏的"转换为"菜单。这种方式适合"可与段落互相转换"的基础块。
 
-### 15.7.2 callout：块包自行注册
+### 19.7.2 callout：块包自行注册
 
 ```ts
 // 来源：blocksuite/affine/blocks/callout/src/configs/slash-menu.ts（节选）
@@ -427,9 +427,9 @@ export const calloutSlashMenuConfig: SlashMenuConfig = {
 
 ---
 
-## 15.8 测试
+## 19.8 测试
 
-BlockSuite 的测试分三层（第 29 章会全面展开）：
+BlockSuite 的测试分三层（<a href="../08-质量保障/29-测试体系.md#ch-29">第 29 章</a>会全面展开）：
 
 | 层 | 位置 | 运行方式 | divider 的例子 |
 | --- | --- | --- | --- |
@@ -459,11 +459,11 @@ test('divider', async () => {
 
 ---
 
-## 15.9 教学示例：自定义提示卡片 Block
+## 19.9 教学示例：自定义提示卡片 Block
 
-> 以下全部为**教学示例**，不写入仓库。导入路径采用应用层使用的聚合包 `@blocksuite/affine/*`，因此可以直接放在 playground（`blocksuite/playground/apps/_common/` 下）或 AFFiNE 应用（`packages/frontend/core/src/blocksuite/` 下）中实验。若作为 `blocksuite/affine/blocks/` 下的正式块包，请把导入换成对应的细粒度包名（见 15.9.8 对照表）。
+> 以下全部为**教学示例**，不写入仓库。导入路径采用应用层使用的聚合包 `@blocksuite/affine/*`，因此可以直接放在 playground（`blocksuite/playground/apps/_common/` 下）或 AFFiNE 应用（`packages/frontend/core/src/blocksuite/` 下）中实验。若作为 `blocksuite/affine/blocks/` 下的正式块包，请把导入换成对应的细粒度包名（见 <a href="./19-自定义Block实战.md#sec-19-9-8">19.9.8</a> 对照表）。
 
-### 15.9.1 需求与设计
+### 19.9.1 需求与设计
 
 | 需求 | 设计决策 | 参照的真实块 |
 | --- | --- | --- |
@@ -473,7 +473,7 @@ test('divider', async () => {
 | 斜杠菜单插入 | `SlashMenuConfigExtension` | callout |
 | 文末 Enter 跳出卡片新建段落 | `KeymapExtension` + `{ flavour }` | paragraph、callout |
 | 导出 Markdown / 纯文本 | `BlockMarkdownAdapterExtension`、`BlockPlainTextAdapterExtension` | paragraph、divider |
-| 第三方块不与官方冲突 | flavour 使用自定义命名空间 `custom:tip-card` | 第 16 章 flavour 约定 |
+| 第三方块不与官方冲突 | flavour 使用自定义命名空间 `custom:tip-card` | <a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> flavour 约定 |
 
 目录结构（教学示例）：
 
@@ -491,7 +491,7 @@ tip-card/
 └── tip-card.unit.spec.ts    # Store 层单元测试
 ```
 
-### 15.9.2 Schema 与 Model
+### 19.9.2 Schema 与 Model
 
 ```ts
 // 教学示例：tip-card/tip-card-model.ts（参照 blocksuite/affine/model/src/blocks/callout/callout-model.ts）
@@ -533,9 +533,9 @@ export class TipCardBlockModel extends BlockModel<TipCardProps> {
 export const TipCardBlockSchemaExtension = BlockSchemaExtension(TipCardBlockSchema);
 ```
 
-校验推演：子块 `parent = ['affine:note']`，Note 的 `children = ['@content', ...]`。对 `('affine:note', '@content')` 这一对：`'@content'` 与本块 `role: 'content'` 匹配，`'affine:note'` 与父块 flavour 用 minimatch 匹配——双向成立，合法。若把卡片插到根块下，根块 `children` 缺省 `['*']`，但本块 `parent` 只允许 note，校验失败。注意：`Store.addBlock` 把 CRUD 包在 `transact` 中，而 `transact` 会 **catch 并 `console.error`** 回调里的异常（第 16 章 12.7.1），所以 `addBlock` 本身**不会抛出** `SchemaValidateError`，只会打印错误、照常返回 id，但块并未创建。需要可靠判断时请先调用 `store.schema.safeValidate(flavour, parentFlavour)`。
+校验推演：子块 `parent = ['affine:note']`，Note 的 `children = ['@content', ...]`。对 `('affine:note', '@content')` 这一对：`'@content'` 与本块 `role: 'content'` 匹配，`'affine:note'` 与父块 flavour 用 minimatch 匹配——双向成立，合法。若把卡片插到根块下，根块 `children` 缺省 `['*']`，但本块 `parent` 只允许 note，校验失败。注意：`Store.addBlock` 把 CRUD 包在 `transact` 中，而 `transact` 会 **catch 并 `console.error`** 回调里的异常（<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.7.1），所以 `addBlock` 本身**不会抛出** `SchemaValidateError`，只会打印错误、照常返回 id，但块并未创建。需要可靠判断时请先调用 `store.schema.safeValidate(flavour, parentFlavour)`。
 
-### 15.9.3 样式、effects 与组件
+### 19.9.3 样式、effects 与组件
 
 ```ts
 // 教学示例：tip-card/styles.ts（参照 blocksuite/affine/blocks/divider/src/styles.ts）
@@ -669,7 +669,7 @@ export class TipCardBlockComponent extends CaptionedBlockComponent<TipCardBlockM
 - `.enableClipboard=${false}`、`.enableUndoRedo=${false}`：剪贴板与撤销交给编辑器全局处理（`PageClipboard` 与 `HistoryExtension`），与段落保持一致；
 - `topContenteditableElement` 的覆盖直接取自 callout，保证在白板的 note 中事件源正确。
 
-### 15.9.4 快捷键与斜杠菜单
+### 19.9.4 快捷键与斜杠菜单
 
 ```ts
 // 教学示例：tip-card/keymap.ts（参照 blocksuite/affine/blocks/callout/src/callout-keymap.ts）
@@ -740,7 +740,7 @@ export const tipCardSlashMenuConfig: SlashMenuConfig = {
 
 注意 `when` 中的 `flavourSchemaMap.has(...)` 检查——借鉴自 note 的配置，确保在没有注册该 Schema 的 Store 中不显示菜单项（否则 `addBlock` 内部校验失败、只在控制台报错）。另外，若光标所在块的父块不是 note（例如在 callout 内），同样会因 Schema 约束失败；生产代码应先用 `store.schema.safeValidate(flavour, parent.flavour)` 判断。
 
-### 15.9.5 Adapters
+### 19.9.5 Adapters
 
 ```ts
 // 教学示例：tip-card/adapters.ts（参照 paragraph/src/adapters/markdown.ts 与 plain-text.ts）
@@ -807,7 +807,7 @@ export const TipCardAdapterExtensions: ExtensionType[] = [
 
 导出的 Markdown 形如 `> [!INFO] 这是一条提示`，与 GitHub 的 alert 语法相近（callout 的 GFM 导出风格也是 `[!emoji]` 前缀的 blockquote）。
 
-### 15.9.6 Store 与 View Provider
+### 19.9.6 Store 与 View Provider
 
 ```ts
 // 教学示例：tip-card/store.ts（参照 blocksuite/affine/blocks/divider/src/store.ts）
@@ -871,7 +871,7 @@ export class TipCardViewExtension extends ViewExtensionProvider {
 
 除 Provider 外，还单独导出了 `TipCardStoreExtensions` / `TipCardViewExtensions` 数组——在 playground 这类"已有 Manager、不便追加 Provider"的环境中可以直接拼接（15.10）。
 
-### 15.9.7 Store 层单元测试
+### 19.9.7 Store 层单元测试
 
 ```ts
 // 教学示例：tip-card/tip-card.unit.spec.ts（参照 blocksuite/framework/store/src/__tests__/block.unit.spec.ts）
@@ -912,9 +912,9 @@ describe('custom:tip-card', () => {
 });
 ```
 
-`NoteBlockSchemaExtension` 来自 `blocksuite/affine/model/src/blocks/note/note-model.ts`，`RootBlockSchemaExtension` 来自 `root-block-model.ts`；它们依赖 `@blocksuite/std/gfx`（`GfxCompatible`），建议在与 `blocksuite/affine/all` 单测相同的环境中运行。第二个用例用 `safeValidate` 而不是 `expect(() => store.addBlock(...)).toThrow()`，原因见 15.9.2 的说明。若要测试 Adapter，参照 15.8 中 `createJob`/`getProvider` 的写法，把 `TipCardStoreExtension` 加入 `StoreExtensionManager`、把 `TipCardBlockSchema` 加入 `Schema`，再用 `new MarkdownAdapter(job, provider).fromBlockSnapshot(...)` 断言输出。
+`NoteBlockSchemaExtension` 来自 `blocksuite/affine/model/src/blocks/note/note-model.ts`，`RootBlockSchemaExtension` 来自 `root-block-model.ts`；它们依赖 `@blocksuite/std/gfx`（`GfxCompatible`），建议在与 `blocksuite/affine/all` 单测相同的环境中运行。第二个用例用 `safeValidate` 而不是 `expect(() => store.addBlock(...)).toThrow()`，原因见 <a href="./19-自定义Block实战.md#sec-19-9-2">19.9.2</a> 的说明。若要测试 Adapter，参照 15.8 中 `createJob`/`getProvider` 的写法，把 `TipCardStoreExtension` 加入 `StoreExtensionManager`、把 `TipCardBlockSchema` 加入 `Schema`，再用 `new MarkdownAdapter(job, provider).fromBlockSnapshot(...)` 断言输出。
 
-### 15.9.8 正式块包时的导入路径对照
+### 19.9.8 正式块包时的导入路径对照
 
 | 教学示例中的导入 | 在 `blocksuite/affine/blocks/tip-card` 正式包中应改为 |
 | --- | --- |
@@ -927,13 +927,13 @@ describe('custom:tip-card', () => {
 | `@blocksuite/affine/shared/*` | `@blocksuite/affine-shared/*` |
 | `@blocksuite/affine/widgets/slash-menu` | `@blocksuite/affine-widget-slash-menu` |
 
-正式包还需要：在 `package.json` 声明上述依赖与 `.`/`./store`/`./view` 导出、在 `tsconfig.json` 写 `references`、按 15.6 节在 `blocksuite/affine/all` 中补齐依赖/导出/重导出文件/`references`/内置清单，最后在仓库根执行 `yarn affine init`——`blocksuite/affine/gfx/turbo-renderer/src/turbo-renderer.ts` 的注释指出该命令会更新 `workspace.gen.ts` 等生成文件与 lockfile。这些都会修改仓库，属于正式贡献流程（第 34 章）。
+正式包还需要：在 `package.json` 声明上述依赖与 `.`/`./store`/`./view` 导出、在 `tsconfig.json` 写 `references`、按 <a href="../04-工程化与开发环境/15-本地开发环境搭建与调试.md#sec-15-6">15.6 节</a>在 `blocksuite/affine/all` 中补齐依赖/导出/重导出文件/`references`/内置清单，最后在仓库根执行 `yarn affine init`——`blocksuite/affine/gfx/turbo-renderer/src/turbo-renderer.ts` 的注释指出该命令会更新 `workspace.gen.ts` 等生成文件与 lockfile。这些都会修改仓库，属于正式贡献流程（<a href="../10-综合实战/34-贡献实战与进阶路线.md#ch-34">第 34 章</a>）。
 
 ---
 
-## 15.10 在 playground 中运行验证
+## 19.10 在 playground 中运行验证
 
-### 15.10.1 playground 的启动与结构
+### 19.10.1 playground 的启动与结构
 
 | 文件 | 作用 |
 | --- | --- |
@@ -947,7 +947,7 @@ describe('custom:tip-card', () => {
 
 启动：在仓库根执行 `yarn workspace @blocksuite/playground dev`（CI 中 `.github/workflows/build-test.yml` 使用 `yarn workspace @blocksuite/playground build`），默认地址 `http://localhost:5173`（`tests/blocksuite/playwright.config.ts` 的 `webServer.url`）。URL 参数 `?init=empty` 使用空文档，`?room=xxx` 开启 BroadcastChannel 多标签页协同。
 
-### 15.10.2 接入步骤（本地实验，不要提交）
+### 19.10.2 接入步骤（本地实验，不要提交）
 
 1. 把 15.9 的文件放到 `blocksuite/playground/apps/_common/tip-card/`。
 2. 在 `apps/starter/utils/collection.ts` 中将 `collection.storeExtensions = storeExtensionManager.get('store');` 改为在其后追加 `...TipCardStoreExtensions`（`TestDoc.getStore` 会把 `workspace.storeExtensions` 拼进每个 Store，见 `blocksuite/framework/store/src/test/test-doc.ts`）。
@@ -960,9 +960,9 @@ describe('custom:tip-card', () => {
 
 ---
 
-## 15.11 在 AFFiNE 应用侧注册
+## 19.11 在 AFFiNE 应用侧注册
 
-### 15.11.1 方式 A：应用内定义块（不改 blocksuite 目录）
+### 19.11.1 方式 A：应用内定义块（不改 blocksuite 目录）
 
 AFFiNE 自己就是这么做的：AI 相关的 `affine:transcription` 块定义在 `packages/frontend/core/src/blocksuite/ai/blocks/transcription-block/model.ts`，由 `AIStoreExtension`（`packages/frontend/core/src/blocksuite/store-extensions/ai/index.ts`）注册 Schema，由 `AIViewExtension`（`packages/frontend/core/src/blocksuite/view-extensions/ai/index.ts`）注册视图 `AITranscriptionBlockSpec`。照此：
 
@@ -973,26 +973,26 @@ AFFiNE 自己就是这么做的：AI 相关的 `affine:transcription` 块定义�
 
 数据流回顾：`DocImpl.getStore()` 会调用 `getStoreManager().config.init()...value.get('store')`，所以 Store 侧注册后**所有文档的 Store 都认识新 flavour**；视图侧经 `usePatchSpecs` 进入 `BlockStdScope`。
 
-### 15.11.2 方式 B：作为 BlockSuite 内置块
+### 19.11.2 方式 B：作为 BlockSuite 内置块
 
-按 15.9.8 建立正式包并加入 `getInternalStoreExtensions()`/`getInternalViewExtensions()`，应用侧无需改动（manager 通过展开运算符自动包含）。适合计划贡献到上游的通用块。
+按 <a href="./19-自定义Block实战.md#sec-19-9-8">19.9.8</a> 建立正式包并加入 `getInternalStoreExtensions()`/`getInternalViewExtensions()`，应用侧无需改动（manager 通过展开运算符自动包含）。适合计划贡献到上游的通用块。
 
-### 15.11.3 注意：Store 扩展必须"全局一致"
+### 19.11.3 注意：Store 扩展必须"全局一致"
 
 Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 
 - 未注册的客户端打开文档时，`SyncController` 找不到 Schema 抛出 `schema for flavour: custom:tip-card not found`（`ModelCRUDError`），`Store._onBlockAdded` 捕获并 `console.error`，该块被跳过；
-- 若 Schema 已注册但 View 未注册，`EditorHost` 打印 `Cannot find render flavour` 并静默不渲染（第 17 章）。
+- 若 Schema 已注册但 View 未注册，`EditorHost` 打印 `Cannot find render flavour` 并静默不渲染（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>）。
 
 因此 Store 扩展应放在 `packages/frontend/core/src/blocksuite/manager/store.ts`（随 `DocImpl` 全局生效），而不是只在某个编辑器的 View 配置中。服务端（`packages/backend/server`）若要做文档内容解析/导出，也需要认识该 flavour。
 
 ---
 
-## 15.12 版本迁移、兼容性、性能与协同
+## 19.12 版本迁移、兼容性、性能与协同
 
-### 15.12.1 Schema version 策略
+### 19.12.1 Schema version 策略
 
-第 16 章已经说明：当前 BlockSuite **只做版本校验、不做迁移**。`BlockComponent.isVersionMismatch` 在 Schema 版本与数据 `sys:version` 不一致时渲染 "Block Version Mismatched"。由此得出实践原则：
+<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a>已经说明：当前 BlockSuite **只做版本校验、不做迁移**。`BlockComponent.isVersionMismatch` 在 Schema 版本与数据 `sys:version` 不一致时渲染 "Block Version Mismatched"。由此得出实践原则：
 
 | 变更类型 | 是否升版本 | 做法 |
 | --- | --- | --- |
@@ -1003,7 +1003,7 @@ Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 
 一个真实的反例提醒：callout 的 Schema 已使用 `icon: IconData`，而其 Markdown Adapter（`blocksuite/affine/blocks/callout/src/adapters/markdown.ts`）仍读写 `props.emoji`，相关测试快照也使用 `emoji` 字段——**Schema 演进时要同步审视 Adapter、测试快照与 Transformer**，否则导入导出会悄悄丢信息。
 
-### 15.12.2 协同注意事项
+### 19.12.2 协同注意事项
 
 - **属性粒度**：每个 `prop:*` 是 `Y.Map` 的一个键，两人同时修改同一属性时"后写者胜"；把频繁并发修改的数据拆成多个属性，或像 table 一样使用 `isFlatData` 细化粒度；
 - **文本用 `Text`**：富文本必须是 `internal.Text()`（`Y.Text`），才能字符级合并；不要把文本存成 `string` 属性；
@@ -1012,7 +1012,7 @@ Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 - **本地状态用 local**：折叠、悬停、拖拽中间态不应写入文档（参考 list 在只读模式下使用 `_readonlyCollapsed`、白板拖拽使用 `stash/pop`）；
 - **远程更新**：组件通过 signal 与 `propsUpdated` 自动响应远端修改，不需要额外订阅；若有副作用（如加载资源），应在 `effect` 中依赖对应 signal。
 
-### 15.12.3 性能注意事项
+### 19.12.3 性能注意事项
 
 - **渲染中只读 signal**：`renderBlock` 内读 `xxx$.value`，避免在渲染中创建昂贵对象；像 `inlineManager.getRenderer()` 这类调用如有性能问题可以缓存；
 - **监听放进 disposables**：所有 `subscribe`/`addEventListener` 通过 `this.disposables.add(...)` 或 `handleEvent` 注册，组件卸载时自动清理，避免大文档中的泄漏；
@@ -1049,13 +1049,13 @@ Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 ### 练习 1：给 divider 画一张"注册地图"（基础）
 
 - **目标**：熟悉块从定义到渲染的所有注册点。
-- **步骤**：用 Grep 在仓库中搜索 `DividerStoreExtension`、`DividerViewExtension`、`DividerBlockSchema`、`affine-block-divider`，把每个出现位置填进 15.6 节的表格，并标出哪些是自动生成文件。
+- **步骤**：用 Grep 在仓库中搜索 `DividerStoreExtension`、`DividerViewExtension`、`DividerBlockSchema`、`affine-block-divider`，把每个出现位置填进 <a href="./19-自定义Block实战.md#sec-19-6">19.6 节</a>的表格，并标出哪些是自动生成文件。
 - **验收标准**：能找到至少 8 处引用，并说明 `tools/utils/src/workspace.gen.ts` 为何不能手改。
 
 ### 练习 2：在 playground 中跑通 Tip Card（进阶）
 
 - **目标**：完成 15.9 + 15.10。
-- **步骤**：按 15.10.2 的步骤在本地接入教学示例；依次验证斜杠菜单插入、编辑、样式切换、撤销重做、文末 Enter、白板中 note 内的编辑。
+- **步骤**：按 <a href="./19-自定义Block实战.md#sec-19-10-2">19.10.2</a> 的步骤在本地接入教学示例；依次验证斜杠菜单插入、编辑、样式切换、撤销重做、文末 Enter、白板中 note 内的编辑。
 - **验收标准**：所有交互正常；`window.job.docToSnapshot(...)` 中出现 `custom:tip-card` 节点，`props.variant` 与界面一致；两个 `?room=test` 标签页能实时同步样式切换。
 
 ### 练习 3：补全 Markdown 导入（进阶）
@@ -1073,7 +1073,7 @@ Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 ### 练习 5：在 AFFiNE 应用中注册（综合，可选）
 
 - **目标**：完成 15.11 方式 A。
-- **步骤**：按 15.11.1 在本地分支中把 Tip Card 放入 `packages/frontend/core/src/blocksuite/` 并修改两个 manager 文件，启动应用（第 15 章）验证。
+- **步骤**：按 15.11.1 在本地分支中把 Tip Card 放入 `packages/frontend/core/src/blocksuite/` 并修改两个 manager 文件，启动应用（<a href="../04-工程化与开发环境/15-本地开发环境搭建与调试.md#ch-15">第 15 章</a>）验证。
 - **验收标准**：在 AFFiNE 文档中可插入、编辑、导出 Markdown；在另一台未包含该改动的客户端打开同一文档时，能在控制台看到预期的 Schema 缺失错误并理解其原因。
 
 ---
@@ -1121,7 +1121,7 @@ Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 | Markdown 导出缺少卡片内容 | Store 侧未注册 Adapter；`fromMatch` 判断错误 | 检查 `TipCardStoreExtension` 与 matcher |
 | 新增属性后老文档打开即产生一次"修改" | `_parseYBlock` 补写默认值 | 预期行为；若敏感可把默认值设为 `undefined` 并在读取时容错 |
 | 改了 `version` 后老文档显示 "Block Version Mismatched" | 当前无迁移机制 | 撤回版本变更，改用兼容式演进 |
-| 新建正式块包后 import 报找不到模块 | 未在 `blocksuite/affine/all` 补齐依赖/导出，或未执行 `yarn affine init` 更新生成文件 | 按 15.6、15.9.8 补齐 |
+| 新建正式块包后 import 报找不到模块 | 未在 `blocksuite/affine/all` 补齐依赖/导出，或未执行 `yarn affine init` 更新生成文件 | 按 <a href="./19-自定义Block实战.md#sec-19-6">19.6</a>、15.9.8 补齐 |
 
 ---
 
@@ -1133,7 +1133,7 @@ Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 - `blocksuite/affine/gfx/turbo-renderer/src/turbo-renderer.ts` 顶部注释：块接入 turbo-renderer 的步骤
 - `blocksuite/docs-site/guide/block-schema.md`、`block-view.md`、`block-spec.md`：对照第 16–17 章的差异表阅读，体会 API 演进
 - `packages/frontend/core/src/blocksuite/ai/`：应用内自定义块、widget、tool 的综合范例
-- 本书第 29 章（测试体系）、第 33 章（端到端链路追踪）、第 34 章（贡献实战）
+- 本书<a href="../08-质量保障/29-测试体系.md#ch-29">第 29 章</a>（测试体系）、<a href="../10-综合实战/33-端到端链路追踪.md#ch-33">第 33 章</a>（端到端链路追踪）、<a href="../10-综合实战/34-贡献实战与进阶路线.md#ch-34">第 34 章</a>（贡献实战）
 
 ---
 
@@ -1152,4 +1152,4 @@ Schema 必须在**所有可能打开该文档的环境**中注册，否则：
 
 ---
 
-上一章：[第 18 章 Affine 块组件与 Edgeless 白板](./18-Affine块组件与Edgeless白板.md) ｜ 下一章：[第 20 章 前端基础设施：DI 与 LiveData](../06-前端应用/20-前端基础设施-DI与LiveData.md) ｜ [返回目录](../README.md)
+上一章：[第 18 章 Affine 块组件与 Edgeless 白板](18-Affine块组件与Edgeless白板.md) ｜ 下一章：[第 20 章 前端基础设施：DI 与 LiveData](../06-前端应用/20-前端基础设施-DI与LiveData.md) ｜ [返回目录](../README.md)

@@ -151,4 +151,4 @@ BlockSuite 视图层用 Lit，数据层用 `@preact/signals-core`，`./lit` 负�
 
 - 同层：`@blocksuite/store`（数据层，`Extension` 建立在本包 DI 上）、`@blocksuite/sync`（同步层，用本包 `Logger`、`sha`）、`@blocksuite/std`（视图层，用本包的 Lit Mixin 与 gfx）。
 - 对照：L1 的 `@toeverything/infra`——同为"地基 DI + 响应式"，服务对象不同（AFFiNE 应用 vs BlockSuite 内核）。
-- 对应教程：learning-guide 第 16 章《BlockSuite 架构与 Store 数据层》开篇的分层说明。
+- 对应教程：learning-guide <a href="../../05-编辑器内核BlockSuite/16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a>《BlockSuite 架构与 Store 数据层》开篇的分层说明。

@@ -1,6 +1,6 @@
 # 第 10 章 前端技术栈：React、Lit、Signals、RxJS
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 6 章（前端框架基础）、第 9 章
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：<a href="./06-前端框架基础入门-React-Lit-Signals-RxJS.md#ch-6">第 6 章</a>（前端框架基础）、<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>
 
 ## 本章导读
 
@@ -57,7 +57,7 @@ mindmap
       nanoid
 ```
 
-## 6.1 全景：一次页面渲染涉及哪些技术
+## 10.1 全景：一次页面渲染涉及哪些技术
 
 ```mermaid
 flowchart TB
@@ -84,9 +84,9 @@ flowchart TB
 
 一个"打开文档"的页面，React 负责外层布局与路由，`useLiveData` 订阅业务状态，`LitDocEditor`（React 包装的 Lit 组件）承载编辑器，编辑器内部每个 Block 通过 Signals 订阅 Yjs 数据变化。理解了这张图，后面每一节就是在放大其中某一块。
 
-## 6.2 React 19 与 react-dom：应用壳
+## 10.2 React 19 与 react-dom：应用壳
 
-### 6.2.1 核心概念速成
+### 10.2.1 核心概念速成
 
 | 概念 | 一句话 | 本仓库中的体现 |
 | --- | --- | --- |
@@ -98,7 +98,7 @@ flowchart TB
 
 版本：`packages/frontend/core/package.json` 中 `"react": "^19.2.1"`、`"react-dom": "^19.2.1"`。
 
-### 6.2.2 真实启动链路
+### 10.2.2 真实启动链路
 
 来源：`packages/frontend/apps/web/src/index.tsx`
 
@@ -154,7 +154,7 @@ export function App() {
 从外到内的 Provider 层次：
 
 1. `Suspense`：兜底加载态；
-2. `FrameworkRoot`：注入 DI 容器（第 20 章），之后组件内可 `useService(XxxService)`；
+2. `FrameworkRoot`：注入 DI 容器（<a href="../06-前端应用/20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>），之后组件内可 `useService(XxxService)`；
 3. `CacheProvider`：Emotion 的样式缓存（`packages/frontend/core/src/utils/create-emotion-cache.ts`），为组件库中遗留的 `@emotion/styled` 样式服务；
 4. `I18nProvider`：国际化；
 5. `AffineContext`：内部组合了 Jotai `Provider`、主题、确认框/输入框 Provider（`packages/frontend/core/src/components/context/index.tsx`）；
@@ -162,7 +162,7 @@ export function App() {
 
 注意 DI 容器是在**组件树之外**创建并配置好的（模块级代码），React 只是"挂载"它。这让业务逻辑不依赖 React 生命周期，Electron、移动端可以复用同一套 `configureXxxModule`。
 
-### 6.2.3 为什么选 React
+### 10.2.3 为什么选 React
 
 - **生态**：Radix、cmdk、react-virtuoso、Storybook（`packages/frontend/component` 有大量 `*.stories.tsx`）等成熟组件生态；
 - **人才与心智**：应用层是典型的表单/列表/弹窗型 UI，React 的声明式组件模型最为高效；
@@ -170,15 +170,15 @@ export function App() {
 
 > 代码规范提示：`.oxlintrc.json` 中启用了 `react-hooks-js/purity`、`react-hooks-js/preserve-manual-memoization`、`react-hooks-js/set-state-in-render` 等规则（来自 `eslint-plugin-react-hooks` v7），它们会检查组件纯度与 memo 用法，写 React 代码时要留意这些报错。
 
-## 6.3 react-router-dom v7：路由与懒加载
+## 10.3 react-router-dom v7：路由与懒加载
 
-### 6.3.1 核心概念速成
+### 10.3.1 核心概念速成
 
 react-router v6.4+ 引入了 **Data Router**：用 `createBrowserRouter(routes)` 定义路由对象数组，每个路由可带 `loader`（导航前取数/重定向）、`lazy`（按需加载模块）、`errorElement`（错误边界）。v7 延续这一 API，并把很多 future flag 变为默认。
 
 `lazy` 返回的模块需要导出约定名称：`Component`、`loader`、`ErrorBoundary` 等。
 
-### 6.3.2 AFFiNE 中的路由表
+### 10.3.2 AFFiNE 中的路由表
 
 来源：`packages/frontend/core/src/desktop/router.tsx`
 
@@ -239,7 +239,7 @@ export const router = (
 - **懒加载 + 魔法注释**：`/* webpackChunkName: "auth" */` 让 Rspack 把多个认证页打进同一个 chunk。
 - **约定导出**：`packages/frontend/core/src/desktop/pages/404/index.tsx` 末尾 `export const Component = () => { return <PageNotFound />; };`，正是 `lazy` 所要求的。
 - **`loader` 做重定向**：旧的分享链接、`/try-cloud`、`/template/preview` 都在导航前用 `redirect()` 转换，组件层无需关心。
-- **`satisfies [RouteObject, ...RouteObject[]]`**：第 9 章讲过的 `satisfies`，确保至少一项路由且保留字面量推导。
+- **`satisfies [RouteObject, ...RouteObject[]]`**：<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>讲过的 `satisfies`，确保至少一项路由且保留字面量推导。
 - **Sentry 包装**：生产环境 `window.SENTRY_RELEASE` 存在时，用 Sentry 的包装函数记录路由性能。
 - **`basename: environment.subPath`**：支持自托管部署在子路径下。
 
@@ -247,13 +247,13 @@ export const router = (
 
 Admin 端则用了另一种写法——JSX 声明式 `<Routes>/<Route>` 配合 `@affine/routes` 包里的路由常量（`packages/frontend/admin/src/app.tsx`、`packages/frontend/routes/src/routes.ts`），两种风格在 v7 中都受支持。
 
-### 6.3.3 为什么选它
+### 10.3.3 为什么选它
 
 react-router 是 React 生态事实标准；Data Router 的 `lazy` 天然契合"大应用按页拆包"；`loader` 处理重定向避免了组件里写 `useEffect + navigate` 的闪烁。
 
-## 6.4 RxJS 7：异步与事件流的统一语言
+## 10.4 RxJS 7：异步与事件流的统一语言
 
-### 6.4.1 核心概念速成
+### 10.4.1 核心概念速成
 
 | 概念 | 类比 | 特点 |
 | --- | --- | --- |
@@ -273,7 +273,7 @@ source$.pipe(concatMap(v => req(v)));  // 排队串行
 source$.pipe(exhaustMap(v => req(v))); // 忙时忽略新值（防重复提交）
 ```
 
-### 6.4.2 nbstore：用流聚合多端同步状态
+### 10.4.2 nbstore：用流聚合多端同步状态
 
 来源：`packages/common/nbstore/src/sync/doc/index.ts`
 
@@ -320,7 +320,7 @@ export class DocSyncImpl implements DocSync {
 5. `share({ connector: () => new ReplaySubject(1) })`：多个订阅者共享一条上游，并为后来者回放最新值——避免每个 UI 组件都触发一遍 `combineLatest`；
 6. `throttleTime(1000, ..., { leading, trailing })`：最多每秒推送一次 UI，但保证首尾值不丢。
 
-### 6.4.3 nbstore 的两个小工具：Promise ↔ Observable 与 AbortSignal
+### 10.4.3 nbstore 的两个小工具：Promise ↔ Observable 与 AbortSignal
 
 来源：`packages/common/nbstore/src/utils/from-promise.ts`
 
@@ -350,7 +350,7 @@ export function fromPromise<T>(
 
 与 RxJS 自带的 `from(promise)` 相比，它在**取消订阅时调用 `abort()`**，把 RxJS 的取消语义传递给 `fetch` 等支持 `AbortSignal` 的 API。配套的 `takeUntilAbort(signal)`（`packages/common/nbstore/src/utils/take-until-abort.ts`）则反向：外部 `AbortSignal` 触发时让流以错误结束。这是"RxJS 与 Web 平台取消机制互通"的范式。infra 包也导出了同名 `fromPromise`，供业务层使用。
 
-### 6.4.4 infra 的 effect：把 RxJS 管道变成可调用函数
+### 10.4.4 infra 的 effect：把 RxJS 管道变成可调用函数
 
 来源：`packages/frontend/core/src/modules/permissions/entities/permission.ts`
 
@@ -394,17 +394,17 @@ export class WorkspacePermission extends Entity {
 - `backoffRetry`：指数退避重试；
 - `onStart/onComplete`（`packages/common/infra/src/livedata/ops.ts`）：维护 loading 状态。
 
-这种写法把"防抖、取消、重试、loading"全部声明式地放进一条管道，是 AFFiNE 业务层最常见的模式之一，第 20 章会更系统地讲。
+这种写法把"防抖、取消、重试、loading"全部声明式地放进一条管道，是 AFFiNE 业务层最常见的模式之一，<a href="../06-前端应用/20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>会更系统地讲。
 
-### 6.4.5 为什么选 RxJS
+### 10.4.5 为什么选 RxJS
 
 编辑器同步、网络重连、多存储对齐这类问题本质是**多源异步事件的组合与取消**，用 Promise + 回调写会迅速失控；RxJS 提供了成熟的组合与取消语义，且 TS 类型推导完善。代价是学习曲线陡峭，所以 AFFiNE 在其上包了一层更易用的 LiveData。
 
-## 6.5 LiveData：RxJS 与 React/Signals 之间的桥梁
+## 10.5 LiveData：RxJS 与 React/Signals 之间的桥梁
 
-### 6.5.1 设计要点
+### 10.5.1 设计要点
 
-`LiveData<T>`（`packages/common/infra/src/livedata/livedata.ts`）的类型设计已在第 9 章分析过，这里关注**运行机制**：
+`LiveData<T>`（`packages/common/infra/src/livedata/livedata.ts`）的类型设计已在<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>分析过，这里关注**运行机制**：
 
 ```ts
 // 来源：packages/common/infra/src/livedata/livedata.ts（节选）
@@ -440,7 +440,7 @@ export type LiveDataOperation = 'set' | 'get' | 'watch' | 'unwatch';
 - **`.signal`**：按需把 LiveData 转为 Preact Signal，便于在 Lit 组件中使用；反方向有 `LiveData.fromSignal(signal)`；
 - **`poisoned` 状态**：上游抛错会让 LiveData 进入不可恢复状态——规范要求 LiveData 上游不要抛错，错误应通过 `catchErrorInto(error$)` 导入另一个 LiveData。
 
-### 6.5.2 在 React 中使用
+### 10.5.2 在 React 中使用
 
 来源：`packages/common/infra/src/livedata/react.ts`
 
@@ -489,9 +489,9 @@ export const TimeRow = ({ docId, className }: { docId: string; className?: strin
   );
 ```
 
-## 6.6 Jotai 与 SWR：两个"轻量补充"
+## 10.6 Jotai 与 SWR：两个"轻量补充"
 
-### 6.6.1 Jotai：原子化全局 UI 状态
+### 10.6.1 Jotai：原子化全局 UI 状态
 
 **速成**：`atom(initial)` 定义一个状态原子；组件里 `useAtom(a)` 读写、`useAtomValue(a)` 只读、`useSetAtom(a)` 只写；派生 atom 可用 `atom(get => ..., (get, set, arg) => ...)` 定义读写逻辑；`atomWithStorage` 自动持久化到 localStorage。
 
@@ -547,7 +547,7 @@ export function useAppSettingHelper() {
 
 **定位**：Jotai 在 AFFiNE 里主要承担**历史遗留与少量纯 UI 全局状态**（如 `packages/frontend/core/src/components/atoms/index.ts` 中的 `allPageFilterSelectAtom`，该文件里还有标注 `@deprecated` 的 atom）。新的业务状态推荐放进 DI 体系的 Service/Entity + LiveData。
 
-### 6.6.2 SWR：GraphQL 查询缓存
+### 10.6.2 SWR：GraphQL 查询缓存
 
 **速成**：`useSWR(key, fetcher, config)` 按 key 缓存请求结果，提供去重、聚焦重验证、`mutate` 等能力；`suspense: true` 时未就绪会抛出 Promise 交给 `Suspense`。
 
@@ -579,14 +579,14 @@ export const useQueryImmutable = createUseQuery(true);
 ```
 
 - **缓存 key** = `['cloud', 查询 id, 变量]`，同一查询同一变量自动去重；
-- **类型**：`QueryResponse<Query>` 直接复用第 9 章讲的 GraphQL 生成类型；
+- **类型**：`QueryResponse<Query>` 直接复用<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>讲的 GraphQL 生成类型；
 - **Admin 端**有几乎相同的 `packages/frontend/admin/src/use-query.ts`，但直接用 `gqlFetcherFactory` 而非 DI 服务——Admin 是一个更简单的独立 SPA。
 
 **定位**：SWR 用于"请求-展示"型的服务端数据（设置页、历史版本 `packages/frontend/core/src/components/affine/page-history-modal/data.ts` 等）；需要复杂编排的则走 Service + effect。
 
-## 6.7 @preact/signals-core：BlockSuite 的细粒度响应式
+## 10.7 @preact/signals-core：BlockSuite 的细粒度响应式
 
-### 6.7.1 核心概念速成
+### 10.7.1 核心概念速成
 
 教学示例：
 
@@ -610,9 +610,9 @@ dispose();
 
 与 RxJS 的区别：Signal **是同步的、拉取式的、自动追踪依赖**，非常适合"某个值变了 → 精确更新某处 UI"；RxJS 擅长**时间维度上的事件编排**（节流、重试、取消）。
 
-### 6.7.2 Yjs → Signal：Block 属性为何有 `xxx$`
+### 10.7.2 Yjs → Signal：Block 属性为何有 `xxx$`
 
-BlockSuite 的文档数据存在 Yjs 里（第 12 章），但 UI 需要的是"能被追踪的响应式值"。`SyncController` 负责双向桥接：
+BlockSuite 的文档数据存在 Yjs 里（<a href="./12-CRDT与Yjs原理.md#ch-12">第 12 章</a>），但 UI 需要的是"能被追踪的响应式值"。`SyncController` 负责双向桥接：
 
 来源：`blocksuite/framework/store/src/model/block/sync-controller.ts`
 
@@ -661,7 +661,7 @@ flowchart LR
 
 对于 `isFlatData` 的 Block（目前为表格块，见 `blocksuite/affine/model/src/blocks/table/table-model.ts` 中的 `isFlatData: true`），使用 `blocksuite/framework/store/src/reactive/flat-native-y/` 下的 `ReactiveFlatYMap`，原理类似：`signal-updater.ts` 更新信号、`y-map-updater.ts` 把对象拆平为 `prop:a.b.c` 键写回 Y.Map，并在 `yMap.doc?.transact(..., { proxy: true })` 中批量提交。
 
-### 6.7.3 在 Block 组件里用 effect
+### 10.7.3 在 Block 组件里用 effect
 
 来源：`blocksuite/affine/blocks/paragraph/src/paragraph-block.ts`
 
@@ -693,13 +693,13 @@ flowchart LR
 - `peek()` 读取初值而不建立依赖；
 - 组件类上的 `focused$ = computed(() => ...)` 则是派生信号。
 
-### 6.7.4 为什么选 Signals
+### 10.7.4 为什么选 Signals
 
 编辑器里可能同时存在成千上万个 Block，每次按键只应重渲染**一个**段落。Signals 的依赖追踪是"属性级"的，配合 Lit 的局部更新，可以把重渲染范围压到最小；且 `@preact/signals-core` 框架无关、体积小。
 
-## 6.8 Lit 3 Web Components：编辑器的视图层
+## 10.8 Lit 3 Web Components：编辑器的视图层
 
-### 6.8.1 核心概念速成
+### 10.8.1 核心概念速成
 
 | 概念 | 说明 |
 | --- | --- |
@@ -711,7 +711,7 @@ flowchart LR
 | 指令 | `repeat`、`classMap`、`styleMap` 等（`lit/directives/*`） |
 | Context | `@lit/context` 的 `@provide` / `@consume`，类似 React Context |
 
-### 6.8.2 BlockSuite 的组件基类与 Shadow DOM
+### 10.8.2 BlockSuite 的组件基类与 Shadow DOM
 
 查看 `blocksuite/framework/std/src/view/element/` 可以得到明确结论：
 
@@ -755,7 +755,7 @@ export class ShadowlessElement extends LitElement {
 
 而 Widget（工具栏、拖拽手柄、斜杠菜单等浮层）不参与文本选区，用 Shadow DOM 获得样式隔离更划算。
 
-### 6.8.3 SignalWatcher：让 Lit 自动追踪信号
+### 10.8.3 SignalWatcher：让 Lit 自动追踪信号
 
 来源：`blocksuite/framework/global/src/lit/signal-watcher.ts`
 
@@ -794,7 +794,7 @@ export function SignalWatcher<T extends ReactiveElementConstructor>(
 
 于是 `ParagraphHeadingIcon` 的 `render()` 里写 `this.model.props.type$.value`，标题级别变化时图标会自动刷新，不需要手动订阅。
 
-### 6.8.4 一个完整的 Block 组件
+### 10.8.4 一个完整的 Block 组件
 
 来源：`blocksuite/framework/std/src/view/element/block-component.ts`
 
@@ -826,7 +826,7 @@ export class BlockComponent<
   accessor viewType: BlockViewType = 'display';
 ```
 
-- `@consume({ context: stdContext })`：从上层 `EditorHost` 拿到 `std`（编辑器标准库作用域，第 17 章）；
+- `@consume({ context: stdContext })`：从上层 `EditorHost` 拿到 `std`（编辑器标准库作用域，<a href="../05-编辑器内核BlockSuite/17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>）；
 - `@provide({ context: modelContext })`：把自己的 model 提供给子组件；
 - `render()` 是一条"渲染器管道"：`renderBlock` → 版本不匹配提示 → 视图类型处理，子类只需覆写 `renderBlock()`。
 
@@ -850,18 +850,18 @@ export class BlockComponent<
 
 `repeat(items, keyFn, templateFn)` 是带 key 的列表渲染，相当于 React 的 `key`；`styleMap` 把对象安全地转为内联样式。
 
-### 6.8.5 注册与类型
+### 10.8.5 注册与类型
 
-BlockSuite 组件普遍不用 `@customElement`，而是在 `effects()` 中统一注册（`blocksuite/affine/blocks/paragraph/src/effects.ts`），并通过 `declare global { interface HTMLElementTagNameMap }` 增强类型（第 9 章 5.6.5）。这样做的好处是：注册时机由应用控制（`packages/frontend/core/src/blocksuite/editors/index.ts` 中的 `editorEffects()` 同理），避免模块被多次加载时 `customElements.define` 重复注册报错。
+BlockSuite 组件普遍不用 `@customElement`，而是在 `effects()` 中统一注册（`blocksuite/affine/blocks/paragraph/src/effects.ts`），并通过 `declare global { interface HTMLElementTagNameMap }` 增强类型（<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a> 5.6.5）。这样做的好处是：注册时机由应用控制（`packages/frontend/core/src/blocksuite/editors/index.ts` 中的 `editorEffects()` 同理），避免模块被多次加载时 `customElements.define` 重复注册报错。
 
-### 6.8.6 为什么选 Lit
+### 10.8.6 为什么选 Lit
 
 - **标准 Web Components**：编辑器可以被任何框架（甚至纯 HTML）使用，BlockSuite 本身是可独立发布的编辑器框架；
 - **无虚拟 DOM、精细 DOM 控制**：对 contenteditable 场景更友好；
 - **体积小、更新粒度细**：lit-html 只更新模板中的动态绑定点；结合 Signals 后可做到属性级更新；
 - **代价**：生态不及 React，因此应用层 UI 仍用 React，两者需要互操作（下一节）。
 
-## 6.9 Lit 与 React 互操作
+## 10.9 Lit 与 React 互操作
 
 AFFiNE 自带一套互操作工具，位于 `packages/frontend/component/src/lit-react/`，`readme.md` 写明了原因：
 
@@ -869,7 +869,7 @@ AFFiNE 自带一套互操作工具，位于 `packages/frontend/component/src/lit
 
 即官方实现会在元素挂载**之后**才设置 property，而 BlockSuite 组件常在 `connectedCallback` 里就读取 `this.std`、`this.model`，因此 AFFiNE fork 了一份 `create-component.ts`。
 
-### 6.9.1 方向一：在 React 中使用 Lit 组件
+### 10.9.1 方向一：在 React 中使用 Lit 组件
 
 来源：`packages/frontend/core/src/blocksuite/editors/index.ts`
 
@@ -894,7 +894,7 @@ export function editorEffects() {
 
 `createReactComponentFromLit` 返回一个 `forwardRef` React 组件，React props 会被设置为元素的 **property**（而不是 attribute），从而可以传对象、函数。类型上 `ReactWebComponent<I, E>` 会从元素类推导 props（`create-component.ts` 中 `ElementProps<I> = Partial<Omit<I, keyof HTMLElement>>`）。
 
-### 6.9.2 方向二：在 Lit 中嵌入 React 节点
+### 10.9.2 方向二：在 Lit 中嵌入 React 节点
 
 **简单情形：把 Lit 模板放进 React**——来源：`packages/frontend/component/src/lit-react/to-react-node.ts`
 
@@ -954,9 +954,9 @@ sequenceDiagram
 
 React 宿主组件需要把返回的 `portals` 渲染出来（`{portals.map(p => p.portal)}`），React 组件就会"穿越"到 Lit 树中的锚点里，同时仍处在 React 的上下文中（能用 `useService` 等 hook）。注意模板中 `.notify=${callback}` 是 **property 绑定**，`portalId=${...}` 是 attribute 绑定。
 
-## 6.10 vanilla-extract：零运行时 CSS-in-TS
+## 10.10 vanilla-extract：零运行时 CSS-in-TS
 
-### 6.10.1 核心概念速成
+### 10.10.1 核心概念速成
 
 vanilla-extract 让你在 `*.css.ts` 文件里用 TypeScript 写样式，**构建期**就提取成静态 CSS 文件，运行时没有样式注入开销。
 
@@ -970,7 +970,7 @@ vanilla-extract 让你在 `*.css.ts` 文件里用 TypeScript 写样式，**构�
 
 仓库中 `packages` 与 `blocksuite` 下共有 400 余个 `*.css.ts` 文件（可用 `find packages blocksuite -name "*.css.ts" -not -path "*/node_modules/*" | wc -l` 统计），其中绝大部分在应用层，BlockSuite 内只有少数几个（编辑器主要用 Lit 的 `css`）。
 
-### 6.10.2 最简单的例子
+### 10.10.2 最简单的例子
 
 来源：`packages/frontend/core/src/desktop/dialogs/doc-info/time-row.css.ts`
 
@@ -985,7 +985,7 @@ export const container = style({
 
 组件中 `import * as styles from './time-row.css';` 后用 `className={styles.container}`。
 
-### 6.10.3 用 CSS 变量做"可覆盖的变体"
+### 10.10.3 用 CSS 变量做"可覆盖的变体"
 
 来源：`packages/frontend/component/src/ui/button/button.css.ts`
 
@@ -1032,9 +1032,9 @@ export const button = style({
 
 - **变体用 `data-*` 属性 + CSS 变量**表达：`<button data-variant="primary" data-size="large">`。组件 `button.tsx` 中 `ButtonProps` 甚至用模板字面量索引签名 `` [key: `data-${string}`]: string `` 允许任意 data 属性；
 - 外部想覆盖高度，只需设置 `hVar`，**不用和选择器优先级搏斗**（源码注释原话）；
-- 颜色全部来自 `@toeverything/theme` 的 `cssVar` / `cssVarV2`，它们返回 `var(--affine-...)` 字符串，切换明暗主题时只需改根节点变量（第 22 章）。
+- 颜色全部来自 `@toeverything/theme` 的 `cssVar` / `cssVarV2`，它们返回 `var(--affine-...)` 字符串，切换明暗主题时只需改根节点变量（<a href="../06-前端应用/22-组件库主题与国际化.md#ch-22">第 22 章</a>）。
 
-### 6.10.4 为什么选 vanilla-extract
+### 10.10.4 为什么选 vanilla-extract
 
 - **类型安全**：属性名、值有 TS 提示，主题 token 是函数调用而不是魔法字符串；
 - **零运行时**：比 Emotion 等运行时 CSS-in-JS 更快，适合大应用；
@@ -1042,9 +1042,9 @@ export const button = style({
 
 仓库里仍保留 Emotion（`@emotion/react`、`@emotion/styled` 在 `packages/frontend/component/package.json` 中），属于历史遗留，新代码应使用 vanilla-extract。
 
-## 6.11 Radix UI、floating-ui、cmdk：交互基础件
+## 10.11 Radix UI、floating-ui、cmdk：交互基础件
 
-### 6.11.1 Radix UI：无样式、可访问的原语
+### 10.11.1 Radix UI：无样式、可访问的原语
 
 **速成**：Radix 提供 Dialog、Popover、Tooltip、DropdownMenu 等组件的**行为与无障碍（a11y）语义**（焦点管理、键盘导航、ARIA 属性、Portal），但不带样式，由你决定外观。典型结构是 `Root/Trigger/Portal/Content` 组合，`asChild` 让 Radix 把行为"合并"到你的子元素上而不额外包一层 DOM。
 
@@ -1084,7 +1084,7 @@ export const Tooltip = ({ children, content, side = 'top', align = 'center', sho
 
 `@affine/component` 在 Radix 之上加了 AFFiNE 的样式（vanilla-extract）和功能（快捷键展示），对外暴露统一的 `Tooltip`、`Menu`、`Modal` 等。`packages/frontend/component/package.json` 中依赖了 avatar、dialog、dropdown-menu、popover、tooltip、tabs、toast 等十多个 Radix 包。
 
-### 6.11.2 @floating-ui/dom：框架无关的浮层定位
+### 10.11.2 @floating-ui/dom：框架无关的浮层定位
 
 **速成**：`computePosition(reference, floating, { placement, middleware })` 计算浮层坐标；middleware 如 `offset`（间距）、`flip/autoPlacement`（自动换边）、`shift`（防溢出平移）、`size`（根据可用空间调整尺寸）；`autoUpdate` 在滚动/尺寸变化时自动重算。
 
@@ -1130,7 +1130,7 @@ export const Tooltip = ({ children, content, side = 'top', align = 'center', sho
 
 同文件还用到了浏览器较新的 **Popover API**（`popperElement.popover = 'manual'`、`showPopover()`）把浮层提升到 Top Layer，避免被父级 `overflow: hidden` 裁剪。
 
-### 6.11.3 cmdk：命令面板
+### 10.11.3 cmdk：命令面板
 
 **速成**：cmdk 提供 `Command`、`Command.Input`、`Command.List`、`Command.Group`、`Command.Item` 等组件，内置键盘上下选择、过滤与可访问性。
 
@@ -1167,7 +1167,7 @@ export const Tooltip = ({ children, content, side = 'top', align = 'center', sho
 
 `shouldFilter={false}` 关闭 cmdk 自带的模糊过滤——AFFiNE 的搜索结果来自索引器（文档全文搜索、命令、最近访问等多来源），过滤与排序在 quicksearch 模块里完成，cmdk 只负责交互。这就是 `Cmd/Ctrl + K` 快速搜索面板。Admin 端 `packages/frontend/admin/src/components/ui/command.tsx` 也封装了 cmdk。
 
-## 6.12 工具库：foxact、lodash-es、nanoid
+## 10.12 工具库：foxact、lodash-es、nanoid
 
 | 库 | 用途 | 项目中的例子 |
 | --- | --- | --- |
@@ -1178,13 +1178,13 @@ export const Tooltip = ({ children, content, side = 'top', align = 'center', sho
 
 注意：`nanoid` 5.x 是纯 ESM 包；用 `lodash-es` 而非 `lodash` 是为了让打包器只打入用到的函数。
 
-## 6.13 Admin 端：Tailwind CSS 4 + shadcn/ui
+## 10.13 Admin 端：Tailwind CSS 4 + shadcn/ui
 
-### 6.13.1 为什么 Admin 不一样
+### 10.13.1 为什么 Admin 不一样
 
 Admin（`packages/frontend/admin`）是自托管管理后台，页面多为表格、表单、仪表盘，对编辑器无依赖、对设计一致性要求不同。它选择了社区流行的 **Tailwind 4 + shadcn/ui** 组合：`packages/frontend/admin/components.json` 正是 shadcn CLI 的配置文件，`src/components/ui/` 下的 `button.tsx`、`dialog.tsx`、`command.tsx` 等都是 shadcn 风格的"复制进项目"的组件。
 
-### 6.13.2 Tailwind 4 的配置方式
+### 10.13.2 Tailwind 4 的配置方式
 
 来源：`packages/frontend/admin/src/global.css`
 
@@ -1222,7 +1222,7 @@ Tailwind 4 的变化：
 
 构建侧：`tools/cli/src/rspack/index.ts` 检测到包内存在 `tailwind.config.js` 时，会在 PostCSS 中启用 `@tailwindcss/postcss` 插件。
 
-### 6.13.3 cva + cn：shadcn 的变体模式
+### 10.13.3 cva + cn：shadcn 的变体模式
 
 来源：`packages/frontend/admin/src/components/ui/button.tsx`
 
@@ -1260,7 +1260,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
 对比主应用的 vanilla-extract 按钮：一个用**原子类 + 变体函数**，一个用**哈希类 + CSS 变量 + data 属性**，殊途同归。
 
-## 6.14 技术选型 → 使用位置总表
+## 10.14 技术选型 → 使用位置总表
 
 | 技术 | 版本（package.json） | 主要使用位置 | 解决的问题 | 为什么选它 |
 | --- | --- | --- | --- | --- |

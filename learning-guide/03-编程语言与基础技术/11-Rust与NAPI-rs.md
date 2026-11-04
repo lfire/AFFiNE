@@ -1,6 +1,6 @@
 # 第 11 章 Rust 与 NAPI-rs
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 7 章（Rust 基础）、第 9 章
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：<a href="./07-Rust基础入门.md#ch-7">第 7 章</a>（Rust 基础）、<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>
 
 ## 本章导读
 
@@ -61,7 +61,7 @@ mindmap
       y-octo
 ```
 
-## 7.1 为什么 AFFiNE 选择 Rust
+## 11.1 为什么 AFFiNE 选择 Rust
 
 | 场景 | 代表实现 | 收益 |
 | --- | --- | --- |
@@ -106,9 +106,9 @@ flowchart TB
     NB --> YO
 ```
 
-## 7.2 Rust 速成一：所有权、借用与生命周期
+## 11.2 Rust 速成一：所有权、借用与生命周期
 
-### 7.2.1 所有权三原则
+### 11.2.1 所有权三原则
 
 1. 每个值有且只有一个**所有者**（owner）；
 2. 所有者离开作用域，值被释放（drop）；
@@ -130,7 +130,7 @@ takes(s);      // s 被移动
 
 借用规则：**同一时刻，要么有任意多个不可变借用 `&T`，要么只有一个可变借用 `&mut T`**。这条规则在编译期消灭了数据竞争。
 
-### 7.2.2 AFFiNE 中的所有权：从 JS 内存到 Rust 线程
+### 11.2.2 AFFiNE 中的所有权：从 JS 内存到 Rust 线程
 
 来源：`packages/backend/native/src/image.rs`
 
@@ -182,7 +182,7 @@ impl Task for DecodeAudioTask {
 
 `compute` 只拿到 `&mut self`（可变借用），无法直接把 `self.buf` 移走。`std::mem::replace` 用一个空数组"换出"原值，从而在不违反借用规则的前提下**取得所有权**、避免一次大块内存拷贝。`self.filename.as_deref()` 则把 `Option<String>` 转为 `Option<&str>`——借用而非移动。
 
-### 7.2.3 共享所有权：`Arc` 与锁
+### 11.2.3 共享所有权：`Arc` 与锁
 
 当多个任务需要共享同一个对象时，用引用计数智能指针 `Arc<T>`（原子引用计数，线程安全），配合 `RwLock`/`Mutex` 获得内部可变性。
 
@@ -236,7 +236,7 @@ impl SqliteDocStoragePool {
 | `Arc::clone(storage)` | 只增加引用计数，不复制数据库连接 |
 | `impl<V> Deref for Ref<V>` | 实现 `Deref` trait 后，`Ref<SqliteDocStorage>` 可以像 `&SqliteDocStorage` 一样调用方法 |
 
-### 7.2.4 生命周期：借用活多久
+### 11.2.4 生命周期：借用活多久
 
 生命周期标注 `'a` 告诉编译器"返回的引用与哪个输入活得一样久"，防止悬垂引用。大多数情况编译器能自动推断（生命周期省略规则），只有当返回引用来源不明确时才需要手写。
 
@@ -271,9 +271,9 @@ pub(super) trait InvalidationTarget: Send + Sync {
 
 意思是"返回一个在堆上的、可跨线程发送的 Future，它最多和 `self`、`hint` 活得一样久"。初学阶段能读懂即可。
 
-## 7.3 Rust 速成二：trait、泛型、枚举与模式匹配
+## 11.3 Rust 速成二：trait、泛型、枚举与模式匹配
 
-### 7.3.1 trait：Rust 的"接口"
+### 11.3.1 trait：Rust 的"接口"
 
 trait 定义一组行为；类型通过 `impl Trait for Type` 实现它。与 TS interface 的关键区别：**可以为别人的类型实现自己的 trait，也可以为自己的类型实现标准库 trait**（孤儿规则限制二者至少有一方属于本 crate）。
 
@@ -320,7 +320,7 @@ impl From<MarkdownResult> for NativeMarkdownResult {
 
 实现 `From<A> for B` 后，自动获得 `A.into()` → `B`。项目里大量 `Ok(result.into())`、`.map(Into::into)` 正是依赖于此，把第三方库（`affine_doc_loader`）的结构体转成带 `#[napi(object)]` 的 JS 可见结构体。
 
-### 7.3.2 泛型与 trait 约束
+### 11.3.2 泛型与 trait 约束
 
 来源：`packages/frontend/native/nbstore/src/doc.rs`
 
@@ -352,7 +352,7 @@ impl From<MarkdownResult> for NativeMarkdownResult {
 
 同理，`Stamp::check<S: AsRef<str>>(&self, bits: u32, resource: S)` 同时接受 `String` 和 `&str`。
 
-### 7.3.3 闭包与迭代器
+### 11.3.3 闭包与迭代器
 
 来源：`packages/backend/native/src/url_policy.rs`
 
@@ -381,9 +381,9 @@ fn matches_trusted_domain(url: &Url, trusted_domains: &[String]) -> bool {
 
 这段代码是**安全逻辑**：OAuth 回调地址必须在白名单 origin 内、域名匹配需防止 `evil-affine.pro` 这类后缀欺骗（要求以 `.domain` 结尾）。放在 Rust 中实现，配合 `packages/backend/native/src/tests/url_policy/tests.rs` 的单测，比散落在 TS 各处更可靠。
 
-## 7.4 Rust 速成三：错误处理——Result、?、thiserror、anyhow
+## 11.4 Rust 速成三：错误处理——Result、?、thiserror、anyhow
 
-### 7.4.1 Result 与 ? 运算符
+### 11.4.1 Result 与 ? 运算符
 
 Rust 没有异常，可失败的函数返回 `Result<T, E>`：`Ok(T)` 或 `Err(E)`。`?` 运算符的语义是"**如果是 `Err` 就提前返回（并通过 `From` 自动转换错误类型），否则取出 `Ok` 里的值**"。
 
@@ -399,7 +399,7 @@ let v = match foo() {
 };
 ```
 
-### 7.4.2 thiserror：为库定义结构化错误
+### 11.4.2 thiserror：为库定义结构化错误
 
 来源：`packages/frontend/native/nbstore/src/error.rs`
 
@@ -438,7 +438,7 @@ pub enum Error {
 - `#[from]` 自动生成 `impl From<sqlx::Error> for Error`，于是在 nbstore 里任何 sqlx 调用后面直接写 `?` 即可；
 - `pub type Result<T> = ...` 是项目惯用的**类型别名**，让函数签名简洁为 `-> Result<Vec<DocClock>>`。
 
-### 7.4.3 anyhow：应用层"兜底"错误
+### 11.4.3 anyhow：应用层"兜底"错误
 
 `thiserror` 适合**库**（调用方需要区分错误种类），`anyhow` 适合**应用/内部实现**（只关心"出错了 + 上下文"）。
 
@@ -458,7 +458,7 @@ fn process_image_inner(input: &[u8], max_edge: u32, keep_exif: bool) -> AnyResul
 - `bail!(...)`：立即返回 `Err(anyhow!(...))`；
 - `.context("...")`：给底层错误附加一层可读上下文。
 
-### 7.4.4 错误跨越 FFI：转换成 napi::Error
+### 11.4.4 错误跨越 FFI：转换成 napi::Error
 
 JS 只认识 `napi::Error`，所以每个 crate 都在边界处做一次转换。公共工具位于：
 
@@ -502,9 +502,9 @@ flowchart LR
 
 移动端则把同一个 `nbstore::Error` 转成 `UniffiError`（`packages/frontend/mobile-native/src/error.rs`）——**一份错误定义，两种绑定**。
 
-## 7.5 Rust 速成四：async、tokio 与宏
+## 11.5 Rust 速成四：async、tokio 与宏
 
-### 7.5.1 async/await 与 tokio
+### 11.5.1 async/await 与 tokio
 
 Rust 的 `async fn` 返回一个惰性的 `Future`，必须由**运行时（executor）**驱动——这与 JS 的 Promise 创建即执行不同。AFFiNE 使用 **tokio**（workspace 依赖 `tokio = "1.45"`）。
 
@@ -528,7 +528,7 @@ pub async fn validate_doc_update(update: Buffer) -> Result<bool> {
 - `move ||` 闭包把 `update` 的所有权移入阻塞线程；
 - `#[napi(catch_unwind)]`：Rust 若发生 panic，不会让整个 Node 进程崩溃，而是转换为 JS 异常——对于处理用户上传的二进制数据尤其重要。
 
-### 7.5.2 宏：编译期代码生成
+### 11.5.2 宏：编译期代码生成
 
 Rust 宏分两类：**声明宏**（`macro_rules!`，如 `format!`、`vec!`、`matches!`、`bail!`）与**过程宏**（`#[derive(...)]`、`#[napi]`、`#[uniffi::export]`、`sqlx::query_as!`）。AFFiNE 中最值得注意的是 sqlx 的**编译期 SQL 校验**：
 
@@ -548,11 +548,11 @@ Rust 宏分两类：**声明宏**（`macro_rules!`，如 `format!`、`vec!`、`m
   }
 ```
 
-`query_as!` 会在**编译时连接一个真实数据库**，检查 SQL 语法、表/列是否存在，并校验结果列能否映射到 `DocRecord` 的字段。那么编译时数据库从哪来？答案在 `build.rs`（见 7.7.4）。
+`query_as!` 会在**编译时连接一个真实数据库**，检查 SQL 语法、表/列是否存在，并校验结果列能否映射到 `DocRecord` 的字段。那么编译时数据库从哪来？答案在 `build.rs`（见 <a href="./11-Rust与NAPI-rs.md#sec-11-7-4">11.7.4</a>）。
 
-## 7.6 Cargo workspace：工程配置逐项解读
+## 11.6 Cargo workspace：工程配置逐项解读
 
-### 7.6.1 根 Cargo.toml
+### 11.6.1 根 Cargo.toml
 
 来源：`Cargo.toml`
 
@@ -605,7 +605,7 @@ resolver = "3"
 
 `Cargo.lock` 中实际解析版本：`napi 3.8.3`、`napi-derive 3.5.2`、`sqlx 0.8.6`、`uniffi 0.29.5`、`y-octo 0.1.1`。
 
-### 7.6.2 profile：编译优化策略
+### 11.6.2 profile：编译优化策略
 
 来源：`Cargo.toml`
 
@@ -635,7 +635,7 @@ strip         = "symbols"
 - **release**：`codegen-units = 1` + `lto = "fat"`（全程序链接时优化）换取更小更快的二进制，代价是编译更慢；`strip = "symbols"` 去掉符号减小体积；
 - **例外**：Android 的 UniFFI 绑定生成需要读取库中的符号元数据，所以 `affine_mobile_native` 不 strip。
 
-### 7.6.3 rust-toolchain.toml 与 rustfmt.toml
+### 11.6.3 rust-toolchain.toml 与 rustfmt.toml
 
 来源：`rust-toolchain.toml`
 
@@ -669,7 +669,7 @@ imports_granularity = "Crate"
 - `group_imports = "StdExternalCrate"`：import 分三组（std / 外部 crate / 本 crate），你在每个文件顶部都能看到这种分组；
 - `unstable_features = true`：这些选项需要 nightly rustfmt。因此 CI（`.github/workflows/build-test.yml` 的 `lint-rust` 任务）执行的是 `cargo +nightly fmt --all -- --check`，随后 `cargo clippy ... -- -D warnings`。根 `package.json` 的 `lint-staged` 也配置了 `"*.rs": ["cargo fmt --"]`。
 
-### 7.6.4 .cargo/config.toml：平台链接参数
+### 11.6.4 .cargo/config.toml：平台链接参数
 
 来源：`.cargo/config.toml`
 
@@ -698,7 +698,7 @@ rustflags = ["-C", "link-args=-Wl,-z,nodelete"]
 - macOS `-undefined dynamic_lookup`：Node 插件中的 `napi_*` 符号由宿主进程（Node/Electron）在运行时提供，链接期允许未定义；`-weak_framework ScreenCaptureKit` 让旧版 macOS 缺少该框架时也能加载；
 - glibc 下 `-z nodelete`：注释链接了相关 bug，防止动态库卸载后线程局部存储析构导致段错误。
 
-### 7.6.5 deny.toml：许可证合规
+### 11.6.5 deny.toml：许可证合规
 
 来源：`deny.toml`
 
@@ -729,11 +729,11 @@ confidence-threshold = 0.93
   crate = "llm_adapter"
 ```
 
-这是 [cargo-deny](https://embarkstudios.github.io/cargo-deny/) 的配置，当前只启用了 **licenses** 检查：列出允许的开源许可证白名单，并对 `llm_adapter`、`memory-indexer`、`path-ext` 等个别 crate 单独放行 AGPL。仓库的 GitHub workflows 中未直接调用 cargo-deny，可在本地执行 `cargo deny check licenses` 验证（需先安装 cargo-deny）。许可证合规的更多内容见第 32 章。
+这是 [cargo-deny](https://embarkstudios.github.io/cargo-deny/) 的配置，当前只启用了 **licenses** 检查：列出允许的开源许可证白名单，并对 `llm_adapter`、`memory-indexer`、`path-ext` 等个别 crate 单独放行 AGPL。仓库的 GitHub workflows 中未直接调用 cargo-deny，可在本地执行 `cargo deny check licenses` 验证（需先安装 cargo-deny）。许可证合规的更多内容见<a href="../09-运维与部署/32-安全与合规.md#ch-32">第 32 章</a>。
 
-## 7.7 napi-rs：让 Rust 成为 Node.js 模块
+## 11.7 napi-rs：让 Rust 成为 Node.js 模块
 
-### 7.7.1 原理速览
+### 11.7.1 原理速览
 
 Node-API（N-API）是 Node.js 提供的**ABI 稳定**的 C 接口；napi-rs 用 Rust 宏把你的函数/结构体包装成符合 N-API 的导出，并**自动生成 TypeScript 声明**。编译产物是一个动态库，改名为 `.node` 后可被 `require()` 加载。
 
@@ -749,7 +749,7 @@ flowchart LR
     APP -.类型.-> DTS
 ```
 
-### 7.7.2 #[napi] 的几种形态
+### 11.7.2 #[napi] 的几种形态
 
 | 写法 | 生成的 JS/TS | 项目例子 |
 | --- | --- | --- |
@@ -764,7 +764,7 @@ flowchart LR
 
 命名自动转换：Rust 的 `snake_case` → JS 的 `camelCase`（`verify_challenge_response` → `verifyChallengeResponse`，字段 `doc_id` → `docId`）。
 
-### 7.7.3 AsyncTask：线程池中的计算
+### 11.7.3 AsyncTask：线程池中的计算
 
 来源：`packages/frontend/native/src/hashcash.rs`
 
@@ -828,7 +828,7 @@ export declare function verifyChallengeResponse(response: string, bits: number, 
 
 `AsyncTask` 与 `async fn` 的选择：纯 CPU 计算、无需 await 其他 Future → `AsyncTask`（libuv 线程池）；需要 await 数据库/网络 → `async fn`（tokio）。`decode_audio` 还用了 `AsyncTask::with_optional_signal(task, signal)`，支持从 JS 传入 `AbortSignal` 取消——对应声明里的 `signal?: AbortSignal | undefined | null`。
 
-### 7.7.4 class、object 与 Buffer/Uint8Array
+### 11.7.4 class、object 与 Buffer/Uint8Array
 
 来源：`packages/frontend/native/nbstore/src/lib.rs`
 
@@ -893,7 +893,7 @@ export interface DocRecord {
 
 Rust 的 `///` 文档注释被原样搬进了 `.d.ts` 的 JSDoc。
 
-### 7.7.5 build.rs：构建脚本
+### 11.7.5 build.rs：构建脚本
 
 `build.rs` 在编译 crate 本体之前运行，可以生成代码、设置环境变量、链接参数。
 
@@ -954,7 +954,7 @@ async fn main() -> Result<(), std::io::Error> {
 
 这也解释了 `packages/frontend/native/schema/README.md` 中"A temporary crate to share the schema between AFFiNE native and `build.rs`"的含义——迁移 SQL 需要同时被**运行时**和**构建脚本**使用，所以单独抽成一个 crate，并同时出现在 nbstore 的 `[dependencies]` 与 `[build-dependencies]` 中。
 
-### 7.7.6 生成的 index.js：多平台加载器
+### 11.7.6 生成的 index.js：多平台加载器
 
 来源：`packages/frontend/native/index.js`（节选）
 
@@ -1008,18 +1008,18 @@ module.exports = binding;
 
 `packages/backend/native/package.json` 中 `"dtsHeaderFile": "dts-header.d.ts"` 为生成的声明加上 `export default` 头，使 ESM 代码可以 `import serverNativeModule from '@affine/server-native'`。
 
-### 7.7.7 构建命令
+### 11.7.7 构建命令
 
 | 包 | 构建脚本（package.json） |
 | --- | --- |
 | `@affine/native` | `"build": "napi build -p affine_native --platform --release"`，调试版 `build:debug` |
 | `@affine/server-native` | `"build": "napi build --release --no-const-enum"` |
 
-`--platform` 让产物文件名带上平台后缀；`--no-const-enum` / `"constEnum": false` 让 Rust 枚举生成普通 TS `enum` 而不是 `const enum`（呼应第 9 章：`isolatedModules` 下 `const enum` 不友好）。按照本教材约定，学习阶段**不必**执行这些耗时构建，第 15 章会讲解本地开发环境如何获取原生模块。
+`--platform` 让产物文件名带上平台后缀；`--no-const-enum` / `"constEnum": false` 让 Rust 枚举生成普通 TS `enum` 而不是 `const enum`（呼应<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>：`isolatedModules` 下 `const enum` 不友好）。按照本教材约定，学习阶段**不必**执行这些耗时构建，<a href="../04-工程化与开发环境/15-本地开发环境搭建与调试.md#ch-15">第 15 章</a>会讲解本地开发环境如何获取原生模块。
 
-## 7.8 各原生 crate 职责详解
+## 11.8 各原生 crate 职责详解
 
-### 7.8.1 总览
+### 11.8.1 总览
 
 | crate 名 | 目录 | crate-type | 对外包名 | 主要职责 |
 | --- | --- | --- | --- | --- |
@@ -1032,7 +1032,7 @@ module.exports = binding;
 | `affine_media_capture` | `packages/frontend/native/media_capture` | cdylib + rlib | 经 `affine_native` 重导出 | 系统音频/麦克风录制、音频解码 |
 | `affine_mobile_native` | `packages/frontend/mobile-native` | cdylib + staticlib | UniFFI 生成 Swift/Kotlin | 移动端存储、hashcash、预览 |
 
-### 7.8.2 affine_common：可选 feature 的公共库
+### 11.8.2 affine_common：可选 feature 的公共库
 
 来源：`packages/common/native/Cargo.toml`
 
@@ -1061,7 +1061,7 @@ pub mod napi_utils;
 
 **feature 门控**让依赖方只为自己用到的功能付出编译成本：移动端只要 `hashcash`，后端两个都要。hashcash 是一种**工作量证明（PoW）**：客户端必须算出一个使 SHA3 哈希前若干位为 0 的计数器（`Stamp::mint` 中的 `loop`），服务端只需一次哈希即可验证（`Stamp::check`），用来抵御注册/登录接口的批量滥用。服务端 `packages/backend/server/src/native.ts` 的 `verifyChallengeResponse` 与桌面端 `packages/frontend/apps/electron/src/main/ui/challenge.ts` 的 `mintChallengeResponse` 分别对应两端。
 
-### 7.8.3 affine_server_native：后端原生能力全集
+### 11.8.3 affine_server_native：后端原生能力全集
 
 来源：`packages/backend/native/src/lib.rs`
 
@@ -1107,7 +1107,7 @@ mod utils;
 
 生成的 `packages/backend/native/index.d.ts` 约 1900 行，导出 60 余个函数与 `BackendRuntime`、`StorageRuntime`、`ServerConfigHandle`、`Tokenizer`、`CopilotStreamHandle` 等类。可见服务端正在把越来越多的"核心规则"下沉到 Rust。
 
-lib.rs 中直接定义的 `merge_updates_in_apply_way` 是理解第 12 章的关键：
+lib.rs 中直接定义的 `merge_updates_in_apply_way` 是理解<a href="./12-CRDT与Yjs原理.md#ch-12">第 12 章</a>的关键：
 
 ```rust
 /// Merge updates in form like `Y.applyUpdate(doc, update)` way and return the
@@ -1127,7 +1127,7 @@ pub fn merge_updates_in_apply_way(updates: Vec<Buffer>) -> Result<Buffer> {
 
 用 y-octo 新建一个空文档，依次 apply 所有 update，再整体编码——这就是"把若干增量合并为一个快照"。
 
-### 7.8.4 affine_native：桌面端的原生层
+### 11.8.4 affine_native：桌面端的原生层
 
 来源：`packages/frontend/native/src/lib.rs`
 
@@ -1160,9 +1160,9 @@ pub use import::*;
   - `preview`：Mermaid / Typst 渲染为 SVG（依赖 `affine_preview`，移动端不编译此模块）；
   - `import`：导入会话（`nextImportBatch` 等）。
 
-### 7.8.5 affine_nbstore：三端共用的 SQLite 存储
+### 11.8.5 affine_nbstore：三端共用的 SQLite 存储
 
-nbstore 是"No-Backend Store"的 Rust 实现之一（TS 侧的抽象在 `packages/common/nbstore`，第 23 章详解）。它用 **sqlx + SQLite** 实现文档更新、快照、时钟、Blob、同步对端时钟、索引同步等存储。
+nbstore 是"No-Backend Store"的 Rust 实现之一（TS 侧的抽象在 `packages/common/nbstore`，<a href="../06-前端应用/23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>详解）。它用 **sqlx + SQLite** 实现文档更新、快照、时钟、Blob、同步对端时钟、索引同步等存储。
 
 `get_doc` 的读取 + 压缩逻辑（来源：`packages/frontend/native/nbstore/src/doc.rs`，节选）：
 
@@ -1189,7 +1189,7 @@ nbstore 是"No-Backend Store"的 Rust 实现之一（TS 侧的抽象在 `package
       }
 ```
 
-读取一个文档时，把"快照 + 所有增量更新"用 y-octo 的 `merge_updates_v1` 合并成新快照，验证无缺失依赖后，在事务中以**乐观并发**方式（`UPDATE ... WHERE updated_at = ? AND data = ?`）写回快照并删除已合并的 updates；若期间有并发写入就重试，最多 8 次后返回 `ConcurrentModification`。这个"读时压缩"的设计在第 12 章还会从 CRDT 角度再分析一次。
+读取一个文档时，把"快照 + 所有增量更新"用 y-octo 的 `merge_updates_v1` 合并成新快照，验证无缺失依赖后，在事务中以**乐观并发**方式（`UPDATE ... WHERE updated_at = ? AND data = ?`）写回快照并删除已合并的 updates；若期间有并发写入就重试，最多 8 次后返回 `ConcurrentModification`。这个"读时压缩"的设计在<a href="./12-CRDT与Yjs原理.md#ch-12">第 12 章</a>还会从 CRDT 角度再分析一次。
 
 Electron 侧的调用——来源：`packages/frontend/apps/electron/src/helper/nbstore/handlers.ts`
 
@@ -1217,7 +1217,7 @@ export const nbstoreHandlers: NativeDBApis = {
 
 `NativeDBApis` 类型来自 TS 的 nbstore 包，Rust 生成的 `DocStoragePool` 方法签名与之一一对应——**Rust 生成的 `.d.ts` 与手写的 TS 接口在这里"对接"**，任何一边签名不一致都会被 `tsc` 捕获。
 
-### 7.8.6 affine_mobile_native：UniFFI 绑定到 Swift/Kotlin
+### 11.8.6 affine_mobile_native：UniFFI 绑定到 Swift/Kotlin
 
 移动端不运行 Node，所以不能用 N-API。Mozilla 的 **UniFFI** 从 Rust 代码生成 Swift、Kotlin 绑定。
 
@@ -1275,7 +1275,7 @@ napi 与 UniFFI 的对照：
 
 注意移动端的 `DocRecord.bin` 是 **base64 字符串**（`packages/frontend/mobile-native/src/ffi_types.rs` 注释 `// base64 encoded data`），从移动端架构推断，这是因为数据最终要经过 Capacitor 插件的 JS ↔ 原生桥传递，而该桥以 JSON 可序列化值为主，二进制需要编码为字符串。
 
-### 7.8.7 y-octo：Rust 版 Yjs 兼容 CRDT
+### 11.8.7 y-octo：Rust 版 Yjs 兼容 CRDT
 
 `y-octo` 是 AFFiNE 团队（toeverything）开发的、**与 Yjs 二进制格式兼容**的 Rust CRDT 实现。当前仓库通过 crates.io 依赖它（`Cargo.toml` 中 `y-octo = "0.1.1"`），源码不在本仓库内。在 AFFiNE 中它被用于：
 
@@ -1285,9 +1285,9 @@ napi 与 UniFFI 的对照：
 | `packages/frontend/native/nbstore/src/doc.rs` | `merge_updates_v1` 压缩、`DocOptions::new().with_guid(..).build()` 校验 |
 | `affine_doc_loader`（外部 crate） | 解析文档内容（标题、Markdown、搜索投影） |
 
-后端 crate 启用了 `y-octo = { workspace = true, features = ["large_refs"] }`。与 JS Yjs 的互操作是通过**相同的 update v1 二进制编码**实现的——前端 Yjs 产生的 update，可以直接交给 y-octo 合并；反之亦然。第 12 章将深入 CRDT 原理。
+后端 crate 启用了 `y-octo = { workspace = true, features = ["large_refs"] }`。与 JS Yjs 的互操作是通过**相同的 update v1 二进制编码**实现的——前端 Yjs 产生的 update，可以直接交给 y-octo 合并；反之亦然。<a href="./12-CRDT与Yjs原理.md#ch-12">第 12 章</a>将深入 CRDT 原理。
 
-## 7.9 JS 如何调用：@affine/server-native 与 native.ts
+## 11.9 JS 如何调用：@affine/server-native 与 native.ts
 
 后端并不让业务代码到处直接 import 原生模块，而是集中在一个"门面"文件里：
 
@@ -1356,9 +1356,9 @@ sequenceDiagram
     B-->>R: Promise resolve Buffer
 ```
 
-此外，后端的 Redis/Prisma/WebSocket 等配置模块也通过 `serverNativeModule.appConfigDescriptors('redis')` 从 Rust 获取配置描述（第 9 章看过的 `packages/backend/server/src/base/redis/config.ts`），说明**配置 schema 的真相源也在 Rust**。
+此外，后端的 Redis/Prisma/WebSocket 等配置模块也通过 `serverNativeModule.appConfigDescriptors('redis')` 从 Rust 获取配置描述（<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>看过的 `packages/backend/server/src/base/redis/config.ts`），说明**配置 schema 的真相源也在 Rust**。
 
-## 7.10 测试与基准
+## 11.10 测试与基准
 
 | 类型 | 位置 | 运行方式 |
 | --- | --- | --- |
@@ -1426,7 +1426,7 @@ criterion_main!(benches);
 
 这类测试直接验证了"用户 B 不能访问用户 A 的 userdata 文档"等安全不变量。
 
-## 7.11 本章小结
+## 11.11 本章小结
 
 1. Rust 在 AFFiNE 中承担**计算密集、CRDT 处理、本地存储、安全规则、系统 API** 五类任务。
 2. 所有权/借用让"把 JS 数据交给线程池"在编译期就被证明安全（`to_vec()`、`mem::replace`、`Arc::clone`）。
@@ -1583,7 +1583,7 @@ Cargo 规定：位于 workspace 根目录之内的 path 依赖会自动成为 wo
 
 | 现象 | 原因 | 处理 |
 | --- | --- | --- |
-| `Error: Cannot find module './affine.darwin-arm64.node'` | 原生模块未构建或平台不匹配 | 按第 15 章获取/构建原生模块；检查 `NAPI_RS_NATIVE_LIBRARY_PATH` 是否误设 |
+| `Error: Cannot find module './affine.darwin-arm64.node'` | 原生模块未构建或平台不匹配 | 按<a href="../04-工程化与开发环境/15-本地开发环境搭建与调试.md#ch-15">第 15 章</a>获取/构建原生模块；检查 `NAPI_RS_NATIVE_LIBRARY_PATH` 是否误设 |
 | 编译 nbstore 报 `error communicating with database` 或 `DATABASE_URL must be set` | build.rs 未成功建库，或在 IDE 中单独检查宏时缺少环境变量 | 通过 `cargo build -p affine_nbstore` 让 build.rs 运行；rust-analyzer 可配置运行构建脚本 |
 | `cannot move out of self.xxx which is behind a mutable reference` | 在 `&mut self` 方法中试图移动字段 | 使用 `std::mem::replace` / `take`，或改为借用 |
 | `borrowed value does not live long enough` | 返回了局部变量的引用 | 返回拥有所有权的值（`String`/`Vec`），或正确标注生命周期 |

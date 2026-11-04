@@ -1,6 +1,6 @@
 # 第 18 章 Affine 块组件与 Edgeless 白板
 
-> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★★ ｜ **建议学时**：14 小时 ｜ **前置章节**：第 17 章（BlockSuite Std：视图、扩展、命令、事件）
+> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★★ ｜ **建议学时**：14 小时 ｜ **前置章节**：<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>（BlockSuite Std：视图、扩展、命令、事件）
 
 ---
 
@@ -65,7 +65,7 @@ mindmap
 
 ---
 
-## 14.1 affine/model：块模型与画布元素模型
+## 18.1 affine/model：块模型与画布元素模型
 
 `blocksuite/affine/model/src/` 有五个子目录：
 
@@ -86,7 +86,7 @@ mindmap
 | 渲染 | Lit 组件（DOM） | Canvas 绘制函数（或可选的 DOM 渲染器） |
 | 例子 | note、image、frame、embed-*、edgeless-text | shape、connector、brush、text、mindmap、group |
 
-所有 embed 块都通过 `createEmbedBlockSchema`（`blocksuite/affine/model/src/utils/helper.ts`）统一生成，flavour 为 `` `affine:embed-${name}` ``，并自动带上 `index`、`xywh`、`lockedBySelf`、`rotate` 等白板通用属性。这也解释了 Surface 的 `children` 为什么能用 glob `'affine:embed-*'` 一次匹配所有嵌入块（第 16 章 12.5.3）。
+所有 embed 块都通过 `createEmbedBlockSchema`（`blocksuite/affine/model/src/utils/helper.ts`）统一生成，flavour 为 `` `affine:embed-${name}` ``，并自动带上 `index`、`xywh`、`lockedBySelf`、`rotate` 等白板通用属性。这也解释了 Surface 的 `children` 为什么能用 glob `'affine:embed-*'` 一次匹配所有嵌入块（<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.5.3）。
 
 Shape 元素的属性用 `@field` 装饰器声明：
 
@@ -117,7 +117,7 @@ export class ShapeElementModel extends GfxPrimitiveElementModel<ShapeProps> {
 
 ---
 
-## 14.2 块全景：20 个块包
+## 18.2 块全景：20 个块包
 
 `blocksuite/affine/blocks/` 下 20 个目录，每个是一个 `@blocksuite/affine-block-xxx` 包：
 
@@ -159,13 +159,13 @@ store.ts / view.ts     # StoreExtensionProvider / ViewExtensionProvider
 index.ts               # 公共导出
 ```
 
-记住这个"模板"，读任何块都会轻松很多，第 19 章也会照着它写自定义块。
+记住这个"模板"，读任何块都会轻松很多，<a href="./19-自定义Block实战.md#ch-19">第 19 章</a>也会照着它写自定义块。
 
 ---
 
-## 14.3 文本类块深读：paragraph 与 list
+## 18.3 文本类块深读：paragraph 与 list
 
-### 14.3.1 paragraph：一个完整的文本块
+### 18.3.1 paragraph：一个完整的文本块
 
 视图 Provider 展示了"带配置项的 Provider"写法：
 
@@ -199,7 +199,7 @@ export class ParagraphViewExtension extends ViewExtensionProvider<z.infer<typeof
 }
 ```
 
-AFFiNE 应用侧（`packages/frontend/core/src/blocksuite/manager/view.ts` 的 `_configureParagraph`）调用 `manager.configure(ParagraphViewExtension, { getPlaceholder })`，在开启 AI 时把占位符改为 `"Type '/' for commands, 'space' for AI"`，移动端则去掉提示——这就是 13.2.3 节"配置覆盖"的真实用法。
+AFFiNE 应用侧（`packages/frontend/core/src/blocksuite/manager/view.ts` 的 `_configureParagraph`）调用 `manager.configure(ParagraphViewExtension, { getPlaceholder })`，在开启 AI 时把占位符改为 `"Type '/' for commands, 'space' for AI"`，移动端则去掉提示——这就是 <a href="../04-工程化与开发环境/13-Monorepo结构与包依赖地图.md#sec-13-2-3">13.2.3 节</a>"配置覆盖"的真实用法。
 
 `ParagraphBlockComponent`（`paragraph-block.ts`）的要点：
 
@@ -218,9 +218,9 @@ AFFiNE 应用侧（`packages/frontend/core/src/blocksuite/manager/view.ts` 的 `
 | `Tab` / `Shift-Tab` | 缩进 / 反缩进 | `indentParagraphCommand` / `dedentParagraphCommand` |
 | `Delete` / `Control-d`（mac） | 向前删除 | `forwardDelete` |
 
-一个值得注意的细节：Enter 与 Backspace 处理器都先判断 `matchModels(model.parent, [CalloutBlockModel])`，若父块是 callout 则直接返回、交给 `CalloutKeymapExtension` 处理——**块之间通过"让出事件"协作**，依赖的正是第 17 章讲的事件作用域冒泡。
+一个值得注意的细节：Enter 与 Backspace 处理器都先判断 `matchModels(model.parent, [CalloutBlockModel])`，若父块是 callout 则直接返回、交给 `CalloutKeymapExtension` 处理——**块之间通过"让出事件"协作**，依赖的正是<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>讲的事件作用域冒泡。
 
-### 14.3.2 list：同构的另一种文本块
+### 18.3.2 list：同构的另一种文本块
 
 `ListBlockSchema` 的 `type` 为 `'bulleted' | 'numbered' | 'todo' | 'toggle'`（`toggle` 已标注废弃），另有 `checked`、`collapsed`、`order`（仅有序列表使用）。`ListBlockComponent.renderBlock()`（`blocksuite/affine/blocks/list/src/list-block.ts`）的结构：
 
@@ -252,9 +252,9 @@ override renderBlock(): TemplateResult<1> {
 
 ---
 
-## 14.4 code 与 image：服务化与资源管理
+## 18.4 code 与 image：服务化与资源管理
 
-### 14.4.1 code：LifeCycleWatcher 驱动的高亮服务
+### 18.4.1 code：LifeCycleWatcher 驱动的高亮服务
 
 ```ts
 // 来源：blocksuite/affine/blocks/code/src/view.ts（节选）
@@ -288,7 +288,7 @@ export class CodeBlockViewExtension extends ViewExtensionProvider {
 }
 ```
 
-这个 Provider 几乎用上了第 17 章所有扩展类型：
+这个 Provider 几乎用上了<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>所有扩展类型：
 
 - **`CodeBlockHighlighter`**（`code-block-service.ts`）是 LifeCycleWatcher（key `code-block-highlighter`），用**静态单例 + 引用计数**共享 shiki 的 `HighlighterCore`（多个编辑器实例不会重复加载 WASM），`highlighter$` 是 signal，主题随 `ThemeProvider.theme$` 切换明暗；
 - **独立的 InlineManager**：`CodeBlockInlineManagerExtension` 只包含代码块需要的行内规格（`CodeBlockUnitSpecExtension` 渲染 `affine-code-unit`，`highlight/affine-code-unit.ts` 按高亮 token 着色），代码块里不会出现链接、提及等富文本格式；
@@ -298,7 +298,7 @@ export class CodeBlockViewExtension extends ViewExtensionProvider {
 
 应用侧 `packages/frontend/core/src/blocksuite/view-extensions/code-block-preview/` 为代码块注册了 HTML、Mermaid、Typst 预览（`code-preview-extension.ts` 定义扩展点）。
 
-### 14.4.2 image：按上下文切换视图与资源控制
+### 18.4.2 image：按上下文切换视图与资源控制
 
 `ImageBlockSpec`（`blocksuite/affine/blocks/image/src/image-spec.ts`）用函数形式的 `BlockViewExtension`：父块为 `affine:surface` 时渲染 `affine-edgeless-image`，否则 `affine-image`（13.2.2）。图片模型 `ImageBlockModel extends GfxCompatible<ImageBlockProps>(BlockModel)`——**同一个模型既能在文档流中，也能作为白板上的自由元素**，`GfxCompatible` 混入提供了 `xywh`、`rotate`、`index`、包围盒计算等能力。
 
@@ -323,15 +323,15 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
 }
 ```
 
-`setEngine(this.std.store.blobSync)` 把它接到 Workspace 的 `BlobEngine`（AFFiNE 中最终落到 nbstore，第 16 章 12.10）。导入导出时 `ImageBlockTransformer` 负责搬运二进制（第 16 章 12.8.3）。附件块（`attachment`）使用同样的 `ResourceController` 模式。
+`setEngine(this.std.store.blobSync)` 把它接到 Workspace 的 `BlobEngine`（AFFiNE 中最终落到 nbstore，<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.10）。导入导出时 `ImageBlockTransformer` 负责搬运二进制（<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.8.3）。附件块（`attachment`）使用同样的 `ResourceController` 模式。
 
 **小结**：code 展示了"服务 + 独立 InlineManager + 块级 widget + 按 scope 注册"；image 展示了"函数式 View + GfxCompatible 双栖模型 + blob 资源控制"。
 
 ---
 
-## 14.5 database 与 data-view 框架
+## 18.5 database 与 data-view 框架
 
-### 14.5.1 data-view：与块无关的数据视图框架
+### 18.5.1 data-view：与块无关的数据视图框架
 
 `blocksuite/affine/data-view`（包名 `@blocksuite/data-view`，注意不带 `affine-` 前缀）是一个**独立于 Block 树**的通用框架：
 
@@ -370,7 +370,7 @@ export interface DataSource {
 
 `DataSource` 全部以 signal 暴露——视图层（表格/看板）只依赖这个接口，不知道数据来自 database 块、`affine:data-view` 查询块，还是 AFFiNE 应用的"文档属性列表"。
 
-### 14.5.2 database 块：把 Block 树适配成 DataSource
+### 18.5.2 database 块：把 Block 树适配成 DataSource
 
 `DatabaseBlockSchema`（`blocksuite/affine/model/src/blocks/database/database-model.ts`）是 `role: 'hub'`、`version: 3`，props 为 `views`、`title`、`cells`、`columns`，`children: ['affine:paragraph', 'affine:list']`。也就是说：
 
@@ -403,9 +403,9 @@ flowchart LR
 
 ---
 
-## 14.6 root 与 note：Page 与 Edgeless 两种视图
+## 18.6 root 与 note：Page 与 Edgeless 两种视图
 
-### 14.6.1 一个 flavour，四种根组件
+### 18.6.1 一个 flavour，四种根组件
 
 `affine:page` 只有一个 Schema，但 `RootViewExtension`（`blocksuite/affine/blocks/root/src/view.ts`）按 scope 注册不同视图：
 
@@ -466,7 +466,7 @@ override renderBlock() {
 - **Page 根**：纵向渲染子块，并**过滤掉 `displayMode === EdgelessOnly` 的 note**；整个容器是一个大的 contenteditable，跨块文本选择由此实现。
 - **Edgeless 根**：在 `<gfx-viewport>` 中同时渲染根的子块（note 等）与 **Surface 的子块**（frame、image、embed、edgeless-text），并通过 `GridManager.search` 只让视口（含 overscan）内的块参与渲染、限制并发渲染数——这是大白板性能的基础。
 
-### 14.6.2 note：两种模式的桥梁
+### 18.6.2 note：两种模式的桥梁
 
 `NoteDisplayMode`（`blocksuite/affine/model/src/consts/note.ts`）有三个值：`DocAndEdgeless = 'both'`、`DocOnly = 'doc'`、`EdgelessOnly = 'edgeless'`。note 是文档内容在两种模式下的**共同容器**：
 
@@ -498,9 +498,9 @@ flowchart TB
 
 ---
 
-## 14.7 widgets 一览与深读
+## 18.7 widgets 一览与深读
 
-### 14.7.1 全景
+### 18.7.1 全景
 
 `blocksuite/affine/widgets/` 下 16 个包，都以 `WidgetViewExtension` 挂到某个 flavour 上，组件继承 `WidgetComponent`：
 
@@ -526,7 +526,7 @@ flowchart TB
 
 `getInternalViewExtensions()`（`blocksuite/affine/all/src/extensions/view.ts`）中 Widget 段落有注释"order will affect the z-index of the widget"——**注册顺序决定叠放层级**。
 
-### 14.7.2 slash-menu：配置聚合型 widget
+### 18.7.2 slash-menu：配置聚合型 widget
 
 ```ts
 // 来源：blocksuite/affine/widgets/slash-menu/src/extensions.ts（节选）
@@ -564,7 +564,7 @@ export function SlashMenuConfigExtension(id: string, config: SlashMenuConfig): E
 
 `AffineSlashMenuWidget`（`widget.ts`）监听输入，在 `inlineEditor.slots.inlineRangeSync` 之后检查光标前文本是否以触发字符结尾，然后弹出 `slash-menu-popover`；若当前块不在 `affine:page` 根下会报错 "SlashMenuWidget should be used in RootBlock"。
 
-### 14.7.3 toolbar、drag-handle、remote-selection、keyboard-toolbar
+### 18.7.3 toolbar、drag-handle、remote-selection、keyboard-toolbar
 
 - **toolbar**（`blocksuite/affine/widgets/toolbar/src/toolbar.ts`，`AffineToolbarWidget`）：本身是"空壳"，内容来自 `ToolbarRegistryExtension`（foundation 注册）与各块的 `ToolbarModuleExtension({ id: BlockFlavourIdentifier(flavour), config })`。例如 callout 的 `createBuiltinToolbarConfigExtension('affine:callout')`、根块为 note 注册的 `builtinToolbarConfig`；AI 功能通过 `ToolbarModuleExtension({ id: BlockFlavourIdentifier('custom:affine:note'), ... })` 追加按钮（`packages/frontend/core/src/blocksuite/view-extensions/ai/index.ts`）。
 - **drag-handle**（`AffineDragHandleWidget`）：基于 `std.dnd`（pragmatic-drag-and-drop）实现块拖拽，`watchers/` 下按 Page/Edgeless 分别处理指针与拖放，`middleware/` 中有拖拽时的 Transformer 中间件。
@@ -575,9 +575,9 @@ export function SlashMenuConfigExtension(id: string, config: SlashMenuConfig): E
 
 ---
 
-## 14.8 inlines 与 rich-text
+## 18.8 inlines 与 rich-text
 
-### 14.8.1 七个 inline 包
+### 18.8.1 七个 inline 包
 
 | 包（`blocksuite/affine/inlines/`） | 匹配的 delta 属性 / 节点 | 说明 |
 | --- | --- | --- |
@@ -609,7 +609,7 @@ export const BoldInlineSpecExtension = InlineSpecExtension<AffineTextAttributes>
 
 spec 的 `schema` 使用 `.catch(undefined)`，非法属性值会被静默丢弃而不是报错——协同数据可能来自旧版本或其它客户端，容错比严格更重要。
 
-### 14.8.2 rich-text 包
+### 18.8.2 rich-text 包
 
 `blocksuite/affine/rich-text/src/`：
 
@@ -627,9 +627,9 @@ spec 的 `schema` 使用 `.catch(undefined)`，非法属性值会被静默丢弃
 
 ---
 
-## 14.9 Edgeless：surface 块与 Canvas 渲染
+## 18.9 Edgeless：surface 块与 Canvas 渲染
 
-### 14.9.1 Surface 的数据：elements Y.Map
+### 18.9.1 Surface 的数据：elements Y.Map
 
 ```ts
 // 来源：blocksuite/affine/blocks/surface/src/surface-model.ts（节选）
@@ -650,7 +650,7 @@ export const SurfaceBlockSchema = defineBlockSchema({
 });
 ```
 
-画布元素全部存在 `elements` 这个 `Boxed<Y.Map>` 中（用 `Boxed` 是为了直接操作 `Y.Map` 而不被深转换，第 16 章 12.6.4）。每个元素是一个 `Y.Map`，含 `type`、`id`、`xywh`、`index`（fractional index，决定图层顺序）以及 `@field` 声明的属性。`SurfaceBlockModel`（框架基类在 `blocksuite/framework/std/src/gfx/model/surface/surface-model.ts`）观察这个 Map，按 `elementsCtorMap`（`blocksuite/affine/blocks/surface/src/element-model/index.ts`）实例化元素模型：
+画布元素全部存在 `elements` 这个 `Boxed<Y.Map>` 中（用 `Boxed` 是为了直接操作 `Y.Map` 而不被深转换，<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.6.4）。每个元素是一个 `Y.Map`，含 `type`、`id`、`xywh`、`index`（fractional index，决定图层顺序）以及 `@field` 声明的属性。`SurfaceBlockModel`（框架基类在 `blocksuite/framework/std/src/gfx/model/surface/surface-model.ts`）观察这个 Map，按 `elementsCtorMap`（`blocksuite/affine/blocks/surface/src/element-model/index.ts`）实例化元素模型：
 
 ```ts
 // 来源：blocksuite/affine/blocks/surface/src/element-model/index.ts（节选）
@@ -667,7 +667,7 @@ export const elementsCtorMap = {
 
 框架层的 `SurfaceBlockModel` 提供 `addElement`、`getElementById`、`elementAdded` 等 API；affine 层的子类额外维护连线端点索引（`_connectorIdsByEndpoint`），使"移动形状时找出所有相连的连线"成为 O(1)。
 
-### 14.9.2 渲染：CanvasRenderer 与 ElementRendererExtension
+### 18.9.2 渲染：CanvasRenderer 与 ElementRendererExtension
 
 `SurfaceBlockComponent`（`surface-block.ts`）根据特性开关选择渲染器：
 
@@ -741,7 +741,7 @@ sequenceDiagram
   end
 ```
 
-### 14.9.3 gfx 包一览
+### 18.9.3 gfx 包一览
 
 `blocksuite/affine/gfx/` 下 11 个包，几乎都只在 `isEdgeless(scope)` 时注册视图扩展：
 
@@ -757,17 +757,17 @@ sequenceDiagram
 | `template` | `TemplateTool`、模板服务 | 插入模板 |
 | `link` | `linkQuickTool`（`QuickToolExtension('link', ...)`） | 只是工具栏按钮，不是画布元素 |
 | `pointer` | `PanTool`、`EmptyTool`、quick-tool 默认按钮、`snap/` 对齐吸附 | 默认选择工具 `DefaultTool`（toolName `default`）在 `blocksuite/affine/blocks/surface/src/tool/default-tool.ts` |
-| `turbo-renderer` | `ViewportTurboRendererExtension` | 见 14.10.2 |
+| `turbo-renderer` | `ViewportTurboRendererExtension` | 见 <a href="./18-Affine块组件与Edgeless白板.md#sec-18-10-2">18.10.2</a> |
 
 **小结**：画布元素存于 Surface 的 `elements` Y.Map，由 `elementsCtorMap` 实例化；CanvasRenderer 按视口与图层绘制，单元素绘制逻辑通过 `ElementRendererExtension` 由各 gfx 包注入。
 
 ---
 
-## 14.10 工具切换与 turbo-renderer
+## 18.10 工具切换与 turbo-renderer
 
-### 14.10.1 工具与工具栏
+### 18.10.1 工具与工具栏
 
-白板中的每种交互模式都是一个 `BaseTool` 子类（第 17 章 13.11），已注册的 toolName 包括：`default`、`pan`、`empty`、`shape`、`connector`、`brush`、`highlighter`、`eraser`、`text`、`affine:note`、`frame`、`frameNavigator`（演示）、`template`，以及应用侧的 `CopilotTool`。
+白板中的每种交互模式都是一个 `BaseTool` 子类（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a> 13.11），已注册的 toolName 包括：`default`、`pan`、`empty`、`shape`、`connector`、`brush`、`highlighter`、`eraser`、`text`、`affine:note`、`frame`、`frameNavigator`（演示）、`template`，以及应用侧的 `CopilotTool`。
 
 工具栏按钮通过 `edgeless-toolbar` widget 的两个扩展点注入：
 
@@ -797,7 +797,7 @@ export const SeniorToolIdentifier = createIdentifier<ToolBuilder<SeniorTool>>('e
 
 一次"画矩形"的流程：点击工具栏按钮 → `gfx.tool.setTool(ShapeTool, { shapeName })` → `ShapeTool.activate` → 指针 `dragStart/dragMove/dragEnd` 中创建并更新元素（`click` 时则 `doc.captureSync()` 后直接添加默认尺寸形状）→ 完成后 `this.gfx.tool.setTool(DefaultTool)` 回到选择工具并 `gfx.selection.set({ elements: [id] })`。
 
-### 14.10.2 turbo-renderer：用 Worker 位图加速
+### 18.10.2 turbo-renderer：用 Worker 位图加速
 
 `ViewportTurboRendererExtension`（`blocksuite/affine/gfx/turbo-renderer/src/turbo-renderer.ts`）是一个 GfxExtension（key `viewportTurboRenderer`）。源码注释描述其原理："Turbo Rendering optimizes performance by rendering block content onto a canvas bitmap, falling back to standard DOM rendering during interactions."
 
@@ -817,9 +817,9 @@ export const SeniorToolIdentifier = createIdentifier<ToolBuilder<SeniorTool>>('e
 
 ---
 
-## 14.11 shared、fragments 与 components
+## 18.11 shared、fragments 与 components
 
-### 14.11.1 shared：跨块公共层
+### 18.11.1 shared：跨块公共层
 
 `blocksuite/affine/shared/src/`：
 
@@ -833,9 +833,9 @@ export const SeniorToolIdentifier = createIdentifier<ToolBuilder<SeniorTool>>('e
 
 这些服务大多是"**接口 + 默认实现 + 应用覆盖**"：块代码通过 `std.get(DocModeProvider)` 使用，AFFiNE 在 `packages/frontend/core/src/blocksuite/view-extensions/editor-view/doc-mode-service.ts` 中提供连接到应用路由的实现；playground 则用 `mockDocModeService` 覆盖（`blocksuite/playground/apps/starter/utils/extensions.ts`）。
 
-每个块的 Adapter 通过 matcher 扩展接入这些适配器。Markdown 块级 matcher 的形态（以分割线为例，第 19 章详解）：`{ flavour, toMatch(o), fromMatch(o), toBlockSnapshot: { enter, leave }, fromBlockSnapshot: { enter, leave } }`，由 `BlockMarkdownAdapterExtension(matcher)` 以 flavour 为变体注册。
+每个块的 Adapter 通过 matcher 扩展接入这些适配器。Markdown 块级 matcher 的形态（以分割线为例，<a href="./19-自定义Block实战.md#ch-19">第 19 章</a>详解）：`{ flavour, toMatch(o), fromMatch(o), toBlockSnapshot: { enter, leave }, fromBlockSnapshot: { enter, leave } }`，由 `BlockMarkdownAdapterExtension(matcher)` 以 flavour 为变体注册。
 
-### 14.11.2 fragments：编辑器外的"片段"
+### 18.11.2 fragments：编辑器外的"片段"
 
 | 包 | 组件 | 说明 |
 | --- | --- | --- |
@@ -846,7 +846,7 @@ export const SeniorToolIdentifier = createIdentifier<ToolBuilder<SeniorTool>>('e
 
 fragment 不属于 Block 树、不由 EditorHost 渲染，而是放在编辑器旁边、通过 `std`/`store` 读写数据的独立组件。
 
-### 14.11.3 components：通用 UI
+### 18.11.3 components：通用 UI
 
 `blocksuite/affine/components/src/` 下约 35 个组件目录：`caption`（`CaptionedBlockComponent` 与 `block-caption-editor`）、`toolbar`、`context-menu`（`createPopup`、菜单系统）、`color-picker`、`date-picker`、`drop-indicator`（含 `FileDropExtension`）、`embed-card-modal`、`link-preview`、`peek`（`PeekViewExtension`）、`portal`、`resource`（`ResourceController`）、`toast`、`tooltip`、`icons`、`smooth-corner` 等。注意：`CaptionedBlockComponent` 位于 components 而非 std——它是 AFFiNE 风格的块基类。
 
@@ -854,7 +854,7 @@ fragment 不属于 Block 树、不由 EditorHost 渲染，而是放在编辑器�
 
 ---
 
-## 14.12 本章总结与文档差异
+## 18.12 本章总结与文档差异
 
 | 主题 | 核心结论 |
 | --- | --- |
@@ -900,7 +900,7 @@ fragment 不属于 Block 树、不由 EditorHost 渲染，而是放在编辑器�
 
 - **目标**：建立块与 widget 的全景认知。
 - **步骤**：在 playground（`yarn workspace @blocksuite/playground dev`）中打开 `?init=preset`；在控制台执行 `const std = document.querySelector('editor-host').std;`，遍历 `std.store.getAllModels()` 统计各 flavour 数量；再切换到白板模式，查询 `document.querySelectorAll('[data-widget-id]')` 列出当前挂载的 widget id。
-- **验收标准**：能说出每个 flavour 对应 14.2 表中的哪个包；能区分 Page 与 Edgeless 下 widget 列表的差异并对应到 14.7.1 表中的 scope 条件。
+- **验收标准**：能说出每个 flavour 对应 <a href="./18-Affine块组件与Edgeless白板.md#sec-18-2">18.2</a> 表中的哪个包；能区分 Page 与 Edgeless 下 widget 列表的差异并对应到 14.7.1 表中的 scope 条件。
 
 ### 练习 2：观察 note 的 displayMode（进阶）
 
@@ -976,7 +976,7 @@ fragment 不属于 Block 树、不由 EditorHost 渲染，而是放在编辑器�
 - `blocksuite/affine/blocks/surface/src/__tests__/`：连线寻路（A*）、包围盒等算法单测
 - `blocksuite/affine/all/src/__tests__/adapters/`：各 Adapter 的快照测试，是理解块 ↔ Markdown/HTML 映射的最佳材料
 - `tests/blocksuite/e2e/`：按功能组织的 Playwright 端到端测试（`edgeless/`、`database/`、`slash-menu.spec.ts` 等）
-- 本书第 19 章（自定义 Block 实战）、第 23 章（nbstore 与 blob 存储）
+- 本书<a href="./19-自定义Block实战.md#ch-19">第 19 章</a>（自定义 Block 实战）、<a href="../06-前端应用/23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>（nbstore 与 blob 存储）
 
 ---
 
@@ -997,4 +997,4 @@ fragment 不属于 Block 树、不由 EditorHost 渲染，而是放在编辑器�
 
 ---
 
-上一章：[第 17 章 BlockSuite Std：视图、扩展、命令、事件](./17-BlockSuite-Std视图扩展命令事件.md) ｜ 下一章：[第 19 章 自定义 Block 实战](./19-自定义Block实战.md) ｜ [返回目录](../README.md)
+上一章：[第 17 章 BlockSuite Std：视图、扩展、命令、事件](17-BlockSuite-Std视图扩展命令事件.md) ｜ 下一章：[第 19 章 自定义 Block 实战](19-自定义Block实战.md) ｜ [返回目录](../README.md)

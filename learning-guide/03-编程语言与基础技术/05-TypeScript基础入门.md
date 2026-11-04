@@ -1,18 +1,18 @@
 # 第 5 章 TypeScript 基础入门
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★☆☆☆ ｜ **建议学时**：12 小时（零基础路线）／6 小时（已有 JavaScript 基础） ｜ **前置章节**：无，完全零基础可直接开始 ｜ **后续**：第 9 章 TypeScript 在 AFFiNE 中的应用
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★☆☆☆ ｜ **建议学时**：12 小时（零基础路线）／6 小时（已有 JavaScript 基础） ｜ **前置章节**：无，完全零基础可直接开始 ｜ **后续**：<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a> TypeScript 在 AFFiNE 中的应用
 
 ---
 
 ## 本章导读
 
-AFFiNE 几乎全部用 TypeScript 写成。第 9 章会直接讲它在 AFFiNE 里的进阶用法——`tsconfig` 项目引用、DI 标识符里的泛型、声明合并、代码生成类型。如果你**没系统学过 TypeScript**，直接读第 9 章会很吃力。
+AFFiNE 几乎全部用 TypeScript 写成。<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>会直接讲它在 AFFiNE 里的进阶用法——`tsconfig` 项目引用、DI 标识符里的泛型、声明合并、代码生成类型。如果你**没系统学过 TypeScript**，直接读<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>会很吃力。
 
-本章就是那块垫脚石。与同部分其他基础章不同，本章**额外照顾完全没有写过代码的读者**：第「零」节从"什么是变量、什么是函数"讲起，把跑起第一段代码、看懂第一条报错都走一遍；已有的八节则一路铺到第 9 章的起点。读完你应当能看懂 AFFiNE 里绝大多数类型标注，并知道"为什么要这么写"。
+本章就是那块垫脚石。与同部分其他基础章不同，本章**额外照顾完全没有写过代码的读者**：第「零」节从"什么是变量、什么是函数"讲起，把跑起第一段代码、看懂第一条报错都走一遍；已有的八节则一路铺到<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>的起点。读完你应当能看懂 AFFiNE 里绝大多数类型标注，并知道"为什么要这么写"。
 
 TypeScript 的一句话定位：**JavaScript + 静态类型**。它在编译期检查类型、给你自动补全与重构能力，最终**擦除类型、编译回普通 JavaScript** 运行——运行时没有类型。记住这条，很多"为什么类型不影响运行"的疑惑就迎刃而解。
 
-本章不讲框架、不讲 DOM、不讲异步编程，也不讲 AFFiNE 的具体源码（那是第 9 章的事）。它只做一件事：**把"用类型描述数据与行为"这件事，从零开始讲透**。
+本章不讲框架、不讲 DOM、不讲异步编程，也不讲 AFFiNE 的具体源码（那是<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>的事）。它只做一件事：**把"用类型描述数据与行为"这件事，从零开始讲透**。
 
 ### 三条学习路线
 
@@ -64,7 +64,7 @@ TypeScript 的一句话定位：**JavaScript + 静态类型**。它在编译期�
 
 - [ ] 能够读写泛型函数、泛型接口与约束（`extends`），理解它"类型的参数"这一本质
 - [ ] 能够使用常见工具类型，并知道它们大致是怎么用映射类型造出来的
-- [ ] 能够看懂 `tsconfig.json` 的关键选项与模块/声明文件机制，为第 9 章打底
+- [ ] 能够看懂 `tsconfig.json` 的关键选项与模块/声明文件机制，为<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>打底
 
 ---
 
@@ -95,11 +95,11 @@ flowchart TD
 
 ---
 
-## 零、零基础起步（会 JavaScript 可跳过）
+## 5.1 零基础起步（会 JavaScript 可跳过）
 
 > **对应阶梯**：L0 ｜ **预计**：3 小时 ｜ 这一节不出现任何 AFFiNE 源码，只建立最小共识。
 
-### 0.1 程序、值、变量：最小的一段代码
+### 5.1.1 程序、值、变量：最小的一段代码
 
 **这一节要解决什么**：先能读懂"一行代码在说什么"。程序本质上就是**给计算机一串带顺序的指令**；指令操作的对象叫**值（value）**；给值起个名字方便后面再用，这个带名字的位置叫**变量（variable）**。
 
@@ -148,7 +148,7 @@ console.log(a * 2);
 
 </details>
 
-### 0.2 类型到底是什么
+### 5.1.2 类型到底是什么
 
 **这一节要解决什么**：上节说"值有不同的种类"，这个**种类就是类型**。类型不是 TypeScript 发明的，JavaScript 的值本来就有类型；TypeScript 做的是**让这件事在写代码时就能被检查**。
 
@@ -205,7 +205,7 @@ TypeScript 要改变的正是这一点：它让变量在写下的那一刻就**�
 
 </details>
 
-### 0.3 函数、对象、数组：本章后面会用到的全部 JS 语法
+### 5.1.3 函数、对象、数组：本章后面会用到的全部 JS 语法
 
 **这一节要解决什么**：正文八节的例子只用三种结构——函数、对象、数组。这里一次性认识完，后面不必再回头查。
 
@@ -280,7 +280,7 @@ console.log(cart.items[0].price); // 输出：10
 <p>① 下标从 <strong>0</strong> 开始，<code>items[3]</code> 是第 4 个元素，上面那个数组里它是 <code>undefined</code>。② <code>{ }</code> 是对象（靠名字取值），<code>[ ]</code> 是数组（靠位置取值），别混。③ 箭头函数 <code>(a, b) =&gt; a + b</code> 的 <code>=&gt;</code> 不是"大于等于"，它只是函数简写的记号。</p>
 </div>
 
-### 0.4 拆开 `reduce`：第一节例子的唯一门槛
+### 5.1.4 拆开 `reduce`：第一节例子的唯一门槛
 
 **这一节要解决什么**：第一节会用一行 `reduce` 算购物车总价。它其实是"循环累加"的简写，先看清循环版，简写版就不再神秘。
 
@@ -333,7 +333,7 @@ const sum = cart.items.reduce((s, it) => s + it.price * it.count, 0);
 
 </details>
 
-### 0.5 把代码跑起来：Node、编辑器与 `tsc`
+### 5.1.5 把代码跑起来：Node、编辑器与 `tsc`
 
 **这一节要解决什么**：光读不动手，类型检查的体会会少一大半。这一小节用最小成本把环境搭起来，全程不需要碰 AFFiNE 仓库。
 
@@ -397,7 +397,7 @@ console.log(price * count);
 
 `: number` **不见了**。这就是全章最重要的一句话——类型只在开发期存在，运行时一行都不剩。
 
-### 0.6 读懂一条报错
+### 5.1.6 读懂一条报错
 
 **这一节要解决什么**：初学者最容易被满屏红字劝退。其实一条报错的信息是固定的几段，会拆就不再害怕。
 
@@ -440,7 +440,7 @@ Found 1 error in hello.ts:1
 
 </details>
 
-### 0.7 起步自检
+### 5.1.7 起步自检
 
 进入正文前，确认这五件事都能做到：
 
@@ -454,13 +454,13 @@ Found 1 error in hello.ts:1
 
 ---
 
-## 一、为什么要类型：从一个 bug 说起
+## 5.2 为什么要类型：从一个 bug 说起
 
 > **对应阶梯**：L1 认识类型 ｜ **预计**：40 分钟
 
 **这一节要解决什么**：把第「零」节那句"拼错也不吭声"变成看得见的代价，再说明 TypeScript 是在**哪个时间点**、用**什么方式**拦住它。
 
-### 最小例子：先看纯 JavaScript
+### 5.2.1 最小例子：先看纯 JavaScript
 
 ```js
 function total(cart) {
@@ -474,12 +474,12 @@ total({ items: [{ price: 10, cuont: 2 }] }); // 得到 NaN，拼错了 count
 | 行 | 含义 |
 | --- | --- |
 | 1 | 定义函数 `total`，参数 `cart` 里装着购物车 |
-| 2 | 用第 0.4 节的 `reduce` 累加每个商品的 `price * count` |
+| 2 | 用第 <a href="./05-TypeScript基础入门.md#sec-5-1-4">5.1.4 节</a>的 `reduce` 累加每个商品的 `price * count` |
 | 3 | 调用它；对象里把 `count` 拼成了 `cuont` |
 
 错误链条：`it.count` → `undefined` → `10 * undefined` → `NaN` → 累加结果 `NaN`。全程**没有任何报错**，只有当这个数字显示到界面上、或者写进数据库时才可能被人发现。这类问题的共同点是：**错误发生的地方和被发现的地方隔了很远**。
 
-### 加上类型之后
+### 5.2.2 加上类型之后
 
 ```ts
 interface CartItem {
@@ -515,7 +515,7 @@ total({ items: [{ price: 10, cuont: 2 }] });
 
 <div class="tip custom-block">
 <p class="custom-block-title">类型擦除：最容易误解的点</p>
-<p>上面的 <code>interface</code>、<code>: number</code> 在编译后<strong>全部消失</strong>，生成的 JS 与手写版几乎一样（可回看 0.5 节的产物对照）。类型只服务于"开发期检查"，不进入运行时。所以你<strong>不能</strong>在运行时写 <code>if (x is CartItem)</code>——运行时根本没有这个类型，只能用 <code>typeof</code>、<code>in</code>、自定义类型守卫这类<strong>运行时真的存在</strong>的判断（第五节讲）。另一个常见误会：类型检查通过 ≠ 程序逻辑正确，它只保证"没违反你自己写下的约定"。</p>
+<p>上面的 <code>interface</code>、<code>: number</code> 在编译后<strong>全部消失</strong>，生成的 JS 与手写版几乎一样（可回看 <a href="./05-TypeScript基础入门.md#sec-5-1-5">5.1.5 节</a>的产物对照）。类型只服务于"开发期检查"，不进入运行时。所以你<strong>不能</strong>在运行时写 <code>if (x is CartItem)</code>——运行时根本没有这个类型，只能用 <code>typeof</code>、<code>in</code>、自定义类型守卫这类<strong>运行时真的存在</strong>的判断（第五节讲）。另一个常见误会：类型检查通过 ≠ 程序逻辑正确，它只保证"没违反你自己写下的约定"。</p>
 </div>
 
 <details><summary>随堂小练 · 报错会变吗</summary>
@@ -528,13 +528,13 @@ total({ items: [{ price: 10, cuont: 2 }] });
 
 ---
 
-## 二、类型基础与推断
+## 5.3 类型基础与推断
 
 > **对应阶梯**：L2 描述数据 ｜ **预计**：60 分钟
 
 **这一节要解决什么**：上一节已经见过 `: number` 的写法，这里把"能写哪些类型、什么时候不必写"系统讲清。
 
-### 最小例子：标注语法与基础类型
+### 5.3.1 最小例子：标注语法与基础类型
 
 `变量: 类型 = 值` 读作"声明一个变量，约定它只能装这类值，初始值放这个"。
 
@@ -575,7 +575,7 @@ pair.push(3);         // 运行时能加，但类型上不鼓励——元组长�
 | `[T1, T2]` | `'object'` | `['x', 1]` | 元组 |
 | `object` | `'object'` | `{ a: 1 }` | 太宽泛，通常改用第三节的形状 |
 
-### 让编译器替你推断
+### 5.3.2 让编译器替你推断
 
 大多数时候**不用手写类型**，TypeScript 会看右边的值自动推断：
 
@@ -603,7 +603,7 @@ const nums = [1, 2, 3].map(n => n * 2); // n → number，nums → number[]
 <p>① "推断"不是"不检查"——推断出来的类型同样严格，<code>let x = 1; x = 'a';</code> 照样报错。② <code>const</code> 不等于"类型不可变"：<code>const obj = { a: 1 }</code> 里的 <code>obj.a</code> 仍可改，只是不能给 <code>obj</code> 整个重新赋值。③ 写太多显式标注反而让代码难读，能用推断就别写。</p>
 </div>
 
-### `any` 与 `unknown`：什么时候"我不知道"
+### 5.3.3 `any` 与 `unknown`：什么时候"我不知道"
 
 - `any`：放弃类型检查，"任何操作都允许"。是逃生舱，**能不用就不用**——它会像病毒一样扩散：把 `any` 赋给别的变量，那个变量也失去保护。
 - `unknown`：安全版的 any，"我也不知道是什么"，但**用之前必须先收窄**，否则报错。接收外部输入（`JSON.parse`、网络响应、第三方库）时优先用它。
@@ -640,13 +640,13 @@ const config = { debug: true };
 
 ---
 
-## 三、描述对象：interface 与 type
+## 5.4 描述对象：interface 与 type
 
 > **对应阶梯**：L2 描述数据 ｜ **预计**：70 分钟
 
 **这一节要解决什么**：第二节只能描述"一个数字""一串文字"，可真实数据（一个用户、一篇文档、一个商品）是**一组带名字的值**。这一节解决"怎么把一组值的形状写下来"。
 
-### 先看看不写形状会怎样
+### 5.4.1 先看看不写形状会怎样
 
 ```js
 function printName(user) {
@@ -668,7 +668,7 @@ function printName(user: User) {
 }
 ```
 
-### 最小例子：两种写法
+### 5.4.2 最小例子：两种写法
 
 ```ts
 interface User {
@@ -692,7 +692,7 @@ u.name = 'Blocksuite'; // ✅
 // u.createdAt = 1;   // ❌ 只读属性不可赋值
 ```
 
-### 结构化类型：按形状，不按名字
+### 5.4.3 结构化类型：按形状，不按名字
 
 TypeScript 判断"能不能用"，看的是**形状是否对得上**，不是"是不是同一个名字声明的"：
 
@@ -710,7 +710,7 @@ print({ x: 1, y: 2, z: 3 }); // ❌ 字面量：多余属性检查
 
 最后两行的差别非常重要：直接**当场写的对象字面量**会触发额外的「多余属性检查」（因为多写的字段极可能是拼错）；先放进变量再传，就不检查多余字段了。第一节那个 `cuont` 正是靠这条规则被抓住的。
 
-### 两者的区别（第 9 章会用到）
+### 5.4.4 两者的区别（第 9 章会用到）
 
 | 维度 | `interface` | `type` |
 | --- | --- | --- |
@@ -738,7 +738,7 @@ interface Admin extends Base { role: string; }                 // 继承
 
 <div class="tip custom-block">
 <p class="custom-block-title">最容易误解的点</p>
-<p>① <code>interface</code> 和 <code>type</code> 不是"新旧两代语法"，是<strong>能力不同</strong>的两种工具，长期共存。② <code>readonly</code> 只在<strong>编译期</strong>约束，运行时对象属性照样可改（类型擦除）。③ 第 9 章 AFFiNE 用<strong>声明合并</strong>给全局接口挂扩展（如后端的 <code>Events</code>、<code>AppConfigSchema</code>），靠的就是 interface 这个能力——这是本章与源码最直接的一处连接。</p>
+<p>① <code>interface</code> 和 <code>type</code> 不是"新旧两代语法"，是<strong>能力不同</strong>的两种工具，长期共存。② <code>readonly</code> 只在<strong>编译期</strong>约束，运行时对象属性照样可改（类型擦除）。③ <a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a> AFFiNE 用<strong>声明合并</strong>给全局接口挂扩展（如后端的 <code>Events</code>、<code>AppConfigSchema</code>），靠的就是 interface 这个能力——这是本章与源码最直接的一处连接。</p>
 </div>
 
 <details><summary>随堂小练 · 挑工具</summary>
@@ -751,13 +751,13 @@ interface Admin extends Base { role: string; }                 // 继承
 
 ---
 
-## 四、函数类型
+## 5.5 函数类型
 
 > **对应阶梯**：L3 描述行为 ｜ **预计**：60 分钟
 
 **这一节要解决什么**：数据有了形状，操作数据的**函数**也需要约定——它收什么、返回什么。这样调用处写错参数时，错误会停在调用处，而不是函数深处。
 
-### 最小例子：给参数与返回值写约定
+### 5.5.1 最小例子：给参数与返回值写约定
 
 ```ts
 // 参数与返回值
@@ -785,9 +785,9 @@ const onClick: Handler = e => console.log(e);
 | `...rest: string[]` | 剩余参数，把多出来的实参收成数组 | 必须是最后一个参数 |
 | `type Handler = (event: string) => void` | "函数"本身也能作为一种类型 | `void` 表示不关心返回值 |
 
-注意 `Handler` 那一行：**函数也是值**（第 0.3 节的箭头函数就是证明），所以也能被赋给变量、当参数传递。把函数当参数传，就是常说的"回调"。`: void` 表示"调用它的人不该依赖返回值"，不是"这个函数什么都不做"。
+注意 `Handler` 那一行：**函数也是值**（第 <a href="./05-TypeScript基础入门.md#sec-5-1-3">5.1.3 节</a>的箭头函数就是证明），所以也能被赋给变量、当参数传递。把函数当参数传，就是常说的"回调"。`: void` 表示"调用它的人不该依赖返回值"，不是"这个函数什么都不做"。
 
-### 重载：同一个名字，几种用法
+### 5.5.2 重载：同一个名字，几种用法
 
 有时一个函数对不同类型的输入有**不同的返回类型**，用联合写会丢掉这层对应关系：
 
@@ -842,13 +842,13 @@ f(1);
 
 ---
 
-## 五、联合类型与收窄（narrowing）
+## 5.6 联合类型与收窄（narrowing）
 
 > **对应阶梯**：L4 组合与精确化 ｜ **预计**：80 分钟
 
 **这一节要解决什么**：现实里一个值常常"可能是几种之一"——文档模式可能是 `page` 或 `edgeless`，请求可能处于加载中/成功/失败。这一节把"多选一"写进类型，并解决随之而来的问题：**既然可能是多种，用的时候怎么知道到底是哪一种**。
 
-### 最小例子：联合与字面量
+### 5.6.1 最小例子：联合与字面量
 
 **联合类型 `A | B`** 读作"是 A **或** B"；配合**字面量类型**（第二节 `const` 推断出的那种精确到具体值的类型），可以精确枚举取值：
 
@@ -859,9 +859,9 @@ open('page');
 open('wrong'); // ❌ 不能把 'wrong' 赋给 DocMode
 ```
 
-> 这正是第 1 章见过的 `DocMode`——AFFiNE 大量用"字符串字面量联合"代替枚举，因为擦除后它就是普通字符串，不产生运行时代码。
+> 这正是<a href="../01-产品认知/01-产品定位与核心概念.md#ch-1">第 1 章</a>见过的 `DocMode`——AFFiNE 大量用"字符串字面量联合"代替枚举，因为擦除后它就是普通字符串，不产生运行时代码。
 
-### 为什么必须"收窄"
+### 5.6.2 为什么必须"收窄"
 
 联合类型只保证"是其中之一"，所以**只有所有分支都具备的操作才被允许**：
 
@@ -887,7 +887,7 @@ function format(v: string | number): string {
 | 可辨识字段 | `switch (s.kind)` | 对应的联合分支 |
 | 自定义类型守卫 | `function isUser(x: unknown): x is User` | 由你声明的类型 |
 
-### 可辨识联合：给每个分支挂一个"标签"
+### 5.6.3 可辨识联合：给每个分支挂一个"标签"
 
 这是 TypeScript 里最实用的建模手法：**每个分支都带一个共同的字面量字段**（叫 discriminant），判断它就能自动收窄。
 
@@ -925,7 +925,7 @@ function area2(s: Shape): number {
 
 原理：两个 `case` 都处理完后，`default` 里的 `s` 已被收窄成 `never`（"不可能还有别的值"）；一旦给 `Shape` 加了新分支，`s` 就不再是 `never`，传不进 `assertNever`，编译期立刻报错。这就是**穷尽检查**。
 
-### 四个"空/未知"类型放一起看
+### 5.6.4 四个"空/未知"类型放一起看
 
 | 类型 | 含义 | 典型用途 |
 | --- | --- | --- |
@@ -936,7 +936,7 @@ function area2(s: Shape): number {
 
 <div class="tip custom-block">
 <p class="custom-block-title">最容易误解的点</p>
-<p>① 收窄是<strong>编译器的推理</strong>，不是运行时转换——代码里必须有真实的 <code>if</code>/<code>switch</code> 才行。② <code>typeof null === 'object'</code>（第 0.2 节的 JS 遗留），所以判空请用 <code>if (x !== null)</code> 而不是只看 <code>typeof</code>。③ <code>|</code> 是"或"，<code>&amp;</code> 是"且/交叉"，两者方向别记反：<code>{a:1} &amp; {b:2}</code> 要求两个属性都有。</p>
+<p>① 收窄是<strong>编译器的推理</strong>，不是运行时转换——代码里必须有真实的 <code>if</code>/<code>switch</code> 才行。② <code>typeof null === 'object'</code>（第 <a href="./05-TypeScript基础入门.md#sec-5-1-2">5.1.2 节</a>的 JS 遗留），所以判空请用 <code>if (x !== null)</code> 而不是只看 <code>typeof</code>。③ <code>|</code> 是"或"，<code>&amp;</code> 是"且/交叉"，两者方向别记反：<code>{a:1} &amp; {b:2}</code> 要求两个属性都有。</p>
 </div>
 
 <details><summary>随堂小练 · 写一次收窄</summary>
@@ -949,13 +949,13 @@ function area2(s: Shape): number {
 
 ---
 
-## 六、泛型：类型的"参数"
+## 5.7 泛型：类型的"参数"
 
 > **对应阶梯**：L5 复用与抽象 ｜ **预计**：90 分钟
 
-**这一节要解决什么**：先看一个真实的重复劳动，再引出泛型。泛型不是新语法花样，而是**把"类型"也变成可以传入的参数**——就像第 0.3 节把变化的值抽成函数参数一样。
+**这一节要解决什么**：先看一个真实的重复劳动，再引出泛型。泛型不是新语法花样，而是**把"类型"也变成可以传入的参数**——就像第 <a href="./05-TypeScript基础入门.md#sec-5-1-3">5.1.3 节</a>把变化的值抽成函数参数一样。
 
-### 先从"不用泛型会怎样"开始
+### 5.7.1 先从"不用泛型会怎样"开始
 
 需求：写一个函数，原样返回传进来的值。
 
@@ -970,7 +970,7 @@ function identityBoolean(x: boolean): boolean { return x; }
 
 换个角度：**函数之所以能复用，是因为把"会变的值"抽成了参数；类型层面要做同样的事，就得把"会变的类型"也抽成参数**。
 
-### 最小例子：给类型传参
+### 5.7.2 最小例子：给类型传参
 
 ```ts
 function identity<T>(x: T): T {
@@ -1006,7 +1006,7 @@ pair('x', 1); // → [string, number]
 type Response<T = unknown> = { data: T; ok: boolean }; // 不传时 T 取 unknown
 ```
 
-### 泛型约束 `extends`
+### 5.7.3 泛型约束 `extends`
 
 不约束时，函数体内对 `T` 一无所知，几乎什么操作都不能做。约束就是"至少得具备某些结构"：
 
@@ -1031,7 +1031,7 @@ longest(1, 2);        // ❌ number 没有 length
 
 <div class="tip custom-block">
 <p class="custom-block-title">最容易误解的点</p>
-<p>① 泛型里的 <code>extends</code> 是"约束"，第三节 <code>interface Admin extends Base</code> 里的 <code>extends</code> 是"继承"，同名不同义，别混。② 泛型<strong>不是</strong>"任意类型"——<code>T</code> 在一次调用里是<strong>一个确定的具体类型</strong>，只是写函数时还不知道是哪个。③ 泛型同样会被擦除，<code>identity&lt;string&gt;</code> 编译后就是普通函数调用，没有运行时开销。④ 第 9 章 AFFiNE 的依赖注入用 <code>createIdentifier&lt;T&gt;()</code>、响应式用 <code>LiveData&lt;T&gt;</code>、块定义用 <code>defineBlockSchema</code> 配合泛型推断——把"泛型 = 给类型传参"记牢，这些 API 就能读。</p>
+<p>① 泛型里的 <code>extends</code> 是"约束"，第三节 <code>interface Admin extends Base</code> 里的 <code>extends</code> 是"继承"，同名不同义，别混。② 泛型<strong>不是</strong>"任意类型"——<code>T</code> 在一次调用里是<strong>一个确定的具体类型</strong>，只是写函数时还不知道是哪个。③ 泛型同样会被擦除，<code>identity&lt;string&gt;</code> 编译后就是普通函数调用，没有运行时开销。④ <a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a> AFFiNE 的依赖注入用 <code>createIdentifier&lt;T&gt;()</code>、响应式用 <code>LiveData&lt;T&gt;</code>、块定义用 <code>defineBlockSchema</code> 配合泛型推断——把"泛型 = 给类型传参"记牢，这些 API 就能读。</p>
 </div>
 
 <details><summary>随堂小练 · 推断 T</summary>
@@ -1044,7 +1044,7 @@ longest(1, 2);        // ❌ number 没有 length
 
 ---
 
-## 七、工具类型：对类型做"运算"
+## 5.8 工具类型：对类型做"运算"
 
 > **对应阶梯**：L5 复用与抽象 ｜ **预计**：70 分钟
 
@@ -1078,7 +1078,7 @@ type UserMap     = Record<string, User>; // { [k: string]: User }
 type R           = ReturnType<() => number>; // 取函数返回值类型 = number
 ```
 
-### 它们不是魔法：映射类型
+### 5.8.1 它们不是魔法：映射类型
 
 `Partial` 的简化实现只有一行，用的都是本章已学过的东西：
 
@@ -1088,7 +1088,7 @@ type MyPartial<T> = { [K in keyof T]?: T[K] };
 
 **逐行看**：`keyof T` 得到 T 的所有属性名组成的联合（对 `User` 是 `'id' | 'name' | 'email'`）；`K in ...` 逐个遍历这些名字；`T[K]` 取出该属性原来的类型；`?` 把它变成可选。于是 `{ id?: string; name?: string; email?: string }` 就被**算出来**了。
 
-"对类型的每个属性做一遍同样操作"叫**映射类型**，工具类型大多由它 + 泛型实现。再进一步还有**条件类型**（`T extends U ? X : Y`，类型层面的 if），`Exclude`、`ReturnType`、`Awaited` 都基于它，第 9 章读代码生成结果时会遇到，这里只需知道"类型也能做运算"即可。
+"对类型的每个属性做一遍同样操作"叫**映射类型**，工具类型大多由它 + 泛型实现。再进一步还有**条件类型**（`T extends U ? X : Y`，类型层面的 if），`Exclude`、`ReturnType`、`Awaited` 都基于它，<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>读代码生成结果时会遇到，这里只需知道"类型也能做运算"即可。
 
 **规则小结 · 常用工具类型**：
 
@@ -1121,13 +1121,13 @@ type MyPartial<T> = { [K in keyof T]?: T[K] };
 
 ---
 
-## 八、模块、声明文件与 tsconfig
+## 5.9 模块、声明文件与 tsconfig
 
 > **对应阶梯**：L6 工程化 ｜ **预计**：70 分钟
 
 **这一节要解决什么**：前面所有代码都在一个文件里。真实项目有成千上万个文件，需要回答三个问题：**怎么拆文件**、**怎么给没有类型的 JS 补类型**、**怎么告诉编译器按什么规则检查**。
 
-### 模块：用 `export` / `import` 拆文件
+### 5.9.1 模块：用 `export` / `import` 拆文件
 
 TypeScript 用标准 ES 模块语法：一个文件就是一个模块，想给别人用的东西要 `export`，要用别人的就 `import`。
 
@@ -1148,7 +1148,7 @@ import type { User } from './user'; // 只导入类型
 <p>如果导入的东西<strong>只出现在类型位置</strong>（冒号后面、泛型尖括号里），就写 <code>import type</code>；如果既要当值用又要当类型用（比如 <code>class</code>），用普通 <code>import</code>。开 <code>verbatimModuleSyntax</code> 后编译器会强制你区分。</p>
 </div>
 
-### 声明文件 `.d.ts`：给"没有类型的东西"补类型
+### 5.9.2 声明文件 `.d.ts`：给"没有类型的东西"补类型
 
 `.d.ts` 只含类型、不含实现，用来给纯 JS 库或全局对象"补一份说明书"：
 
@@ -1159,7 +1159,7 @@ export declare function add(a: number, b: number): number;
 
 `declare` 的意思是"实现在别处，这里只声明形状"。AFFiNE 的代码生成（`i18n.gen.ts`、GraphQL codegen）产出的也多是类型，供全局使用。你安装的 `@types/xxx` 包，本质就是别人替某个 JS 库写好的 `.d.ts` 集合。
 
-### tsconfig.json：告诉编译器怎么检查
+### 5.9.3 tsconfig.json：告诉编译器怎么检查
 
 把下面这份存成 `tsconfig.json`，之后在该目录直接跑 `tsc --noEmit` 即可，不必每次敲一长串参数：
 
@@ -1197,8 +1197,8 @@ export declare function add(a: number, b: number): number;
 ```
 
 <div class="tip custom-block">
-<p class="custom-block-title">最容易误解的点 · 也是通往第 9 章的桥</p>
-<p>① <code>noEmit: true</code> 时 <code>tsc</code> <strong>只做检查</strong>，真正把 TS 变成可运行 JS 的是打包器（Vite / Rspack / SWC）——所以"类型没错"和"能打包"是两件事。② <code>target</code> 只管<strong>语法降级</strong>，不管 API 是否存在（用了 <code>Array.prototype.at</code> 仍要自己配 polyfill）。③ 第 9 章会看到 AFFiNE 把 tsconfig 拆成 <code>tsconfig.json</code> / <code>tsconfig.web.json</code> / <code>tsconfig.node.json</code> 并用<strong>项目引用（project references）</strong>做增量构建，还会发现 <code>tsc</code> 其实是 TS 7 的原生版本。本章把单个 tsconfig 看懂，到那里就只是"规模放大"而已。</p>
+<p class="custom-block-title">最容易误解的点 · 也是通往<a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>的桥</p>
+<p>① <code>noEmit: true</code> 时 <code>tsc</code> <strong>只做检查</strong>，真正把 TS 变成可运行 JS 的是打包器（Vite / Rspack / SWC）——所以"类型没错"和"能打包"是两件事。② <code>target</code> 只管<strong>语法降级</strong>，不管 API 是否存在（用了 <code>Array.prototype.at</code> 仍要自己配 polyfill）。③ <a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>会看到 AFFiNE 把 tsconfig 拆成 <code>tsconfig.json</code> / <code>tsconfig.web.json</code> / <code>tsconfig.node.json</code> 并用<strong>项目引用（project references）</strong>做增量构建，还会发现 <code>tsc</code> 其实是 TS 7 的原生版本。本章把单个 tsconfig 看懂，到那里就只是"规模放大"而已。</p>
 </div>
 
 <details><summary>随堂小练 · 该用哪种导入</summary>
@@ -1215,7 +1215,7 @@ export declare function add(a: number, b: number): number;
 
 按阶梯递进，前两题零基础也能做。**建议每做完一题再往下走**。
 
-1. **（L0）跑通并故意犯错**：按 0.5 节建好 `hello.ts`，先让它正常输出，再把 `let price: number = 10;` 改成 `'十'`，完整读一遍报错，改回去。**验收**：能口头指出报错里的文件名、行号与"给了什么 / 需要什么"。
+1. **（L0）跑通并故意犯错**：按 <a href="./05-TypeScript基础入门.md#sec-5-1-5">5.1.5 节</a>建好 `hello.ts`，先让它正常输出，再把 `let price: number = 10;` 改成 `'十'`，完整读一遍报错，改回去。**验收**：能口头指出报错里的文件名、行号与"给了什么 / 需要什么"。
 2. **（L1–L2）给现成代码补类型**：把下面这段 JS 补成 TS，声明 `Item` 接口并给两处参数/返回值标注，然后故意把 `count` 拼错，观察红线。
    ```js
    function total(items) {
@@ -1318,8 +1318,8 @@ TypeScript 是结构化类型，按形状匹配、允许多余字段；但对**�
 - **零基础补齐**：MDN《JavaScript 第一步》——变量、数据类型、数组、对象、函数；本章第「零」节只覆盖读懂后续章节所需的最小子集
 - **TypeScript 官方手册（Handbook）**：Everyday Types、Narrowing、More on Functions、Generics、Utility Types、Modules
 - **练习场**：TypeScript Playground（在线即时看编译产物，验证类型擦除最方便）
-- 第 9 章：TypeScript 在 AFFiNE 中的应用（tsconfig 项目引用、装饰器、DI 泛型、声明合并、代码生成）
-- 第 6 章：前端框架基础入门（会用到这里的泛型与联合类型）
+- <a href="./09-TypeScript在AFFiNE中的应用.md#ch-9">第 9 章</a>：TypeScript 在 AFFiNE 中的应用（tsconfig 项目引用、装饰器、DI 泛型、声明合并、代码生成）
+- <a href="./06-前端框架基础入门-React-Lit-Signals-RxJS.md#ch-6">第 6 章</a>：前端框架基础入门（会用到这里的泛型与联合类型）
 
 ---
 
@@ -1341,5 +1341,4 @@ TypeScript 是结构化类型，按形状匹配、允许多余字段；但对**�
 
 ---
 
-| [← 第 4 章 分支版本与发布节奏](../02-项目管理与开源协作/04-分支版本与发布节奏.md) | [第 6 章 前端框架基础入门 →](./06-前端框架基础入门-React-Lit-Signals-RxJS.md) |
-| --- | --- |
+上一章：[第 4 章 分支版本与发布节奏](../02-项目管理与开源协作/04-分支版本与发布节奏.md) ｜ 下一章：[第 6 章 前端框架基础入门：React、Lit、Signals、RxJS](06-前端框架基础入门-React-Lit-Signals-RxJS.md) ｜ [返回目录](../README.md)

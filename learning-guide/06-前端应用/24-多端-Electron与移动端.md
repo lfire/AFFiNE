@@ -1,6 +1,6 @@
 # 第 24 章 多端：Electron 与移动端
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 21 章 Core 业务模块与路由、第 23 章 存储与同步引擎 nbstore
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：<a href="./21-Core业务模块与路由.md#ch-21">第 21 章</a> Core 业务模块与路由、<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a> 存储与同步引擎 nbstore
 
 ## 本章导读
 
@@ -78,9 +78,9 @@ mindmap
       core mobile 模块
 ```
 
-## 20.1 为什么是"多个壳 + 一个核"
+## 24.1 为什么是"多个壳 + 一个核"
 
-先建立整体印象。AFFiNE 把所有 UI 与业务都放在 `packages/frontend/core`（第 21 章），而"应用"目录 `packages/frontend/apps/*` 只是一层很薄的**入口壳**：
+先建立整体印象。AFFiNE 把所有 UI 与业务都放在 `packages/frontend/core`（<a href="./21-Core业务模块与路由.md#ch-21">第 21 章</a>），而"应用"目录 `packages/frontend/apps/*` 只是一层很薄的**入口壳**：
 
 | 包名 | 目录 | 运行环境 | distribution |
 | --- | --- | --- | --- |
@@ -146,7 +146,7 @@ flowchart LR
 
 > 经验法则：**"有没有"用 BUILD_CONFIG，"怎么做"用 Provider**。例如"移动端不显示某个菜单"适合编译期常量；"震动反馈调用哪个 API"适合 Provider。
 
-## 20.2 Electron 进程模型总览
+## 24.2 Electron 进程模型总览
 
 Electron 应用天生是多进程的：一个 Node.js 环境的**主进程**，若干 Chromium 的**渲染进程**。AFFiNE 在此基础上又加了一个 `utilityProcess` 形式的 **helper 进程**，以及一个隐藏窗口形式的 **background worker**。
 
@@ -191,7 +191,7 @@ flowchart TB
 
 为什么要把 SQLite 放进 helper，而不是主进程？主进程负责所有窗口的事件循环，一旦被同步磁盘 IO 或大量 CRDT 合并阻塞，整个应用（包括窗口拖动、菜单）都会卡顿。utilityProcess 是 Electron 官方提供的"Node 子进程 + MessagePort"方案，崩溃了也不会拖垮主进程——`helper-process.ts` 中监听了 `exit` 事件并把单例置空，下次 `ensureHelperProcess()` 会重新拉起。
 
-## 20.3 主进程启动流程：src/main/index.ts
+## 24.3 主进程启动流程：src/main/index.ts
 
 主进程入口做的事情可以分成"ready 之前"和"ready 之后"两段：
 
@@ -236,33 +236,33 @@ app
 
 此外文件里还有大量 `app.commandLine.appendSwitch`：禁用 Chrome 自动填充与保存密码气泡（`AutofillServerCommunication`、`SavePasswordBubble` 等），开启 `WebCodecs`、`CSSTextAutoSpace` 等 Blink 特性；以及在设置了 `SENTRY_RELEASE` 时初始化 `@sentry/electron/main`。最后，`protocol.registerSchemesAsPrivileged` 把 `assets` 注册为 `secure`、`standard`、`supportFetchAPI` 的特权协议——这一步必须在 ready 前完成。
 
-## 20.4 src/main 逐目录解读
+## 24.4 src/main 逐目录解读
 
 `src/main` 下的目录基本是"一个能力一个目录"，大多数目录都导出一组 `xxxHandlers`（供渲染进程调用）和/或 `xxxEvents`（向渲染进程推送）。
 
 | 路径 | 职责 | 关键点 |
 | --- | --- | --- |
 | `windows-manager/` | 主窗口、标签页、onboarding、弹窗、主题编辑器窗口、右键菜单 | `main-window.ts` 创建 `BrowserWindow`；`tab-views.ts`（约 1300 行）用 `WebContentsView` 实现多标签；`popup.ts` 管理录音弹窗；`launcher.ts` 根据 `stage.ts` 决定先显示 onboarding 还是主窗口 |
-| `protocol.ts` | `assets://` 协议处理与请求头改写 | 见 20.6 |
+| `protocol.ts` | `assets://` 协议处理与请求头改写 | 见 <a href="./24-多端-Electron与移动端.md#sec-24-6">24.6</a> |
 | `deep-link.ts` | 注册 `affine://`（按渠道区分 `affine-canary`、`affine-beta`、`affine-dev`）并处理 `open-url` / `second-instance` | `handleAffineUrl` 识别 `authentication` 等 action，`summarizeDeepLink` 只记录摘要避免泄漏 token 到日志 |
 | `updater/` | 自动更新 | `electron-updater.ts` 封装 `electron-updater`；`affine-update-provider.ts` 是自定义 Provider（`resources/app-update.yml` 中 `provider: custom`）；`windows-updater.ts` 处理 Windows 特例 |
 | `tray/` | 系统托盘菜单 | 与 `recording/feature.ts` 联动，展示"可录制的会议应用" |
 | `recording/` | 会议录音 | `feature.ts`、`coordinator.ts` 管理状态机，`state-transitions.md` 文档描述 `new → starting → recording → finalizing → finalized` 等状态；底层调用 `@affine/native` 的 `startRecording` |
-| `security-restrictions.ts` | 导航/新窗口拦截、IPC 来源校验 `checkSource` | 见 20.7 |
+| `security-restrictions.ts` | 导航/新窗口拦截、IPC 来源校验 `checkSource` | 见 <a href="./24-多端-Electron与移动端.md#sec-24-7">24.7</a> |
 | `security/` | `open-external.ts`（协议白名单）、`redirect-proxy.ts`、`url-safety.ts` | 只允许 `http:`、`https:`、`mailto:` 被 `shell.openExternal` |
 | `web-preferences.ts` | 所有窗口统一的 `webPreferences` 默认值 | `sandbox: true`、`contextIsolation: true`、`nodeIntegration: false` |
 | `shared-storage/` | 跨窗口共享的全局状态/缓存（JSON 文件持久化） | `storage.ts` 中的 `globalStateStorage`；`json-file.ts` 封装 `PersistentJSONFileStorage` |
 | `config-storage/` | 应用配置（如 onboarding 标记）持久化 | `persist.ts` 的 `persistentConfig` |
-| `helper-process.ts` | 拉起 helper、建立 MessagePort 桥 | 见 20.5 |
-| `handlers.ts` / `events.ts` / `exposed.ts` | IPC 注册中心 | 见 20.5 |
+| `helper-process.ts` | 拉起 helper、建立 MessagePort 桥 | 见 <a href="./24-多端-Electron与移动端.md#sec-24-5">24.5</a> |
+| `handlers.ts` / `events.ts` / `exposed.ts` | IPC 注册中心 | 见 <a href="./24-多端-Electron与移动端.md#sec-24-5">24.5</a> |
 | `auth/` | 桌面端鉴权会话 | `auth-session.ts` 用 `safeStorage` 加密存储 token 对到 `auth-sessions.json`（权限 `0o600`）；`transport.ts` 封装请求 |
 | `byok-storage/` | 用户自带 AI Key（BYOK）的加密存储 | `safeStorage.encryptString` 存到 `workspace-byok-keys.json`，并用白名单校验 provider（`openai`、`anthropic`、`gemini`、`fal`） |
-| `secure-storage.ts` | Linux 密码后端探测 | 见 20.3 |
+| `secure-storage.ts` | Linux 密码后端探测 | 见 <a href="./24-多端-Electron与移动端.md#sec-24-3">24.3</a> |
 | `find-in-page/` | 页内查找 | 包装 `webContents.findInPage` 与 `found-in-page` 事件 |
 | `clipboard/` | 复制 PNG 到剪贴板 | `nativeImage.createFromBuffer` |
 | `import/` | 原生导入（Notion/Markdown 等批量导入） | 调用 `@affine/native` 的 `createImportSession`、`nextImportBatch` |
 | `power/` | 电源事件 | `power-source` 事件推送是否使用电池，渲染层据此给 body 加 `on-battery` class 降低动画 |
-| `worker/` | background worker 池 | `pool.ts` 中 `WorkerManager`，见 20.8 |
+| `worker/` | background worker 池 | `pool.ts` 中 `WorkerManager`，见 <a href="./24-多端-Electron与移动端.md#sec-24-8">24.8</a> |
 | `ui/` | 窗口控制、主题、外链等杂项 UI handler | `handlers.ts` 约 230 行 |
 | `application-menu/` | 应用菜单 | `create.ts` |
 | `cleanup.ts` | `beforeAppQuit` 钩子注册 | 退出前释放 helper、订阅等 |
@@ -270,11 +270,11 @@ app
 
 注意：仓库里**没有**独立的 `tabs` 目录，多标签逻辑全部在 `windows-manager/tab-views.ts` 中；与之配套的共享状态 Schema（如 `TabViewsMetaSchema`）在 `src/main/shared-state-schema.ts`。
 
-## 20.5 IPC 暴露机制：一次声明，处处可调
+## 24.5 IPC 暴露机制：一次声明，处处可调
 
 这是本章最值得反复读的设计。目标是：**在主进程写一个普通 async 函数，渲染进程就能以 `apis.namespace.method(...)` 调用，且有完整 TS 类型**。
 
-### 20.5.1 第一步：主进程声明 handler 字典
+### 24.5.1 第一步：主进程声明 handler 字典
 
 ```ts
 // 来源：packages/frontend/apps/electron/src/main/handlers.ts（节选）
@@ -327,7 +327,7 @@ export const clipboardHandlers = {
 } satisfies NamespaceHandlers;
 ```
 
-### 20.5.2 第二步：单通道路由 + 来源校验
+### 24.5.2 第二步：单通道路由 + 来源校验
 
 所有调用走同一个 channel `AFFINE_API_CHANNEL_NAME = 'affine-ipc-api'`（定义在 `src/shared/type.ts`），第一个参数是 `"namespace:key"` 字符串：
 
@@ -365,7 +365,7 @@ ipcMain.handle(AFFINE_API_CHANNEL_NAME, async (e, ...args: any[]) => {
 
 单通道的好处：只需要在一个地方做 `checkSource`，不会因为新增 handler 忘记校验；日志也统一打印耗时。同时它还注册了 `ipcMain.on` 版本支持同步调用（`e.returnValue`），用于少量必须同步的场景（如 shared-storage 初始化读取）。
 
-### 20.5.3 第三步：把"元数据"而不是"函数"传给 preload
+### 24.5.3 第三步：把"元数据"而不是"函数"传给 preload
 
 preload 运行在沙箱里，无法 `import` 主进程代码。AFFiNE 的做法是：主进程把 handler 字典压缩成"命名空间 → 方法名列表"的元数据，通过 `additionalArguments` 命令行参数传给 preload。
 
@@ -405,7 +405,7 @@ async function getAdditionalArguments() {
 
 注意 helper 的元数据是通过 `rpc.getMeta()` 从 helper 进程**异步拉取**的（`src/helper/main-rpc.ts` 中 `helperToMainServer.getMeta`），所以只有需要访问 helper 的窗口（tab view、worker）才会带 `--helper-exposed-meta`；onboarding、popup、主题编辑器窗口只带 main 元数据。
 
-### 20.5.4 第四步：preload 动态生成代理函数并 exposeInMainWorld
+### 24.5.4 第四步：preload 动态生成代理函数并 exposeInMainWorld
 
 ```ts
 // 来源：packages/frontend/apps/electron/src/preload/electron-api.ts（节选）
@@ -441,7 +441,7 @@ if (currentUrl && isInternalUrl(currentUrl)) {
 
 两层防护：preload 只在 `isInternalUrl` 为真时才暴露 API（外部页面拿不到 `__apis`）；即使被绕过，主进程的 `checkSource` 还会再校验一次。
 
-### 20.5.5 第五步：类型桥 @affine/electron-api
+### 24.5.5 第五步：类型桥 @affine/electron-api
 
 渲染层从 `window.__apis` 拿到的是 `any`。类型从哪里来？`packages/frontend/electron-api/src/index.ts` 只做**类型层面**的引用：
 
@@ -479,15 +479,15 @@ export const events = (globalThis as any).__events as ClientEvents | undefined;
 
 这个映射类型做了两件事：**去掉第一个参数**（`IpcMainInvokeEvent` 由 Electron 注入，调用方不传），并**统一包装成 Promise**。由于全部是 `import type`，打包渲染层时不会把任何主进程代码打进来。这也是 `@affine/electron/package.json` 里 `exports` 专门暴露 `./main/exposed`、`./helper/exposed`、`./preload/electron-api` 的原因。
 
-### 20.5.6 事件：按需订阅的广播
+### 24.5.6 事件：按需订阅的广播
 
 事件方向是 main → renderer。`src/main/events.ts` 维护 `webContents.id → Set<channel>` 的订阅表，preload 在第一个监听者注册时发送 `subscribe`，最后一个取消时发送 `unsubscribe`（引用计数），主进程只向订阅了该 channel 的 webContents 发送 `AFFINE_EVENT_CHANNEL_NAME`。这避免了"一个托盘状态变化广播给 10 个标签页"的浪费。`power:power-source` 还会在订阅时立刻推送一次当前值。
 
-## 20.6 IPC 调用时序图
+## 24.6 IPC 调用时序图
 
 下面把两条最重要的链路画出来。
 
-### 20.6.1 renderer → main（以"复制图片为 PNG"为例）
+### 24.6.1 renderer → main（以"复制图片为 PNG"为例）
 
 ```mermaid
 sequenceDiagram
@@ -510,7 +510,7 @@ sequenceDiagram
   PL-->>UI: true
 ```
 
-### 20.6.2 renderer → helper（以 nbstore 读文档为例）
+### 24.6.2 renderer → helper（以 nbstore 读文档为例）
 
 ```mermaid
 sequenceDiagram
@@ -564,9 +564,9 @@ connectRenderer(renderer: WebContents) {
 
 反方向，helper 需要弹出系统对话框（`dialog.showSaveDialog` 只能在主进程调用）时，走 `src/helper/main-rpc.ts` 中的 `mainRPC`，主进程在 `connectMain` 中暴露 `MainToHelper` 类型的服务端（`showOpenDialog`、`showSaveDialog`、`openExternal`、`showItemInFolder`、`getPath`）。
 
-## 20.7 assets 协议与安全限制
+## 24.7 assets 协议与安全限制
 
-### 20.7.1 assets:// 是什么
+### 24.7.1 assets:// 是什么
 
 渲染进程加载的 URL 不是 `file://`，也不是 `http://localhost`，而是 `assets://./` 这样的自定义协议：
 
@@ -626,7 +626,7 @@ const apiBaseByBuildType: Record<typeof buildType, string> = {
 - `onHeadersReceived`：对 `assets:` 响应强制 `X-Frame-Options: SAMEORIGIN` 并补 `frame-ancestors 'self'`；对 AFFiNE 自有域名（`affine.pro`、`affine.fail`、`affine.run`、`usercontent.affine.pro`）补 CORS 头，因为对象存储上传 URL 本身没有 CORS 配置。
 - `onBeforeSendHeaders`：对受管鉴权端点删掉渲染层带来的 `Authorization`，改由主进程 `getAccessTokenForUrl` 注入 `Bearer` token——**token 永远不进渲染进程**；对 YouTube 等域名补 `Referer`，否则嵌入视频会被拒。
 
-### 20.7.2 security-restrictions.ts：导航与新窗口
+### 24.7.2 security-restrictions.ts：导航与新窗口
 
 ```ts
 // 来源：packages/frontend/apps/electron/src/main/security-restrictions.ts（节选）
@@ -655,9 +655,9 @@ contents.setWindowOpenHandler(({ url }) => {
 
 即：**应用内永远不会被导航到外部网页，也永远不会创建新窗口**；外链一律交给系统浏览器，且 `openExternalSafely` 只放行 `http:`、`https:`、`mailto:`，防止 `file://`、`smb://` 之类协议被滥用。
 
-`checkSource` 则是 IPC 层的守门人：它取 `e.senderFrame.url`（子 frame 场景下不信任 `sender.getURL()`），并考虑了"正在导航中"的 pending 状态，确保只有内部源的 frame 能调用 IPC。第 32 章会从安全角度再展开。
+`checkSource` 则是 IPC 层的守门人：它取 `e.senderFrame.url`（子 frame 场景下不信任 `sender.getURL()`），并考虑了"正在导航中"的 pending 状态，确保只有内部源的 frame 能调用 IPC。<a href="../09-运维与部署/32-安全与合规.md#ch-32">第 32 章</a>会从安全角度再展开。
 
-### 20.7.3 web-preferences.ts：统一默认值
+### 24.7.3 web-preferences.ts：统一默认值
 
 ```ts
 // 来源：packages/frontend/apps/electron/src/main/web-preferences.ts
@@ -682,9 +682,9 @@ export function buildWebPreferences(
 
 `main-window.ts`、`tab-views.ts`、`popup.ts`、`onboarding.ts`、`custom-theme-window.ts`、`worker/pool.ts` 全部通过 `buildWebPreferences(...)` 创建窗口，避免某个新窗口"忘了"开启隔离。
 
-## 20.8 窗口、标签页与 background worker
+## 24.8 窗口、标签页与 background worker
 
-### 20.8.1 主窗口 + WebContentsView 多标签
+### 24.8.1 主窗口 + WebContentsView 多标签
 
 `main-window.ts` 中的 `BrowserWindow` 本身几乎不加载内容，它是一个"容器"：
 
@@ -713,9 +713,9 @@ helper.connectMain(browserWindow);
 
 真正的内容由 `tab-views.ts` 创建若干 `WebContentsView` 叠加在窗口上：一个 `shell` view（加载 `shell.html`，渲染标签栏），以及 N 个 `app` view（每个标签页一个，加载 `index.html`）。切换标签只是改变 view 的可见性与层级，不需要重新加载页面，这就是桌面端标签切换"秒开"的原因。`backgroundThrottling: type === 'app'` 让后台标签降频以省电。
 
-### 20.8.2 background worker：替代 SharedWorker
+### 24.8.2 background worker：替代 SharedWorker
 
-在浏览器里，多个标签页共享一个 `SharedWorker` 运行 nbstore（第 23 章）。Electron 每个 WebContentsView 是独立进程，AFFiNE 用一个**隐藏 BrowserWindow** 扮演 SharedWorker：
+在浏览器里，多个标签页共享一个 `SharedWorker` 运行 nbstore（<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>）。Electron 每个 WebContentsView 是独立进程，AFFiNE 用一个**隐藏 BrowserWindow** 扮演 SharedWorker：
 
 ```mermaid
 sequenceDiagram
@@ -759,9 +759,9 @@ window.addEventListener('message', ev => {
 
 所以完整的存储路径是：**app 标签页（OpClient）→ background worker（StoreManagerConsumer + SqliteDocStorage）→ helper（nbstoreHandlers）→ `@affine/native` DocStoragePool → SQLite 文件**。`WorkerManager.disconnectWorker` 在端口数降为 0 时销毁隐藏窗口，并监听 `render-process-gone`、`unresponsive` 做故障清理。
 
-## 20.9 src/helper 与 src/preload 逐目录解读
+## 24.9 src/helper 与 src/preload 逐目录解读
 
-### 20.9.1 helper
+### 24.9.1 helper
 
 ```ts
 // 来源：packages/frontend/apps/electron/src/helper/exposed.ts（节选）
@@ -812,9 +812,9 @@ export const nbstoreHandlers: NativeDBApis = {
 };
 ```
 
-注意这里的类型是 `NativeDBApis`（来自 `@affine/nbstore/sqlite`）——**同一个接口**在 iOS/Android 由 Capacitor 插件实现（见 20.13），在 Electron 由 helper 实现。这就是 nbstore 可以"一套存储逻辑三端复用"的关键。
+注意这里的类型是 `NativeDBApis`（来自 `@affine/nbstore/sqlite`）——**同一个接口**在 iOS/Android 由 Capacitor 插件实现（见 <a href="./24-多端-Electron与移动端.md#sec-24-13">24.13</a>），在 Electron 由 helper 实现。这就是 nbstore 可以"一套存储逻辑三端复用"的关键。
 
-### 20.9.2 preload
+### 24.9.2 preload
 
 | 文件 | 职责 |
 | --- | --- |
@@ -826,7 +826,7 @@ export const nbstoreHandlers: NativeDBApis = {
 
 为什么 `import` 需要在 preload 特殊处理？因为沙箱渲染进程里的 `File` 对象拿不到磁盘路径，只有 preload 能调用 `webUtils.getPathForFile`。这是一个"能力只在某一层存在"的典型例子。
 
-## 20.10 渲染层 electron-renderer
+## 24.10 渲染层 electron-renderer
 
 `packages/frontend/apps/electron-renderer/src` 有四个入口，在 `tools/cli/src/bundle.ts` 中定义：
 
@@ -907,9 +907,9 @@ core 中任何模块想调桌面能力，都应该依赖 `DesktopApiService` 而
 
 另外 `app/app.tsx` 中有一个防误用检查：如果 `!BUILD_CONFIG.isElectron && BUILD_CONFIG.debug` 且不在白名单路径，会直接把页面替换成红字 "Don't run electron entry in browser."。
 
-## 20.11 打包、签名与发布：forge.config.mjs
+## 24.11 打包、签名与发布：forge.config.mjs
 
-### 20.11.1 构建分层
+### 24.11.1 构建分层
 
 `@affine/electron/package.json` 的脚本清晰地展示了流水线：
 
@@ -924,7 +924,7 @@ core 中任何模块想调桌面能力，都应该依赖 `DesktopApiService` 而
 
 `scripts/common.ts` 中的 esbuild 配置要点：`target: node22`、`platform: 'node'`、`format: 'cjs'`、`external: ['electron', 'electron-updater', 'yjs', 'semver']`、`.node` 文件用 `copy` loader，并在提供 `SENTRY_AUTH_TOKEN`、`SENTRY_ORG`、`SENTRY_PROJECT` 时启用 `sentryEsbuildPlugin` 上传 sourcemap。`build-layers.ts` 还有一个工程约束检查 `assertNoRuntimeWorkspaceDependencies`：**所有 `workspace:*` 依赖必须放在 devDependencies 并被打包**，否则抛错——因为最终 asar 包里不会有 monorepo 的 workspace 链接。
 
-### 20.11.2 makers 与平台产物
+### 24.11.2 makers 与平台产物
 
 | maker | 平台 | 产物 |
 | --- | --- | --- |
@@ -937,7 +937,7 @@ core 中任何模块想调桌面能力，都应该依赖 `DesktopApiService` 而
 
 设置 `SKIP_BUNDLE` 时只产出 zip，CI 测试场景常用。
 
-### 20.11.3 Fuses：编译期锁死危险能力
+### 24.11.3 Fuses：编译期锁死危险能力
 
 ```js
 // 来源：packages/frontend/apps/electron/forge.config.mjs（节选）
@@ -964,15 +964,15 @@ Fuse 是写进 Electron 二进制的开关，运行期无法修改：
 
 `plugin-auto-unpack-natives` 会把 `.node` 原生模块解包到 `app.asar.unpacked`，因为原生模块无法从 asar 内直接 `dlopen`。
 
-### 20.11.4 签名与公证
+### 24.11.4 签名与公证
 
 - macOS：`packagerConfig.osxSign` 指定 `Developer ID Application: TOEVERYTHING PTE. LTD.` 与 `hardened-runtime`；当设置 `APPLE_ID` 时用 `notarytool` 公证（`APPLE_PASSWORD`、`APPLE_TEAM_ID`）；设置 `AFFINE_UNSIGNED_PACKAGE` 可跳过签名（本地打包）。`extendInfo.NSAudioCaptureUsageDescription` 是录音功能必需的权限描述。
-- Windows：`scripts/sign-windows.ts` 不在 CI 机器上放私钥，而是下载一个签名客户端（按 `AFFINE_SIGN_CLIENT_HASH` 从 CDN 获取），用 `AFFINE_SIGNER_ADDR`、`AFFINE_SIGNER_TOKEN` 连接远程签名服务，`WINDOWS_SIGNER_PUBLIC_CERT_BASE64` 为公钥证书。第 30 章会讲 CI 中的 `scripts/check-windows-signer.mjs` 如何校验。
+- Windows：`scripts/sign-windows.ts` 不在 CI 机器上放私钥，而是下载一个签名客户端（按 `AFFINE_SIGN_CLIENT_HASH` 从 CDN 获取），用 `AFFINE_SIGNER_ADDR`、`AFFINE_SIGNER_TOKEN` 连接远程签名服务，`WINDOWS_SIGNER_PUBLIC_CERT_BASE64` 为公钥证书。<a href="../09-运维与部署/30-CICD与GitHubActions.md#ch-30">第 30 章</a>会讲 CI 中的 `scripts/check-windows-signer.mjs` 如何校验。
 - 渠道隔离：`scripts/make-env.ts` 中 `productName` 对非 stable 渠道为 `AFFiNE-${buildType}`，`hooks.readPackageJson` 覆写 productName，使 stable 与 canary 的应用数据目录互不干扰。
 
-## 20.12 桌面原生能力：@affine/native
+## 24.12 桌面原生能力：@affine/native
 
-`packages/frontend/native` 是一个 NAPI-RS 包（第 11 章），`package.json` 的 `napi.targets` 覆盖 macOS/Linux/Windows 的 x64 与 arm64。它本身是一个"聚合 crate"：
+`packages/frontend/native` 是一个 NAPI-RS 包（<a href="../03-编程语言与基础技术/11-Rust与NAPI-rs.md#ch-11">第 11 章</a>），`package.json` 的 `napi.targets` 覆盖 macOS/Linux/Windows 的 x64 与 arm64。它本身是一个"聚合 crate"：
 
 ```rust
 // 来源：packages/frontend/native/src/lib.rs
@@ -1051,9 +1051,9 @@ pub async fn stop_recording(id: String) -> Result<RecordingArtifact> {
 
 主进程 `src/main/recording/feature.ts` 调用它们，结果通过 `recording` 事件推给 popup 与 app。
 
-## 20.13 移动端：mobile Web、Capacitor 与 uniffi
+## 24.13 移动端：mobile Web、Capacitor 与 uniffi
 
-### 20.13.1 三种移动形态
+### 24.13.1 三种移动形态
 
 | 形态 | 包 | 存储 | 原生能力 |
 | --- | --- | --- | --- |
@@ -1063,7 +1063,7 @@ pub async fn stop_recording(id: String) -> Result<RecordingArtifact> {
 
 `apps/mobile/src/app.tsx` 的 Worker 选择逻辑：有 `SharedWorker` 就用（多标签共享），否则退化为 `Worker`。iOS/Android 共享代码放在 `apps/mobile-shared/src`（`auth/` 鉴权通道与请求代理、`nbstore/` 负载编解码 `payload.ts`），两个原生端都依赖 `@affine/mobile-shared`。
 
-### 20.13.2 Capacitor 配置
+### 24.13.2 Capacitor 配置
 
 ```ts
 // 来源：packages/frontend/apps/ios/capacitor.config.ts（节选）
@@ -1110,7 +1110,7 @@ if (process.env.CAP_SERVER_URL) {
 - 禁用 `CapacitorHttp`、`CapacitorCookies`：不让 Capacitor 劫持 `fetch` 与 cookie，鉴权由自定义 `Auth` 插件与 `mobile-shared/auth` 管理；
 - Android 的 `android.buildOptions` 从 `AFFINE_ANDROID_KEYSTORE_PASSWORD`、`AFFINE_ANDROID_KEYSTORE_ALIAS_PASSWORD` 读取签名密码，`releaseType: 'AAB'`；`CAP_SERVER_URL` 以 `http://` 开头时才允许 `cleartext`。
 
-### 20.13.3 自定义插件全链路：以 NbStore 为例
+### 24.13.3 自定义插件全链路：以 NbStore 为例
 
 ```mermaid
 flowchart LR
@@ -1196,7 +1196,7 @@ Android 对应 `apps/android/App/app/src/main/java/app/affine/pro/MainActivity.k
 | 预览 | `preview` | `preview` |
 | 平台特有 | `navigation-gesture`、`image-picker`、`share-inbox`、`paywall` | `ai-button`、`mobile-back.ts` |
 
-### 20.13.4 Worker 与原生插件之间的"中转"
+### 24.13.4 Worker 与原生插件之间的"中转"
 
 Capacitor 插件只能在主线程（有 `window.Capacitor` 的地方）调用，而 nbstore 跑在 Web Worker 里。iOS 的 `app.tsx` 用一对 `MessageChannel` 把插件 API "借"给 worker：
 
@@ -1229,9 +1229,9 @@ function createStoreManagerClient() {
 }
 ```
 
-对比 Electron：Electron 中 nbstore worker 通过 preload 直接拿到 helper 的 `apis.nbstore`；iOS 中 worker 通过 MessagePort 回调主线程的 Capacitor 插件。**两者最终都调用 `bindNativeDBApis(...)` 喂给同一个 `sqliteStorages`**——这就是第 23 章抽象接口的价值。
+对比 Electron：Electron 中 nbstore worker 通过 preload 直接拿到 helper 的 `apis.nbstore`；iOS 中 worker 通过 MessagePort 回调主线程的 Capacitor 插件。**两者最终都调用 `bindNativeDBApis(...)` 喂给同一个 `sqliteStorages`**——这就是<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>抽象接口的价值。
 
-### 20.13.5 mobile-native：uniffi 绑定
+### 24.13.5 mobile-native：uniffi 绑定
 
 `packages/frontend/mobile-native/Cargo.toml` 定义 crate `affine_mobile_native`，`crate-type = ["cdylib", "staticlib"]`，默认开启 `use-as-lib`（从而依赖 `affine_nbstore/use-as-lib`），并带一个 `uniffi-bindgen` 二进制：
 
@@ -1286,11 +1286,11 @@ GraphQL 方面，`apollo-codegen-chore.sh` 下载 `apollo-ios-cli`，按 `apollo
 | 异步 | 返回 JS Promise | 生成 `async` 函数（`uniffi` 的 `tokio` feature） |
 | 共享核心 | `affine_nbstore` 默认 feature | `affine_nbstore` 的 `use-as-lib` feature |
 
-## 20.14 core 中的多端差异注入
+## 24.14 core 中的多端差异注入
 
 把前面的零散例子归纳成模式。
 
-### 20.14.1 Provider 接口 + 可选依赖
+### 24.14.1 Provider 接口 + 可选依赖
 
 `packages/frontend/core/src/mobile/modules/haptics` 是最小范例：
 
@@ -1325,7 +1325,7 @@ export function configureMobileHapticsModule(framework: Framework) {
 
 `core/src/mobile/modules/index.ts` 中 `configureMobileModules` 统一注册移动端模块：`back-coordinator`、`search`、`virtual-keyboard`、`navigation-projection`、`haptics`。
 
-### 20.14.2 各入口的注入清单
+### 24.14.2 各入口的注入清单
 
 | 注入点 | web | electron-renderer app | ios / android |
 | --- | --- | --- | --- |
@@ -1464,7 +1464,7 @@ export function configureMobileHapticsModule(framework: Framework) {
 - `async-call-rpc` 项目文档（AFFiNE 用它在 MessagePort 上跑 JSON-RPC）。
 - Capacitor 8 官方文档：Creating Plugins、iOS/Android 自定义原生代码。
 - Mozilla uniffi-rs 用户指南。
-- 本书第 11 章（NAPI-rs）、第 20 章（DI 与 LiveData）、第 23 章（nbstore）、第 32 章（Electron 安全）。
+- 本书<a href="../03-编程语言与基础技术/11-Rust与NAPI-rs.md#ch-11">第 11 章</a>（NAPI-rs）、<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>（DI 与 LiveData）、<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>（nbstore）、<a href="../09-运维与部署/32-安全与合规.md#ch-32">第 32 章</a>（Electron 安全）。
 
 ## 学时拆分
 
@@ -1479,4 +1479,4 @@ export function configureMobileHapticsModule(framework: Framework) {
 | **合计** | **10 小时** |
 
 ---
-上一章：[第 23 章 存储与同步引擎 nbstore](./23-存储与同步引擎nbstore.md) ｜ 下一章：[第 25 章 后端架构与基础设施层](../07-后端服务/25-后端架构与基础设施层.md) ｜ [返回目录](../README.md)
+上一章：[第 23 章 存储与同步引擎 nbstore](23-存储与同步引擎nbstore.md) ｜ 下一章：[第 25 章 后端架构与基础设施层](../07-后端服务/25-后端架构与基础设施层.md) ｜ [返回目录](../README.md)

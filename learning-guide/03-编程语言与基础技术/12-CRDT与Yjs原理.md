@@ -1,6 +1,6 @@
 # 第 12 章 CRDT 与 Yjs 原理
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 8 章（CRDT 基础）、第 10 章
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：<a href="./08-CRDT基础入门.md#ch-8">第 8 章</a>（CRDT 基础）、<a href="./10-前端技术栈-React-Lit-Signals-RxJS.md#ch-10">第 10 章</a>
 
 ## 本章导读
 
@@ -58,9 +58,9 @@ mindmap
       y-octo
 ```
 
-## 8.1 协同编辑的核心难题
+## 12.1 协同编辑的核心难题
 
-### 8.1.1 冲突是怎么产生的
+### 12.1.1 冲突是怎么产生的
 
 假设 Alice 和 Bob 同时打开一段文字 `"AB"`：
 
@@ -74,7 +74,7 @@ mindmap
 
 两端结果不一致，而且都不是用户期望的 `"AX"`。根本原因在于：**基于"位置下标"的操作，在并发下语义会漂移**。
 
-### 8.1.2 两大流派：OT 与 CRDT
+### 12.1.2 两大流派：OT 与 CRDT
 
 | 维度 | OT（Operational Transformation） | CRDT（Conflict-free Replicated Data Type） |
 | --- | --- | --- |
@@ -86,9 +86,9 @@ mindmap
 
 AFFiNE 的 "local-first" 定位决定了它必须选 CRDT：用户可能长时间离线编辑、在桌面与手机之间同步、在多个存储（本地 SQLite、IndexedDB、云端）之间来回，**不存在一个随时在线的权威定序者**。
 
-## 8.2 CRDT 的性质：为什么能"无冲突"
+## 12.2 CRDT 的性质：为什么能"无冲突"
 
-### 8.2.1 三条代数性质
+### 12.2.1 三条代数性质
 
 状态型 CRDT（state-based）可以抽象为一个集合 `S` 和一个合并函数 `merge(a, b)`。只要 `merge` 满足：
 
@@ -102,9 +102,9 @@ AFFiNE 的 "local-first" 定位决定了它必须选 CRDT：用户可能长时�
 
 Yjs 的 update 恰好具备这三条性质：`Y.applyUpdate` 可以以任意顺序、任意分组、重复执行。这正是 nbstore 敢于"本地攒一批 update 合并后再推"、服务端敢于"把一堆 update 压缩成快照"的理论基础。
 
-### 8.2.2 教学实验 1：验证交换律与幂等性
+### 12.2.2 教学实验 1：验证交换律与幂等性
 
-> 以下所有实验均为**教学示例**。准备方式：在任意目录新建文件夹，`npm init -y && npm i yjs y-protocols`，然后用 `node xxx.mjs` 运行；也可以在 AFFiNE 仓库外建一个目录，把仓库的 `node_modules` 软链过去复用其中的 `yjs`（仓库安装的是打过补丁的 13.6.21，见 8.7）。
+> 以下所有实验均为**教学示例**。准备方式：在任意目录新建文件夹，`npm init -y && npm i yjs y-protocols`，然后用 `node xxx.mjs` 运行；也可以在 AFFiNE 仓库外建一个目录，把仓库的 `node_modules` 软链过去复用其中的 `yjs`（仓库安装的是打过补丁的 13.6.21，见 <a href="./12-CRDT与Yjs原理.md#sec-12-7">12.7</a>）。
 
 ```js
 // 教学示例：lab-commutative.mjs
@@ -138,11 +138,11 @@ updates 个数: 3
 
 逆序应用时，后面的 update 依赖前面的 Item，Yjs 会先把"缺少依赖"的结构暂存为 pending，等依赖到达后再整合——这也是 nbstore 中 `doc.has_pending_updates()` 检查（`packages/frontend/native/nbstore/src/doc.rs`）的意义：**若合并后仍有 pending，说明数据不完整**，必须报 `IncompleteDoc`，不能当成快照写回。
 
-## 8.3 YATA 算法的直观理解
+## 12.3 YATA 算法的直观理解
 
 Yjs 基于 **YATA**（Yet Another Transformation Approach）算法，属于"序列型 CRDT"。抓住三个概念即可读懂：
 
-### 8.3.1 每个 Item 有唯一 ID
+### 12.3.1 每个 Item 有唯一 ID
 
 文档中的每一段插入内容是一个 **Item**，ID 为 `(clientID, clock)`：
 
@@ -151,11 +151,11 @@ Yjs 基于 **YATA**（Yet Another Transformation Approach）算法，属于"序�
 
 例如 clientID=7 的用户连续输入 `"Hi"`，产生的 ID 是 `(7,0)`、`(7,1)`。Yjs 会把同一客户端连续插入的内容合并为一个 Item 存储（run-length），以减少开销。
 
-### 8.3.2 插入时记录左右邻居
+### 12.3.2 插入时记录左右邻居
 
 Item 除了内容，还记录**插入那一刻**的左邻居 `origin` 与右邻居 `rightOrigin`（都是 ID）。插入操作的语义从"插在下标 1"变成了"**插在 ID=(3,0) 之后、ID=(3,1) 之前**"——ID 永不改变，因此语义不会漂移。
 
-### 8.3.3 并发冲突的确定性排序
+### 12.3.3 并发冲突的确定性排序
 
 当两个用户**在同一位置并发插入**（`origin` 相同）时，YATA 用一条所有副本都一致的规则决定先后：大致是**比较 clientID，较小者排在左边**（并结合 `rightOrigin` 处理更复杂的交错情形）。规则本身不重要，重要的是它是**确定性的**——所有副本对同一组 Item 排序结果相同，于是自然收敛。
 
@@ -168,15 +168,15 @@ flowchart LR
 
 上图：Alice（client 1）与 Bob（client 2）都在 `A` 之后插入，client 1 较小，于是 `X` 排在 `Y` 左边，两端都得到 `AXYB`。
 
-### 8.3.4 删除：墓碑与 DeleteSet
+### 12.3.4 删除：墓碑与 DeleteSet
 
 删除并不真的移除 Item，而是把它标记为已删除（**墓碑 tombstone**），因为别人可能还以它为 `origin` 插入内容。已删除的 ID 以区间的形式记录在 **DeleteSet** 中（`clientID → [clock 区间]`），随 update 一起传输。这也是 CRDT 元数据开销的来源，需要 GC 来缓解（8.5.3）。
 
-回到 8.1.1 的例子：Bob 删除的是 ID 为 `B(0,1)` 的 Item，Alice 插入的是 `origin=A(0,0)` 的 `X(1,0)`。两者引用的都是 ID，无论先后应用，结果都是 `"AX"`。
+回到 <a href="./12-CRDT与Yjs原理.md#sec-12-1-1">12.1.1</a> 的例子：Bob 删除的是 ID 为 `B(0,1)` 的 Item，Alice 插入的是 `origin=A(0,0)` 的 `X(1,0)`。两者引用的都是 ID，无论先后应用，结果都是 `"AX"`。
 
-## 8.4 Yjs 核心 API 速成
+## 12.4 Yjs 核心 API 速成
 
-### 8.4.1 数据类型
+### 12.4.1 数据类型
 
 | 类型 | 类比 | 获取方式 | AFFiNE 中的用途 |
 | --- | --- | --- | --- |
@@ -188,7 +188,7 @@ flowchart LR
 
 顶层类型（`doc.getMap('x')`）以名字区分，各副本中同名即同一对象；嵌套类型必须先插入到文档中才能使用（未"挂载"的 `Y.Text` 读不到 `doc`，这正是 BlockSuite `Text` 类中 `if (input.doc)` 判断的原因）。
 
-### 8.4.2 事务与 origin
+### 12.4.2 事务与 origin
 
 `doc.transact(fn, origin)`：把多次修改打包为一个事务，**只触发一次 `update` 事件**，并携带一个任意的 `origin` 标记，供监听者区分"这次变化是谁引起的"。
 
@@ -207,7 +207,7 @@ console.log('update 事件次数:', count, 'origin === clientID:', lastOrigin ==
 
 `origin` 是 AFFiNE 中最重要的"暗号"之一，后面会看到它决定了：哪些修改进入撤销栈、哪些 update 需要回存、如何避免同步回环。
 
-### 8.4.3 update、state vector 与 diff 同步
+### 12.4.3 update、state vector 与 diff 同步
 
 | API | 作用 |
 | --- | --- |
@@ -233,7 +233,7 @@ sequenceDiagram
     Note over A,B: 双方 applyUpdate 后收敛
 ```
 
-### 8.4.4 教学实验 2：离线并发编辑后的收敛
+### 12.4.4 教学实验 2：离线并发编辑后的收敛
 
 ```js
 // 教学示例：lab-sync.mjs
@@ -277,9 +277,9 @@ B = Say: Hello World
 全量 update 字节: 54  diff 字节: 29
 ```
 
-注意第一行：clientID 超过了 2³²，这就是 8.7 节要讲的补丁效果（原版 yjs 的 clientID 是 32 位）。每次运行 clientID 不同。
+注意第一行：clientID 超过了 2³²，这就是 <a href="./12-CRDT与Yjs原理.md#sec-12-7">12.7 节</a>要讲的补丁效果（原版 yjs 的 clientID 是 32 位）。每次运行 clientID 不同。
 
-### 8.4.5 教学实验 3：二进制层面的合并与 diff
+### 12.4.5 教学实验 3：二进制层面的合并与 diff
 
 ```js
 // 教学示例：lab-merge.mjs（接在实验 1 的 updates 之后）
@@ -313,7 +313,7 @@ Map 冲突结果: from-2 from-2
 - `mergeUpdates` 让 3 个 update 合并后体积从 75 字节降到 51 字节，**且全程没有构造 `Y.Doc`**——这是服务端/存储层压缩的关键能力；
 - `Y.Map` 对同一 key 的并发写入，最终**两端一定相同**，但谁胜出取决于随机的 clientID，所以多运行几次可能看到 `from-1`。这对 Block 属性意味着：**两个人同时改同一个 Block 的同一个属性，会有一个人的修改"消失"**——这是 CRDT 的语义，而不是 bug。BlockSuite 把文本放进 `Y.Text` 而不是字符串属性，正是为了让并发输入能逐字符合并而不是整体覆盖。
 
-### 8.4.6 update 编码 v1 与 v2
+### 12.4.6 update 编码 v1 与 v2
 
 Yjs 有两套二进制编码：v1（默认，`encodeStateAsUpdate`）与 v2（`encodeStateAsUpdateV2`，压缩率更高）。update 的结构可以粗略理解为：
 
@@ -322,7 +322,7 @@ Yjs 有两套二进制编码：v1（默认，`encodeStateAsUpdate`）与 v2（`e
 [DeleteSet：clientID → 被删除的 clock 区间列表]
 ```
 
-**AFFiNE 全链路使用 v1**：TS 侧调用的都是无后缀（v1）的 API；Rust 侧 y-octo 的函数名直接带 `_v1` 后缀（`apply_update_from_binary_v1`、`encode_update_v1`、`merge_updates_v1`，见第 11 章）。
+**AFFiNE 全链路使用 v1**：TS 侧调用的都是无后缀（v1）的 API；Rust 侧 y-octo 的函数名直接带 `_v1` 后缀（`apply_update_from_binary_v1`、`encode_update_v1`、`merge_updates_v1`，见<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>）。
 
 空 update 有特殊的二进制形态，项目里专门写了判断函数——来源：`packages/common/nbstore/src/utils/is-empty-update.ts`
 
@@ -344,9 +344,9 @@ export function isEmptyUpdate(binary: Uint8Array) {
 
 `[0, 0]` 表示"0 组 structs + 0 项 DeleteSet"。服务端 `DocStorageAdapter.isEmptyBin`（`packages/backend/server/src/core/doc/storage/doc.ts`）有同样的判断。
 
-## 8.5 Yjs 进阶：snapshot、GC、UndoManager、Awareness、subdoc
+## 12.5 Yjs 进阶：snapshot、GC、UndoManager、Awareness、subdoc
 
-### 8.5.1 UndoManager：只撤销"自己的"修改
+### 12.5.1 UndoManager：只撤销"自己的"修改
 
 协同场景下，Ctrl+Z 应该只撤销**我**做的修改，不能撤销刚同步过来的同事的修改。`Y.UndoManager` 通过 `trackedOrigins` 实现这一点：只有 origin 在集合中的事务才会进入撤销栈。
 
@@ -418,7 +418,7 @@ export class HistoryExtension extends StoreExtension {
 
 而 `withoutTransact(fn)` 会把 origin 置为 `null`，使这批修改**不进入撤销栈**（例如初始化文档时插入的默认块）；`captureSync()` 调用 `undoManager.stopCapturing()`，强制把后续操作分到新的撤销步骤。`blocksuite/framework/store/src/reactive/text/text.ts` 中 `Text._transact` 同样使用 `doc.clientID` 作为 origin。远端数据由 nbstore 以 `'nbstore-frontend'` 作为 origin 应用（8.8.3），自然不会被撤销。
 
-### 8.5.2 Snapshot：Yjs 原生的版本快照
+### 12.5.2 Snapshot：Yjs 原生的版本快照
 
 Yjs 的 `Y.snapshot(doc)` 记录"某一时刻的状态向量 + 删除集"，配合 `Y.createDocFromSnapshot` 可以还原历史版本——**前提是文档关闭了 GC**（否则被删除的内容已经被回收，无从还原）。
 
@@ -438,7 +438,7 @@ console.log('当前:', ht.toString(), ' 快照还原:', restored.getText('t').to
 
 > 术语提醒：AFFiNE 代码中的 "snapshot" 一词通常指"**合并后的完整文档二进制**"（nbstore 的 `snapshots` 表、服务端的 `Snapshot` 模型），而不是 `Y.snapshot`。
 
-### 8.5.3 GC：回收已删除内容
+### 12.5.3 GC：回收已删除内容
 
 `new Y.Doc()` 默认 `gc: true`：被删除且不再被需要的 Item 内容会被替换为轻量的 GC 结构，只保留 ID 范围。
 
@@ -457,7 +457,7 @@ console.log('gc=true:', sizeAfterDelete(true), ' gc=false:', sizeAfterDelete(fal
 
 在仓库中搜索 `gc: false` 没有业务用例，说明 AFFiNE 的 `Y.Doc` 都保持默认的 GC 开启——与 8.5.2 的"服务端存整份历史"策略相互印证。
 
-### 8.5.4 Awareness：不进入文档的临时状态
+### 12.5.4 Awareness：不进入文档的临时状态
 
 光标位置、选区、在线用户名这类信息**需要实时共享，但不应写入文档历史**。y-protocols 的 `Awareness` 为此设计：每个客户端维护一份本地状态，通过 `encodeAwarenessUpdate` / `applyAwarenessUpdate` 广播，状态带超时（客户端离线一段时间后自动移除）。
 
@@ -506,7 +506,7 @@ export class AwarenessStore {
 
 `selectionV2` 按选区管理器 ID 存放每个用户的选区；`blocksuite/framework/store/src/extension/selection/selection-extension.ts` 读取各客户端的 `state.selectionV2` 还原远端选区，再由 `blocksuite/affine/widgets/remote-selection` 下的组件绘制协作者光标。nbstore 侧的 `AwarenessFrontend`（`packages/common/nbstore/src/frontend/awareness.ts`）监听 `awareness.on('change')`，把变化编码后交给同步层，并用一个 `nanoid()` 生成的 `uniqueId` 作为 origin 避免回环。
 
-### 8.5.5 subdoc：文档里的文档
+### 12.5.5 subdoc：文档里的文档
 
 Yjs 允许把一个 `Y.Doc` 作为值放进另一个文档的 `Y.Map` 中（subdocument），用于"一个工作区包含多个可独立懒加载的文档"。AFFiNE 早期就是这样组织的：root doc 的 `spaces` Map 里放每个页面的 subdoc。
 
@@ -541,9 +541,9 @@ Yjs 允许把一个 `Y.Doc` 作为值放进另一个文档的 `Y.Map` 中（subd
 
 `blocksuite/framework/store/src/yjs/utils.ts` 中残留的 `SubdocEvent` 类型也是这段历史的痕迹。为什么放弃 subdoc？从代码结构推断：独立 `Y.Doc` 让存储与同步层只需面对"按 docId 存取二进制"这一个简单模型（nbstore、服务端的表都以 `(spaceId, docId)` 为键），无需处理 subdoc 的嵌套加载事件。
 
-## 8.6 AFFiNE 的文档数据模型：Block 如何映射到 Y.Map
+## 12.6 AFFiNE 的文档数据模型：Block 如何映射到 Y.Map
 
-### 8.6.1 两层文档：root doc 与 space doc
+### 12.6.1 两层文档：root doc 与 space doc
 
 ```mermaid
 flowchart TB
@@ -595,7 +595,7 @@ export class WorkspaceMetaImpl implements WorkspaceMeta {
 
 `createYProxy` 把 Y.Map 包装成普通 JS 对象的 Proxy（`this._proxy.name = name` 会写入 Y.Map）；`observeDeep` 监听 `pages` 变化，计算出新增/删除的文档并发出 `docMetaAdded` 等事件，`WorkspaceImpl` 据此创建/销毁 `DocImpl`（`packages/frontend/core/src/modules/workspace/impls/workspace.ts` 的 `_bindDocMetaEvents`）。
 
-### 8.6.2 YBlock 的结构
+### 12.6.2 YBlock 的结构
 
 来源：`blocksuite/framework/store/src/model/store/crud.ts`
 
@@ -630,7 +630,7 @@ export class WorkspaceMetaImpl implements WorkspaceMeta {
 | --- | --- | --- |
 | `sys:id` | string | Block ID |
 | `sys:flavour` | string | Block 类型，如 `affine:paragraph` |
-| `sys:version` | number | Schema 版本（对应 `defineBlockSchema` 的 `metadata.version`，不匹配时渲染"Block Version Mismatched"提示，见第 10 章） |
+| `sys:version` | number | Schema 版本（对应 `defineBlockSchema` 的 `metadata.version`，不匹配时渲染"Block Version Mismatched"提示，见<a href="./10-前端技术栈-React-Lit-Signals-RxJS.md#ch-10">第 10 章</a>） |
 | `sys:children` | `Y.Array<string>` | 子 Block 的 ID 列表（**树形结构用 ID 引用表示，而非嵌套 Y.Map**） |
 | `prop:xxx` | 由 `native2Y` 转换 | 业务属性 |
 
@@ -642,7 +642,7 @@ export class WorkspaceMetaImpl implements WorkspaceMeta {
 
 `isFlatData` 的 Block（目前为表格块 `affine:table`，见 `blocksuite/affine/model/src/blocks/table/table-model.ts`；运行时由 `blocksuite/framework/store/src/reactive/flat-native-y/` 支撑）会把嵌套对象拆平为 `prop:a.b.c` 形式的多个键，使并发修改不同子字段时不会互相覆盖（对比 8.4.5 中 Y.Map 同 key 覆盖的语义）。
 
-### 8.6.3 值的转换：native2Y、Text、Boxed
+### 12.6.3 值的转换：native2Y、Text、Boxed
 
 来源：`blocksuite/framework/store/src/reactive/native-y.ts`
 
@@ -690,7 +690,7 @@ export function native2Y<T>(
 | `Text`（BlockSuite 包装） | `Y.Text`（已挂载的会 `clone()`） | 字符级合并 |
 | `Boxed` | 一个内部 `Y.Map`，原始对象整体存在其 `value` 键中 | 整体覆盖，用于"不希望被拆成 CRDT 的不可分对象" |
 
-`Boxed` 的注释说得很清楚（`blocksuite/framework/store/src/reactive/boxed.ts`）："By default, store will try to convert a object to a Y.Map. If you want to store a raw object ... you can use Boxed."——选择哪种形态，决定了这个属性在协同时的冲突粒度，是设计自定义 Block 时必须考虑的问题（第 19 章）。
+`Boxed` 的注释说得很清楚（`blocksuite/framework/store/src/reactive/boxed.ts`）："By default, store will try to convert a object to a Y.Map. If you want to store a raw object ... you can use Boxed."——选择哪种形态，决定了这个属性在协同时的冲突粒度，是设计自定义 Block 时必须考虑的问题（<a href="../05-编辑器内核BlockSuite/19-自定义Block实战.md#ch-19">第 19 章</a>）。
 
 `Text` 类把 `Y.Text` 与 Signals 连接起来——来源：`blocksuite/framework/store/src/reactive/text/text.ts`
 
@@ -713,7 +713,7 @@ export function native2Y<T>(
 
 注意 `isLocal` 的判断逻辑：origin 为空、来自 UndoManager、来自 proxy 写入、或等于本端 clientID，都算"本地修改"——**origin 再次成为区分数据来源的关键**。
 
-### 8.6.4 CRDT-Native 数据流
+### 12.6.4 CRDT-Native 数据流
 
 BlockSuite 官方博客 `blocksuite/docs-site/blog/crdt-native-data-flow.md` 阐述了这一设计哲学：
 
@@ -722,7 +722,7 @@ BlockSuite 官方博客 `blocksuite/docs-site/blog/crdt-native-data-flow.md` 阐
 > 2. Update the model nodes in the block tree based on the `Y.Event`.
 > 3. Send corresponding slot events after updating the block model, so as to update UI components accordingly.
 
-结合第 10 章看过的 `SyncController`（`blocksuite/framework/store/src/model/block/sync-controller.ts`），整条链路是：
+结合<a href="./10-前端技术栈-React-Lit-Signals-RxJS.md#ch-10">第 10 章</a>看过的 `SyncController`（`blocksuite/framework/store/src/model/block/sync-controller.ts`），整条链路是：
 
 ```mermaid
 flowchart LR
@@ -739,9 +739,9 @@ flowchart LR
 
 `blocksuite/docs-site/guide/data-synchronization.md` 进一步提出 `ui = f(data)` 的心智模型：服务端存储的不是 JSON，而是 CRDT 二进制；加载文档就是"新建空 doc + 连接 provider，让数据流入"。需要提醒的是，该文档中的示例代码（`DocCollection`、`@blocksuite/blocks`、`IndexeddbPersistence`、`Job`）来自较早的 BlockSuite 版本，在当前仓库中已被 `WorkspaceImpl`/`DocImpl` 与 nbstore 取代，**理解思想即可，不要照抄 API**。
 
-## 8.7 仓库对 yjs 的补丁
+## 12.7 仓库对 yjs 的补丁
 
-### 8.7.1 补丁内容
+### 12.7.1 补丁内容
 
 根 `package.json` 的 `resolutions`：
 
@@ -774,7 +774,7 @@ index d5165426f2314fc3c2388e64841e7cd6498a92a9..4bb2e5a8b79bb59f08a011af77e69af8
   * @typedef {Object} DocOpts
 ```
 
-### 8.7.2 为什么要改成 53 位
+### 12.7.2 为什么要改成 53 位
 
 `generateNewClientId` 决定每个 `Y.Doc` 的随机 clientID。原版是 32 位随机数（约 43 亿种取值）。根据**生日悖论**，当参与过某文档编辑的客户端实例数达到数万量级时，两个实例抽到相同 clientID 的概率就不可忽略；而 **clientID 冲突是 CRDT 的致命问题**——两个不同客户端会产生相同的 `(clientID, clock)`，Yjs 会把它们当成同一个 Item，导致内容丢失或文档损坏。
 
@@ -782,15 +782,15 @@ index d5165426f2314fc3c2388e64841e7cd6498a92a9..4bb2e5a8b79bb59f08a011af77e69af8
 
 > 以上"为什么"是基于补丁内容与 CRDT 原理的分析；补丁文件本身没有附带说明文字。另外，AFFiNE 在每个文档中会频繁新建 `Y.Doc`（每个 space doc 一个，且每次打开应用都会新建），这使得"历史上参与过编辑的 clientID 数量"增长较快，进一步放大了 32 位空间的碰撞风险。
 
-### 8.7.3 与 Rust 侧的兼容
+### 12.7.3 与 Rust 侧的兼容
 
 服务端与桌面端用 y-octo 解析同样的二进制，因此 y-octo 必须能处理大于 32 位的 clientID。后端 crate 启用了 `y-octo = { workspace = true, features = ["large_refs"] }`（`packages/backend/native/Cargo.toml`）；该 feature 的具体语义请查阅 y-octo 源码，这里不做推测。可以确定的是，Yjs 与 y-octo 必须在 clientID 编码上保持一致，否则 `validate_doc_update` 之类的校验会把合法 update 判为非法——这类跨实现一致性问题，正是 8.9.3 中"双引擎比对"机制要监控的。
 
-## 8.8 nbstore：前端 update 的存取与合并
+## 12.8 nbstore：前端 update 的存取与合并
 
-nbstore 是 AFFiNE 前端的存储与同步引擎（第 23 章详解）。这里只关注它与 CRDT 相关的部分。
+nbstore 是 AFFiNE 前端的存储与同步引擎（<a href="../06-前端应用/23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>详解）。这里只关注它与 CRDT 相关的部分。
 
-### 8.8.1 从 BlockSuite 文档到 nbstore
+### 12.8.1 从 BlockSuite 文档到 nbstore
 
 来源：`packages/frontend/core/src/modules/workspace/entities/workspace.ts`
 
@@ -808,7 +808,7 @@ nbstore 是 AFFiNE 前端的存储与同步引擎（第 23 章详解）。这里
 
 `DocImpl.load()` 会调用 `workspace.onLoadDoc?.(this.spaceDoc)`，于是每个 space doc 都被交给 nbstore 的 `DocFrontend.connectDoc`。
 
-### 8.8.2 DocFrontend：监听本地 update、应用存储 update
+### 12.8.2 DocFrontend：监听本地 update、应用存储 update
 
 来源：`packages/common/nbstore/src/frontend/doc.ts`
 
@@ -875,7 +875,7 @@ const NBSTORE_ORIGIN = 'nbstore-frontend';
 
 被省略的调试代码很有教育意义：如果在应用远端 update 的过程中，某段业务代码因为监听到变化而**又同步修改了文档**，就会产生一个"并非用户操作"的本地 update，导致文档的"最后编辑者"被错误地记为当前用户。nbstore 在 debug 构建下会打印警告提示开发者修复。
 
-### 8.8.3 load 与 save 作业
+### 12.8.3 load 与 save 作业
 
 来源：`packages/common/nbstore/src/frontend/doc.ts`
 
@@ -919,7 +919,7 @@ const NBSTORE_ORIGIN = 'nbstore-frontend';
 - **load**：连接时如果内存中的文档已有内容（比如在连接前就插入了初始块），先把它作为一个 save 作业存下来；然后从存储读出完整二进制并 apply。由于 CRDT 合并满足交换律，"内存先有内容"与"存储里有内容"谁先谁后都不影响结果；
 - **save**：同一个文档排队中的多个 update 先用 `mergeUpdates` **合并成一个**再写入存储——这就是 8.2 中结合律的工程应用，大幅减少存储写入次数。
 
-### 8.8.4 存储层：snapshot + updates 队列
+### 12.8.4 存储层：snapshot + updates 队列
 
 来源：`packages/common/nbstore/src/storage/doc.ts`
 
@@ -979,11 +979,11 @@ flowchart LR
 
 - `await using _lock = ...`：ES 显式资源管理语法（`AsyncDisposable`），作用域结束自动释放文档锁；
 - `squash` 只有一个 update 时快速返回，否则调用 `mergeUpdates`（可通过构造参数注入其他实现）；
-- 存储实现（IndexedDB：`packages/common/nbstore/src/impls/idb/doc.ts`；SQLite：经 `@affine/native` 调用第 11 章讲过的 Rust `affine_nbstore`）只需实现 `getDocSnapshot/setDocSnapshot/getDocUpdates/markUpdatesMerged` 等原语。
+- 存储实现（IndexedDB：`packages/common/nbstore/src/impls/idb/doc.ts`；SQLite：经 `@affine/native` 调用<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>讲过的 Rust `affine_nbstore`）只需实现 `getDocSnapshot/setDocSnapshot/getDocUpdates/markUpdatesMerged` 等原语。
 
 Rust 版 nbstore 的 `get_doc`（`packages/frontend/native/nbstore/src/doc.rs`）用 y-octo 做了同样的事，并多做了两步：合并后用 `DocOptions::new().with_guid(..)` 建一个文档 apply 一遍，检查 `has_pending_updates()`，**有缺失依赖就拒绝写回**；写回时用 `UPDATE ... WHERE updated_at = ? AND data = ?` 做乐观并发控制，冲突就重试。
 
-### 8.8.5 diff 同步：getDocDiff 与 DocSyncPeer
+### 12.8.5 diff 同步：getDocDiff 与 DocSyncPeer
 
 来源：`packages/common/nbstore/src/storage/doc.ts`
 
@@ -1035,9 +1035,9 @@ Rust 版 nbstore 的 `get_doc`（`packages/frontend/native/nbstore/src/doc.rs`�
 
 > **时钟（clock）vs 状态向量**：nbstore 还维护基于时间戳的 `clocks`/`peer_clocks`（见 Rust schema `packages/frontend/native/schema/src/lib.rs` 中的建表 SQL），用于**快速判断哪些文档需要同步**（"远端时钟比我上次拉取的新"）；而真正的数据交换仍用 CRDT 的 state vector + diff。前者是"要不要同步"，后者是"同步什么"。
 
-## 8.9 服务端：合并、存储与历史版本
+## 12.9 服务端：合并、存储与历史版本
 
-### 8.9.1 Prisma 模型
+### 12.9.1 Prisma 模型
 
 来源：`packages/backend/server/schema.prisma`
 
@@ -1096,9 +1096,9 @@ model SnapshotHistory {
 
 注意字段名 `guid`：**文档的 `Y.Doc.guid` 就是数据库主键的一部分**；workspace root doc 的 guid 等于 workspaceId。`updatedAt` 的注释也很关键：它记录的是"最后一个被合并进来的 update 的创建时间"，而不是行的修改时间——这让它可以作为文档的逻辑时钟参与同步判断。
 
-数据层的完整讲解见第 26 章，这里只需建立"表 ↔ CRDT 概念"的对应。
+数据层的完整讲解见<a href="../07-后端服务/26-数据层-Prisma-PostgreSQL-Redis.md#ch-26">第 26 章</a>，这里只需建立"表 ↔ CRDT 概念"的对应。
 
-### 8.9.2 服务端的读时压缩与历史生成
+### 12.9.2 服务端的读时压缩与历史生成
 
 服务端 `DocStorageAdapter`（`packages/backend/server/src/core/doc/storage/doc.ts`）与前端 nbstore 的结构高度相似，同样是"读时压缩"：
 
@@ -1161,7 +1161,7 @@ model SnapshotHistory {
 - 空文档不记历史；
 - 保留时长 `historyMaxAge` 来自工作区配额（`DocStorageOptions.historyMaxAge` 调用 `quota.getWorkspaceQuota(spaceId)` 的 `historyPeriod`），写入 `expiredAt`，到期由定时任务清理（`packages/backend/server/src/core/doc/job.ts` 中的 `DocStorageCronJob`）。也就是说，**历史版本的保留期是付费权益的一部分**。
 
-### 8.9.3 合并引擎：Yjs 与 y-octo 双轨
+### 12.9.3 合并引擎：Yjs 与 y-octo 双轨
 
 来源：`packages/backend/server/src/core/doc/merge-updates.ts`（节选）
 
@@ -1209,7 +1209,7 @@ export function mergeUpdatesWithYjs(
 | --- | --- | --- |
 | `mergeUpdatesWithYjs` | `Y.mergeUpdates`：**二进制层面**拼接 structs 与 DeleteSet | 快，不构造文档；但不做 GC、不整合 pending |
 | `applyUpdatesWithYjs` | 新建 `Y.Doc`，逐个 `applyUpdate`（每 10 个一批、用 `setImmediate` 让出事件循环），最后 `encodeStateAsUpdate` | 结果是"真正整合过"的文档状态，GC 生效、体积更小；较慢，需防止长时间占用 CPU |
-| `applyUpdatesWithNative` | Rust `merge_updates_in_apply_way`：y-octo 新建 `Doc`，逐个 apply 后 encode（第 11 章 7.8.3） | "apply 方式"的原生实现，更快更省内存 |
+| `applyUpdatesWithNative` | Rust `merge_updates_in_apply_way`：y-octo 新建 `Doc`，逐个 apply 后 encode（<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a> 7.8.3） | "apply 方式"的原生实现，更快更省内存 |
 
 `recoverDocWithYjs` 中的注释 "avoid applying too many updates in single round which will take the whole cpu time like dead lock" 道出了在 Node 单线程中处理大文档的痛点——这也是引入 Rust 实现的动机之一。
 
@@ -1268,11 +1268,11 @@ y-octo 在服务端的其他用途：
 
 - **实时广播压缩**：`packages/backend/server/src/core/sync/gateway.ts` 中，当一次要广播多个 update 时，用 `applyUpdatesWithNative` 合并为一个再发给其他客户端（`compressed: true`）；
 - **写入前校验**：`DocStorageAdapter.filterValidDocUpdates` 调用 `validateDocUpdate`（Rust 的 `Update::decode_v1`，带 1 秒超时、32MB 上限），丢弃无法解码的 update，防止恶意或损坏数据污染文档；
-- **内容解析**：标题、摘要、Markdown、搜索索引投影都在 Rust 中直接从二进制解析（第 11 章）。
+- **内容解析**：标题、摘要、Markdown、搜索索引投影都在 Rust 中直接从二进制解析（<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>）。
 
-### 8.9.4 历史版本与回滚
+### 12.9.4 历史版本与回滚
 
-版本历史的读取与回滚 API 定义在 `DocStorageAdapter` 上（`listDocHistories`、`getDocHistory`、`rollbackDoc`），前端的"页面历史"弹窗（`packages/frontend/core/src/components/affine/page-history-modal/`）通过 GraphQL 调用它们（第 27 章）。
+版本历史的读取与回滚 API 定义在 `DocStorageAdapter` 上（`listDocHistories`、`getDocHistory`、`rollbackDoc`），前端的"页面历史"弹窗（`packages/frontend/core/src/components/affine/page-history-modal/`）通过 GraphQL 调用它们（<a href="../07-后端服务/27-API层-GraphQL-WebSocket-认证权限.md#ch-27">第 27 章</a>）。
 
 回滚的实现值得特别注意——来源：`packages/backend/server/src/core/doc/storage/doc.ts`
 
@@ -1304,7 +1304,7 @@ y-octo 在服务端的其他用途：
 
 **CRDT 世界里没有"时光倒流"**：已经同步到其他客户端的操作无法撤回。所谓回滚，是计算出一个"**让当前文档内容变回旧版本样子的新 update**"（`generateChangeUpdate` 借助 `Y.Doc`、state vector 与 `UndoManager` 生成），再像普通编辑一样 `pushDocUpdates` 推送给所有客户端；同时强制把回滚前的状态存一条历史，保证"回滚本身也能被回滚"。`generateChangeUpdate` 的具体行为留作本章动手实践 5。
 
-### 8.9.5 端到端全景
+### 12.9.5 端到端全景
 
 ```mermaid
 sequenceDiagram
@@ -1331,7 +1331,7 @@ sequenceDiagram
     SV->>PG: 写新 snapshot 旧快照入 snapshot_histories 删除 updates
 ```
 
-## 8.10 本章小结
+## 12.10 本章小结
 
 1. 并发编辑的根本难题是**下标语义漂移**；CRDT 用"唯一 ID + 确定性排序"代替下标，天然支持离线与任意拓扑，契合 AFFiNE 的 local-first 定位。
 2. Yjs update 满足交换律、结合律、幂等性，这让"批量合并后再写""读时压缩""重复推送"都是安全的。

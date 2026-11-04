@@ -16,7 +16,7 @@ hero:
       text: 配套演示
       link: /slides/
     - theme: alt
-      text: 第 1 章
+      text: <a href="./01-产品认知/01-产品定位与核心概念.md#ch-1">第 1 章</a>
       link: /01-产品认知/01-产品定位与核心概念
 
 features:
@@ -55,7 +55,7 @@ features:
   - title: 附录 · 脚本与工具
     details: 归纳仓库里散落的 shell/Node 脚本：环境、版本发布、iOS 原生构建、自托管启动链、Git 钩子与测试资源。
     link: /11-附录/35-脚本与自动化工具
-    linkText: 第 35 章
+    linkText: <a href="./11-附录/35-脚本与自动化工具.md#ch-35">第 35 章</a>
   - title: 工程图谱 · 逐包详解
     details: 按 L0–L7 八层自底向上拆解全部子包：每包一篇，讲清设计逻辑、关键文件、实现细节、语法特色与设计亮点，共 112 篇。
     link: /engineering-atlas/README

@@ -148,4 +148,4 @@ Presence（光标/选区）易失、无需持久化，所以 `AwarenessEngine`�
 
 - 同层：`@blocksuite/store`（`Workspace` 用 `BlobEngine` 做 `blobSync`，`AwarenessStore` 配合 `AwarenessEngine`）、`@blocksuite/global`（提供 `Logger`、`sha`）。
 - 上层：AFFiNE 侧 `@affine/nbstore`（L1）实现具体的 Doc/Blob Source，把 BlockSuite 文档接入真正的本地库与云端。
-- 对应教程：learning-guide 第 16 章《BlockSuite 架构与 Store 数据层》中关于协同与存储的部分。
+- 对应教程：learning-guide <a href="../../05-编辑器内核BlockSuite/16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a>《BlockSuite 架构与 Store 数据层》中关于协同与存储的部分。

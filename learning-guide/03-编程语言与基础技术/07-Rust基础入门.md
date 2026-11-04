@@ -1,14 +1,14 @@
 # 第 7 章 Rust 基础入门
 
-> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：6 小时 ｜ **前置章节**：第 5 章 TypeScript 基础入门 ｜ **后续**：第 11 章 Rust 与 NAPI-rs
+> **所属部分**：第 3 部分 · 编程语言与基础技术 ｜ **难度**：★★★☆☆ ｜ **建议学时**：6 小时 ｜ **前置章节**：<a href="./05-TypeScript基础入门.md#ch-5">第 5 章</a> TypeScript 基础入门 ｜ **后续**：<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a> Rust 与 NAPI-rs
 
 ---
 
 ## 本章导读
 
-打开 AFFiNE 仓库根目录，你会看到一个 `Cargo.toml`——除了 TypeScript，AFFiNE 还维护着一个 **Rust workspace**：本地数据库、CRDT 合并、图片处理、SSRF 防护、录音、权限判定都由 Rust 实现。第 11 章会带你逐行读懂这些真实源码并写出第一个 `#[napi]` 函数。但如果你**懂编程、却没学过 Rust**，直接读第 11 章会被所有权、借用、`'a`、`?` 这些符号劝退。
+打开 AFFiNE 仓库根目录，你会看到一个 `Cargo.toml`——除了 TypeScript，AFFiNE 还维护着一个 **Rust workspace**：本地数据库、CRDT 合并、图片处理、SSRF 防护、录音、权限判定都由 Rust 实现。<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会带你逐行读懂这些真实源码并写出第一个 `#[napi]` 函数。但如果你**懂编程、却没学过 Rust**，直接读<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会被所有权、借用、`'a`、`?` 这些符号劝退。
 
-本章就是那块垫脚石：假设你会一门主流语言（JavaScript / Java / Python / Go 皆可），**从 Rust 最核心、也最反直觉的概念讲起**，一路铺到第 11 章的起点。本章只讲 **Rust 语言本身**，不深挖 AFFiNE 源码；读完你应当能看懂绝大多数 Rust 代码，并且知道"编译器为什么要这么管我"。
+本章就是那块垫脚石：假设你会一门主流语言（JavaScript / Java / Python / Go 皆可），**从 Rust 最核心、也最反直觉的概念讲起**，一路铺到<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>的起点。本章只讲 **Rust 语言本身**，不深挖 AFFiNE 源码；读完你应当能看懂绝大多数 Rust 代码，并且知道"编译器为什么要这么管我"。
 
 Rust 的一句话定位：**没有垃圾回收（GC），也没有手动 `free`，却依然内存安全的系统级语言**。它靠一套在**编译期**运行的规则——所有权与借用——在你运行程序之前就证明"不会出现悬垂指针、二次释放、数据竞争"。这套规则就是学习曲线的全部陡峭之处。把它想明白，Rust 的其余部分（类型、trait、泛型、错误处理）对一个有经验的程序员来说都相当顺滑。
 
@@ -23,7 +23,7 @@ Rust 的一句话定位：**没有垃圾回收（GC），也没有手动 `free`�
 - [ ] 能够用 `struct`、`enum` 建模数据，用 `match` 做穷尽的模式匹配
 - [ ] 能够用 `Option`/`Result` 表达"可能没有"与"可能失败"，并用 `?` 运算符串联错误传播
 - [ ] 能够读写简单的 `trait` 与泛型函数，理解 trait 约束与单态化
-- [ ] 能够看懂 `Cargo.toml`、crate、模块（`mod`/`use`）的组织方式，并理解 `async/await` 的基本模型，为第 11 章打底
+- [ ] 能够看懂 `Cargo.toml`、crate、模块（`mod`/`use`）的组织方式，并理解 `async/await` 的基本模型，为<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>打底
 
 ---
 
@@ -50,7 +50,7 @@ flowchart LR
 
 ---
 
-## 一、Rust 定位：没有 GC，为什么还能内存安全
+## 7.1 Rust 定位：没有 GC，为什么还能内存安全
 
 先看两条你已经熟悉的路线，Rust 走的是第三条。
 
@@ -81,7 +81,7 @@ fn main() {
 
 ---
 
-## 二、所有权：Rust 的地基
+## 7.2 所有权：Rust 的地基
 
 所有权（ownership）是 Rust 区别于一切主流语言的核心。三条原则：
 
@@ -91,7 +91,7 @@ fn main() {
 
 第 1、2 条解决"何时释放"：不需要 GC，也不需要手写 `free`，编译器知道作用域结束就是释放点。第 3 条最反直觉，重点看它。
 
-### move 语义：赋值不是拷贝
+### 7.2.1 move 语义：赋值不是拷贝
 
 ```rust
 fn main() {
@@ -118,7 +118,7 @@ fn main() {
 }
 ```
 
-### Copy 类型是例外
+### 7.2.2 Copy 类型是例外
 
 像 `i32`、`bool`、`char`、`f64` 这些固定大小、完全放在栈上的类型，实现了 `Copy`——赋值时**按位复制**，原变量仍可用，不发生 move：
 
@@ -130,7 +130,7 @@ fn main() {
 }
 ```
 
-### 想保留所有权？那就 clone
+### 7.2.3 想保留所有权？那就 clone
 
 如果确实需要一份独立的数据，显式 `clone()`——它会深拷贝堆内存，代价可见：
 
@@ -149,7 +149,7 @@ fn main() {
 
 ---
 
-## 三、借用与引用：不夺走所有权地使用
+## 7.3 借用与引用：不夺走所有权地使用
 
 每次用值都转移所有权显然不现实。Rust 的解法是**借用（borrow）**：通过**引用（reference）**临时访问一个值，而不获取它的所有权。引用用 `&` 创建。
 
@@ -177,7 +177,7 @@ fn main() {
 
 `length` 用完后 `text` 依然可用——这正是借用相对 move 的价值。
 
-### 借用规则：共享不可变，可变要独占
+### 7.3.1 借用规则：共享不可变，可变要独占
 
 这是 Rust 最关键的一条规则，务必记牢：
 
@@ -205,13 +205,13 @@ fn main() {
 为什么这么设计？因为"**多个读者 或 一个写者**"正是**数据竞争**的反面。在 C/C++ 里两个线程一个读一个写同一内存是未定义行为；Rust 把这条规则前移到编译期，**数据竞争在编译阶段就无法通过**。这也是 Rust 敢宣称"无畏并发（fearless concurrency）"的根基。
 
 <div class="tip custom-block">
-<p class="custom-block-title">类比第 5 章</p>
-<p>TypeScript 的 <code>readonly</code> 只是"建议别改"，运行时依然能改；Rust 的 <code>&T</code> 是<strong>编译期强制</strong>的只读，且同一时刻的可变访问被独占保证。这就是"类型系统帮你证明线程安全"的含义——第 11 章会看到 AFFiNE 正是靠它把"把 JS 数据交给工作线程"证明为安全。</p>
+<p class="custom-block-title">类比<a href="./05-TypeScript基础入门.md#ch-5">第 5 章</a></p>
+<p>TypeScript 的 <code>readonly</code> 只是"建议别改"，运行时依然能改；Rust 的 <code>&T</code> 是<strong>编译期强制</strong>的只读，且同一时刻的可变访问被独占保证。这就是"类型系统帮你证明线程安全"的含义——<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会看到 AFFiNE 正是靠它把"把 JS 数据交给工作线程"证明为安全。</p>
 </div>
 
 ---
 
-## 四、生命周期：引用不能比数据活得久
+## 7.4 生命周期：引用不能比数据活得久
 
 借用引出一个新问题：**引用指向的数据，必须比引用本身活得更久**，否则引用就会变成指向已释放内存的"悬垂引用"。生命周期（lifetime）就是编译器用来追踪"每个引用能存活多久"的机制。
 
@@ -228,7 +228,7 @@ fn main() {
 }
 ```
 
-### `'a` 标注在说什么
+### 7.4.1 `'a` 标注在说什么
 
 当函数返回一个引用，而它可能借自多个参数时，编译器无法猜来源，需要你用生命周期参数 `'a` 把它们"绑在一起"：
 
@@ -248,9 +248,9 @@ fn main() {
 
 `<'a>` 声明一个生命周期参数，`a: &'a str`、`b: &'a str`、返回 `&'a str` 表示：**返回的引用，活得不会超过 `a` 和 `b` 中较短的那个**。`'a` 不是让数据活得更久，它只是**描述关系**，让编译器能据此检查调用方有没有在数据失效后还用返回值。
 
-### 生命周期省略
+### 7.4.2 生命周期省略
 
-你读真实代码时会发现很多返回引用的函数**没写** `'a`，比如 `fn first_word(s: &str) -> &str`。这是因为 Rust 有一套**生命周期省略规则（elision）**：对常见模式（如"只有一个引用入参，返回引用必然借自它"）编译器自动补全，省去你手写。**概念上理解到这一层即可**——第 11 章会在 AFFiNE 的 JSON 查询代码里见到真实的 `'a` 标注。
+你读真实代码时会发现很多返回引用的函数**没写** `'a`，比如 `fn first_word(s: &str) -> &str`。这是因为 Rust 有一套**生命周期省略规则（elision）**：对常见模式（如"只有一个引用入参，返回引用必然借自它"）编译器自动补全，省去你手写。**概念上理解到这一层即可**——<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会在 AFFiNE 的 JSON 查询代码里见到真实的 `'a` 标注。
 
 <div class="tip custom-block">
 <p class="custom-block-title">初学心法</p>
@@ -259,9 +259,9 @@ fn main() {
 
 ---
 
-## 五、用 struct、enum 与 match 建模数据
+## 7.5 用 struct、enum 与 match 建模数据
 
-### struct：聚合字段
+### 7.5.1 struct：聚合字段
 
 `struct` 和其他语言的结构体/类的"数据部分"类似：
 
@@ -294,9 +294,9 @@ fn main() {
 
 注意方法第一个参数 `&self` / `&mut self` 就是上一节的借用——方法默认**借用**而不是夺走实例所有权。
 
-### enum：带数据的枚举（代数数据类型）
+### 7.5.2 enum：带数据的枚举（代数数据类型）
 
-Rust 的 `enum` 远比 C 的枚举强大：**每个变体可以携带不同类型的数据**。这正对应第 5 章 TypeScript 的"可辨识联合"，但它是语言原生的：
+Rust 的 `enum` 远比 C 的枚举强大：**每个变体可以携带不同类型的数据**。这正对应<a href="./05-TypeScript基础入门.md#ch-5">第 5 章</a> TypeScript 的"可辨识联合"，但它是语言原生的：
 
 ```rust
 enum Shape {
@@ -306,7 +306,7 @@ enum Shape {
 }
 ```
 
-### match：穷尽的模式匹配
+### 7.5.3 match：穷尽的模式匹配
 
 `match` 对 enum 做分支处理，而且**必须穷尽**所有变体，漏掉一个就编译不过——这让"忘记处理某种情况"的 bug 不可能溜过去：
 
@@ -320,20 +320,20 @@ fn area(s: &Shape) -> f64 {
 }
 ```
 
-如果你删掉 `Shape::Unit =>` 这一臂，编译器会直接报 `non-exhaustive patterns: \`Unit\` not covered`。这种**穷尽性检查**是 Rust 建模状态机、协议消息的利器，也是第 11 章 nbstore 大量用 `enum` 的原因。
+如果你删掉 `Shape::Unit =>` 这一臂，编译器会直接报 `non-exhaustive patterns: \`Unit\` not covered`。这种**穷尽性检查**是 Rust 建模状态机、协议消息的利器，也是<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a> nbstore 大量用 `enum` 的原因。
 
 <div class="tip custom-block">
-<p class="custom-block-title">对照第 5 章</p>
+<p class="custom-block-title">对照<a href="./05-TypeScript基础入门.md#ch-5">第 5 章</a></p>
 <p>TypeScript 要靠"每个分支加一个 <code>kind</code> 字段 + <code>switch</code>"来模拟可辨识联合，还需要 <code>strict</code> 配合才报"未覆盖"。Rust 的 <code>enum</code> + <code>match</code> 把这一切做成了<strong>语言内建、默认强制穷尽</strong>——这就是"代数数据类型比可辨识联合更强"的含义。</p>
 </div>
 
 ---
 
-## 六、错误处理：Option、Result 与 `?`
+## 7.6 错误处理：Option、Result 与 `?`
 
 Rust **没有 null，也没有异常**。两个"可能出问题"的情况用两个标准库 enum 表达。
 
-### Option：可能没有值
+### 7.6.1 Option：可能没有值
 
 ```rust
 enum Option<T> {  // 标准库定义（示意）
@@ -357,7 +357,7 @@ fn main() {
 }
 ```
 
-### Result：可能失败
+### 7.6.2 Result：可能失败
 
 ```rust
 enum Result<T, E> { // 标准库定义（示意）
@@ -375,7 +375,7 @@ fn parse_port(s: &str) -> Result<u16, std::num::ParseIntError> {
 }
 ```
 
-### `?` 运算符：优雅地传播错误
+### 7.6.3 `?` 运算符：优雅地传播错误
 
 每次都写 `match` 处理 `Err` 很啰嗦。`?` 运算符是语法糖：**如果是 `Err` 就立刻从当前函数返回这个错误；如果是 `Ok` 就取出里面的值继续**。
 
@@ -403,7 +403,7 @@ let x = match a.parse() {
 };
 ```
 
-那句 `From::from(e)` 很关键：`?` 在返回时会**自动把错误转换成当前函数签名要求的错误类型**（只要实现了 `From`）。第 11 章会看到 AFFiNE 用 `thiserror` 给 enum 加 `#[from]`，让一个 `?` 就把 `sqlx::Error` 自动转成自家的 `Error`，再转成 `napi::Error`——整条错误链都靠这个机制串起来。
+那句 `From::from(e)` 很关键：`?` 在返回时会**自动把错误转换成当前函数签名要求的错误类型**（只要实现了 `From`）。<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会看到 AFFiNE 用 `thiserror` 给 enum 加 `#[from]`，让一个 `?` 就把 `sqlx::Error` 自动转成自家的 `Error`，再转成 `napi::Error`——整条错误链都靠这个机制串起来。
 
 <div class="tip custom-block">
 <p class="custom-block-title">为什么比异常好</p>
@@ -412,9 +412,9 @@ let x = match a.parse() {
 
 ---
 
-## 七、trait 与泛型简介
+## 7.7 trait 与泛型简介
 
-### trait：Rust 的"接口"
+### 7.7.1 trait：Rust 的"接口"
 
 `trait` 定义一组方法签名（行为），类型用 `impl Trait for Type` 来实现它——类似 TypeScript 的 `interface` 或 Java 的 interface，但更灵活：
 
@@ -452,9 +452,9 @@ fn main() {
 }
 ```
 
-### 泛型：对多种类型复用，且零开销
+### 7.7.2 泛型：对多种类型复用，且零开销
 
-泛型让函数/结构体接收"类型参数"，和第 5 章 TypeScript 泛型的直觉一致。不同的是常配合 **trait 约束**（`T: Trait`）限定"这个类型必须具备某些能力"：
+泛型让函数/结构体接收"类型参数"，和<a href="./05-TypeScript基础入门.md#ch-5">第 5 章</a> TypeScript 泛型的直觉一致。不同的是常配合 **trait 约束**（`T: Trait`）限定"这个类型必须具备某些能力"：
 
 ```rust
 // T 可以是任意类型，但必须实现 PartialOrd（能比较大小）
@@ -483,9 +483,9 @@ fn main() {
 
 ---
 
-## 八、Cargo、crate 与模块
+## 7.8 Cargo、crate 与模块
 
-### Cargo：Rust 的官方工具链
+### 7.8.1 Cargo：Rust 的官方工具链
 
 Cargo 既是包管理器也是构建工具，相当于 Rust 世界的 `npm` + `tsc`。常用命令：
 
@@ -498,7 +498,7 @@ cargo test            # 跑测试
 cargo check           # 只做类型/借用检查，不生成产物，最快
 ```
 
-### crate 与 Cargo.toml
+### 7.8.2 crate 与 Cargo.toml
 
 **crate** 是 Rust 的编译单元与分发单元（约等于一个库或一个可执行程序）。依赖在 `Cargo.toml` 里声明，发布在 [crates.io](https://crates.io)：
 
@@ -513,9 +513,9 @@ serde = { version = "1", features = ["derive"] }
 tokio = { version = "1.45", features = ["full"] }
 ```
 
-第 11 章会讲到 AFFiNE 用 **workspace** 把多个 crate 组织在一起、用 `[workspace.dependencies]` 统一版本——那只是这里单个 `Cargo.toml` 的"规模放大"。
+<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会讲到 AFFiNE 用 **workspace** 把多个 crate 组织在一起、用 `[workspace.dependencies]` 统一版本——那只是这里单个 `Cargo.toml` 的"规模放大"。
 
-### 模块：mod 与 use
+### 7.8.3 模块：mod 与 use
 
 一个 crate 内部用**模块（module）**组织代码，`mod` 声明模块、`pub` 控制可见性、`use` 把路径引入当前作用域：
 
@@ -537,11 +537,11 @@ fn main() {
 }
 ```
 
-Rust 的默认可见性是**私有**：不写 `pub` 的项只能在本模块内访问。这和第 5 章 TypeScript 模块"默认不导出、需 `export`"的直觉一致，只是关键字不同。
+Rust 的默认可见性是**私有**：不写 `pub` 的项只能在本模块内访问。这和<a href="./05-TypeScript基础入门.md#ch-5">第 5 章</a> TypeScript 模块"默认不导出、需 `export`"的直觉一致，只是关键字不同。
 
 ---
 
-## 九、async/await 基础概念
+## 7.9 async/await 基础概念
 
 Rust 也有 `async`/`await`，写起来和 JavaScript 很像，但底层模型有一个**关键区别**，必须讲清。
 
@@ -568,15 +568,15 @@ async fn main() {
 }
 ```
 
-对初学阶段，记住这三点就够通往第 11 章了：
+对初学阶段，记住这三点就够通往<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>了：
 
 1. `async fn` 返回 **Future**，是**惰性**的，`.await` 才推进；
 2. Future 需要**运行时**驱动，Rust 用第三方 crate（AFFiNE 用 **tokio**）；
-3. **CPU 密集的同步计算不要直接塞进 async**（会卡住运行时），应放到专门的线程池——第 11 章会看到 AFFiNE 用 `tokio::task::spawn_blocking` 和 napi 的 `AsyncTask` 正是为此。
+3. **CPU 密集的同步计算不要直接塞进 async**（会卡住运行时），应放到专门的线程池——<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会看到 AFFiNE 用 `tokio::task::spawn_blocking` 和 napi 的 `AsyncTask` 正是为此。
 
 <div class="tip custom-block">
-<p class="custom-block-title">通往第 11 章</p>
-<p>第 11 章会看到 <code>#[napi] pub async fn</code> 被放到 napi 内置的 tokio 运行时上执行，并在 JS 侧返回一个 <code>Promise</code>——Rust 的 Future 与 JS 的 Promise 就在那条 FFI 边界上对接。把本节"惰性 Future + 需要运行时驱动"记牢，到那里就只剩工程细节了。</p>
+<p class="custom-block-title">通往<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a></p>
+<p><a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>会看到 <code>#[napi] pub async fn</code> 被放到 napi 内置的 tokio 运行时上执行，并在 JS 侧返回一个 <code>Promise</code>——Rust 的 Future 与 JS 的 Promise 就在那条 FFI 边界上对接。把本节"惰性 Future + 需要运行时驱动"记牢，到那里就只剩工程细节了。</p>
 </div>
 
 ---
@@ -637,7 +637,7 @@ async fn main() {
 | `non-exhaustive patterns` | `match` 没覆盖所有 enum 变体。补齐分支，或用 `_ =>` 兜底（慎用，会关掉穷尽检查的保护） |
 | `?` 报错 "the `?` operator can only be used in a function that returns Result/Option" | `?` 只能用在返回 `Result`/`Option` 的函数里。改函数签名，或在 `main` 里返回 `Result<(), E>` |
 | async 函数"不执行" | Future 是惰性的，忘了 `.await` 或没有运行时驱动。加 `.await`，并用 `#[tokio::main]` 等建立运行时 |
-| 把重 CPU 计算写进 async 里卡住整个服务 | async 不是用来跑同步重活的。放到 `spawn_blocking` 或线程池（见第 11 章） |
+| 把重 CPU 计算写进 async 里卡住整个服务 | async 不是用来跑同步重活的。放到 `spawn_blocking` 或线程池（见<a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>） |
 
 ---
 
@@ -649,7 +649,7 @@ async fn main() {
 - 标准库文档中的 `Option`、`Result`、`Vec`、`String`：https://doc.rust-lang.org/std/
 - Cargo Book（crate、workspace、依赖、构建脚本）：https://doc.rust-lang.org/cargo/
 - Async Book 与 Tokio 教程：https://rust-lang.github.io/async-book/ 、https://tokio.rs/tokio/tutorial
-- 第 11 章：Rust 与 NAPI-rs（本章概念在 AFFiNE 真实源码中的落地与绑定层）
+- <a href="./11-Rust与NAPI-rs.md#ch-11">第 11 章</a>：Rust 与 NAPI-rs（本章概念在 AFFiNE 真实源码中的落地与绑定层）
 
 ---
 
@@ -667,5 +667,4 @@ async fn main() {
 
 ---
 
-| [← 第 6 章 前端框架基础入门](./06-前端框架基础入门-React-Lit-Signals-RxJS.md) | [第 8 章 CRDT 基础入门 →](./08-CRDT基础入门.md) |
-| --- | --- |
+上一章：[第 6 章 前端框架基础入门：React、Lit、Signals、RxJS](06-前端框架基础入门-React-Lit-Signals-RxJS.md) ｜ 下一章：[第 8 章 CRDT 基础入门](08-CRDT基础入门.md) ｜ [返回目录](../README.md)

@@ -1,6 +1,6 @@
 # 第 23 章 存储与同步引擎 nbstore
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★★ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 12 章 CRDT与Yjs原理、第 20 章 前端基础设施-DI与LiveData
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★★ ｜ **建议学时**：10 小时 ｜ **前置章节**：<a href="../03-编程语言与基础技术/12-CRDT与Yjs原理.md#ch-12">第 12 章</a> CRDT与Yjs原理、<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a> 前端基础设施-DI与LiveData
 
 ## 本章导读
 
@@ -49,7 +49,7 @@ flowchart TB
   Cloud --> GW[后端 SpaceSyncGateway]
 ```
 
-## 19.1 local-first 的存储需求
+## 23.1 local-first 的存储需求
 
 | 需求 | 含义 | nbstore 的回应 |
 |---|---|---|
@@ -64,7 +64,7 @@ flowchart TB
 | 协作感知 | 光标、在线成员 | AwarenessStorage + AwarenessSync（y-protocols） |
 | 全文搜索 | 离线也能搜 | IndexerStorage + IndexerSync（本地倒排索引或云端索引） |
 
-## 19.2 包结构与分层
+## 23.2 包结构与分层
 
 ```json
 // 来源：packages/common/nbstore/package.json（exports 节选）
@@ -97,7 +97,7 @@ flowchart TB
 | `src/realtime/`、`src/telemetry/` | 复用云端 socket 的实时请求/订阅与埋点批量上报 |
 | `src/utils/` | `ClockMap`、`AsyncPriorityQueue`、`universalId`、`isEmptyUpdate`、`throwIfAborted` 等 |
 
-## 19.3 storage 抽象：七类存储
+## 23.3 storage 抽象：七类存储
 
 ```ts
 // 来源：packages/common/nbstore/src/storage/storage.ts
@@ -128,7 +128,7 @@ export interface Storage {
 
 注意 `docSync`、`blobSync`、`indexerSync` 三类都是"**同步元数据**"——它们与数据本身分开存储，所以同一个本地数据库可以对多个对端分别记账。
 
-### 19.3.1 DocStorage 的数据模型
+### 23.3.1 DocStorage 的数据模型
 
 ```ts
 // 来源：packages/common/nbstore/src/storage/doc.ts（节选）
@@ -156,7 +156,7 @@ export interface DocUpdate {
 - `getDocDiff(docId, stateVector)` 返回 `missing`（对方缺的部分）与 `state`（自己的 state vector），这是 Yjs 标准的两步同步；
 - `subscribeDocUpdate` 的注释强调：本地存储（SQLite）只会在用户写入时产生更新，而**云存储会因其他客户端广播而自发产生更新**。
 
-### 19.3.2 DocStorageBase 与 SnapshotDocStorageBase
+### 23.3.2 DocStorageBase 与 SnapshotDocStorageBase
 
 `DocStorageBase` 提供默认 `getDocDiff`（基于 `getDoc` + `diffUpdate`/`encodeStateVectorFromUpdate`）、内部事件、`mergeUpdates`（可注入，默认 `yjs.mergeUpdates`，并过滤空更新）、`lockDocForUpdate`。`SnapshotDocStorageBase` 进一步实现了"**快照 + 更新队列**"：
 
@@ -193,13 +193,13 @@ override async getDoc(docId: string) {
 
 `HistoricalDocStorage`（`storage/history.ts`）继承 `SnapshotDocStorageBase`，监听 `'snapshot'` 事件生成历史版本，供"页面历史"功能使用。
 
-### 19.3.3 lock、errors、dummy
+### 23.3.3 lock、errors、dummy
 
 - `lock.ts`：`Locker` 接口与 `SingletonLocker`（进程内按 `domain:resource` 的 Promise 链锁）。IndexedDB 实现会替换为 `IndexedDBLocker`（`impls/idb/lock.ts`），在数据库的 `locks` 对象仓库上用读写事务实现锁，使锁对同库的其他连接（其他标签页）同样生效；
 - `errors/`：`OverCapacityError`（存储超额）、`OverSizeError`（单文件过大），Blob 同步据此显示不同状态；
 - `dummy/`：七类存储的空实现，`SpaceStorage` 对未配置的类型自动填充 dummy，`DocSyncImpl.dummy` 用于测试。
 
-## 19.4 connection：自动重连与连接共享
+## 23.4 connection：自动重连与连接共享
 
 ```mermaid
 stateDiagram-v2
@@ -264,9 +264,9 @@ export function share<T extends AutoReconnectConnection<any>>(conn: T): T {
 
 `IndexedDBDocStorage`、`IndexedDBBlobStorage` 等都写 `readonly connection = share(new IDBConnection(this.options))`，`IDBConnection.shareId` 为 `idb(<schema 版本>):<flavour>:<type>:<id>`——**同一工作区的六类 IDB 存储共用一个数据库连接**。云端则由 `getSocketManager(endpoint, isSelfHosted)` 按端点缓存 `SocketManager`，同一服务器的所有工作区共用一条 socket。
 
-## 19.5 impls：各端实现
+## 23.5 impls：各端实现
 
-### 19.5.1 实现一览
+### 23.5.1 实现一览
 
 | 实现目录 | 提供的存储类（`identifier`） | 适用端 | 底层 |
 |---|---|---|---|
@@ -280,7 +280,7 @@ export function share<T extends AutoReconnectConnection<any>>(conn: T): T {
 
 `StorageConstructor` 要求每个类有静态 `identifier`，Worker 根据字符串名字实例化（因为构造参数要跨线程传递，只能是可结构化克隆的数据）。
 
-### 19.5.2 各端如何选择
+### 23.5.2 各端如何选择
 
 ```ts
 // 来源：packages/frontend/core/src/modules/workspace-engine/impls/local.ts（节选）
@@ -299,7 +299,7 @@ IndexerSyncStorageType = BUILD_CONFIG.isElectron
   : IndexedDBIndexerSyncStorage;
 ```
 
-### 19.5.3 IndexedDB 的表结构与跨标签通知
+### 23.5.3 IndexedDB 的表结构与跨标签通知
 
 `impls/idb/schema.ts` 顶部注释给出了库表设计：每个空间一个数据库 `${flavour}:${type}:${id}`，包含 `snapshots`、`updates`（自增 id）、`clocks`、`blobs`、`blobData`、`peerClocks`（含 `clock`、`pulledClock`、`pushedClock`）、`locks`、`blobSync`、`indexerSync`、`indexerMetadata`、`indexerRecords`、`invertedIndex` 等对象仓库。
 
@@ -331,7 +331,7 @@ export class SqliteDocStorage extends DocStorageBase<SqliteNativeDBOptions> {
 
 （`emit` 参数压缩为单行。）
 
-## 19.6 SpaceStorage：把七类存储组合成一个"空间"
+## 23.6 SpaceStorage：把七类存储组合成一个"空间"
 
 ```ts
 // 来源：packages/common/nbstore/src/storage/index.ts（节选）
@@ -369,13 +369,13 @@ export class SpaceStorage {
 
 本地工作区没有 cloud 对端，但在 Electron 开启磁盘同步时多一个 `remotes.disk`（`DiskDocStorage`）。**"迁移旧数据"与"同步云端"用的是同一套机制**——都只是多了一个对端。
 
-## 19.7 Doc 同步算法（核心）
+## 23.7 Doc 同步算法（核心）
 
-### 19.7.1 Sync 与 DocSyncImpl
+### 23.7.1 Sync 与 DocSyncImpl
 
 `Sync`（`sync/index.ts`）从 local/remotes 两组 `SpaceStorage` 中取出对应类型，构造四个同步器，`start()` 启动 doc、blob、indexer。`DocSyncImpl`（`sync/doc/index.ts`）为每个远端创建一个 `DocSyncPeer`，并把各 peer 的状态聚合为 `state$`（`total`/`syncing`/`synced`/`retrying`/`errorMessage`，节流 1 秒避免刷屏 UI）。
 
-### 19.7.2 三种时钟
+### 23.7.2 三种时钟
 
 每个 `(peerId, docId)` 在 `DocSyncStorage` 中记录三种时钟：
 
@@ -392,7 +392,7 @@ export class SpaceStorage {
 
 这比"每次都交换 state vector"高效得多：几千篇文档的工作区，上线时只需一次 `getDocTimestamps` 就能知道哪些文档需要同步。
 
-### 19.7.3 五种任务
+### 23.7.3 五种任务
 
 ```ts
 // 来源：packages/common/nbstore/src/sync/doc/peer.ts（Job 类型）
@@ -474,7 +474,7 @@ flowchart TD
 
 **save**：远端广播来的更新，合并后写入本地，记录 pulled clock。
 
-### 19.7.4 事件驱动与主循环
+### 23.7.4 事件驱动与主循环
 
 ```ts
 // 来源：packages/common/nbstore/src/sync/doc/peer.ts（events 节选）
@@ -508,13 +508,13 @@ remoteUpdated: ({ docId, update, remoteClock, origin }) => {
 
 `mainLoop` 包住 `retryLoop`：异常后（权限错误 `DOC_ACTION_DENIED`/`SPACE_ACCESS_DENIED` 除外）重置全部状态，5 秒后重试。单个文档的权限错误只标记该文档（`docErrors`），不影响其他文档。
 
-### 19.7.5 优先级
+### 23.7.5 优先级
 
 `schedule` 把 docId 以 `getJobPriority(docId)` 推进 `AsyncPriorityQueue`。**工作区根文档（docId 等于 spaceId）优先级为 Infinity**——注释说明"新文档上传需要先同步其在根文档中的成员关系"。其余优先级由 `addPriority(id, n)` 累加：`WorkspaceEngine.start()` 给根文档 +100，`Doc` 实体打开时 +100，详情页 +10，ORM 表文档 +50。`addPriority` 返回撤销函数，优先级能精确"借还"。
 
-## 19.8 Blob、Awareness、Indexer 同步
+## 23.8 Blob、Awareness、Indexer 同步
 
-### 19.8.1 BlobSync
+### 23.8.1 BlobSync
 
 `BlobSyncPeer`（`sync/blob/peer.ts`）不做双向合并（Blob 以内容哈希为 key，天然不可变），只做：
 
@@ -525,7 +525,7 @@ remoteUpdated: ({ docId, update, remoteClock, origin }) => {
 
 `BlobFrontend.get` 先读本地，没有再 `sync.downloadBlob` 后重读；`set` 写本地后**不等待**上传（`uploadBlob(blob, true)` 在后台进行）——用户插入图片立即可见。
 
-### 19.8.2 AwarenessSync
+### 23.8.2 AwarenessSync
 
 ```ts
 // 来源：packages/common/nbstore/src/sync/awareness/index.ts（节选）
@@ -540,7 +540,7 @@ async update(record: AwarenessRecord, origin?: string) {
 
 感知数据不持久化，同步就是"广播给所有已连接对端"：本地对端是 BroadcastChannel（同源其他标签页），远端是云端 socket（`space:update-awareness`）。`subscribeUpdate(id, onUpdate, onCollect)` 的 `onCollect` 用于新加入者"收集"现有成员状态（云端 `space:collect-awareness`、BroadcastChannel `awareness-collect` 消息）。
 
-### 19.8.3 IndexerSync
+### 23.8.3 IndexerSync
 
 `IndexerSyncImpl`（`sync/indexer/index.ts`）负责把文档内容写入索引：
 
@@ -551,9 +551,9 @@ async update(record: AwarenessRecord, origin?: string) {
 
 索引 schema 定义在 `storage/indexer/schema.ts`：`doc` 表（`docId`、`title` 全文、`summary` 不索引）与 `block` 表（`docId`、`blockId`、`content` 全文、`flavour`、`blob`、`refDocId`、`ref`、`parentFlavour`、`parentBlockId`、`additional`、`markdownPreview`）。查询时可通过 `prefer: 'local' | 'remote'` 选择本地索引或云端索引。
 
-## 19.9 frontend 层：主线程门面
+## 23.9 frontend 层：主线程门面
 
-### 19.9.1 DocFrontend：YDoc 与存储的双向绑定
+### 23.9.1 DocFrontend：YDoc 与存储的双向绑定
 
 ```ts
 // 来源：packages/common/nbstore/src/frontend/doc.ts（_connectDoc 与 handleDocUpdate 节选）
@@ -592,17 +592,17 @@ private readonly handleDocUpdate = (update: Uint8Array, origin: any, doc: YDoc, 
 
 `NBSTORE_ORIGIN` 作为 Yjs transaction origin，`handleDocUpdate` 见到它就跳过——这是防止"写回自己"的关键。debug 模式下若在应用远端更新期间有代码修改了文档，会打印醒目警告：这会导致"编辑者"被误记为当前用户。
 
-`docState$(docId)` 把自身的 `ready/loaded/updating` 与 `DocSync.docState$` 的 `syncing/synced/retrying/errorMessage` 合并成 `DocFrontendDocState`；第 21 章工作区页面正是等 `docState$(workspace.id)` 的 `ready` 才渲染工作台。`addPriority` 同时调整自身队列与 `sync.addPriority`。
+`docState$(docId)` 把自身的 `ready/loaded/updating` 与 `DocSync.docState$` 的 `syncing/synced/retrying/errorMessage` 合并成 `DocFrontendDocState`；<a href="./21-Core业务模块与路由.md#ch-21">第 21 章</a>工作区页面正是等 `docState$(workspace.id)` 的 `ready` 才渲染工作台。`addPriority` 同时调整自身队列与 `sync.addPriority`。
 
-### 19.9.2 其他门面
+### 23.9.2 其他门面
 
 - `BlobFrontend`：`get/set/upload/registerSource/fullDownload`，用 `SingletonLocker` 保证同一 blob 的 set 与 get 不交错；
 - `AwarenessFrontend.connectAwareness(awareness)`：监听 y-protocols `Awareness` 的 `change`，`encodeAwarenessUpdate` 后经 sync 广播；收到更新 `applyAwarenessUpdate`；`onCollect` 返回自己的状态；
 - `IndexerFrontend`：`search/aggregate/search$/aggregate$/docState$/addPriority/waitForCompleted/waitForDocCompleted` 等，全部委托给 `IndexerSync`。
 
-## 19.10 Worker 化：存储跑在另一个线程
+## 23.10 Worker 化：存储跑在另一个线程
 
-### 19.10.1 两级 op 协议
+### 23.10.1 两级 op 协议
 
 `worker/ops.ts` 定义两套 `OpSchema`：
 
@@ -626,7 +626,7 @@ export type WorkerOps = UnionToIntersection<
 
 `StoreInitOptions` 描述要创建哪些存储：`{ local: { [type]: { name, opts } }, remotes: { [peer]: { [type]: { name, opts } } } }`，`name` 必须是某个实现的 `identifier`，`opts` 类型由 `ConstructorParameters` 推导——类型系统保证了"字符串名 ↔ 构造参数"的一致。
 
-### 19.10.2 打开一个 store
+### 23.10.2 打开一个 store
 
 ```ts
 // 来源：packages/common/nbstore/src/worker/client.ts（StoreManagerClient.open 节选）
@@ -656,10 +656,10 @@ open(key: string, options: StoreInitOptions) {
 ```
 
 - 每个工作区一条**专属 MessageChannel**：管理通道只负责 open/close，数据走 `port1 ↔ port2`；
-- `transfer(..., [port2])` 把端口所有权移交给 Worker（第 20 章 `op` 的 Transferable 机制）；
+- `transfer(..., [port2])` 把端口所有权移交给 Worker（<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a> `op` 的 Transferable 机制）；
 - Worker 侧 `StoreManagerConsumer`（`worker/consumer.ts`）按 `key`（如 `workspace:<flavour>:<id>`）维护 `storePool`，**同 key 的第二次 open 复用已有 `StoreConsumer`（引用计数 +1）**，只在远端配置变化时 `reconfigure`；`serialize(key, ...)` 让同一 key 的 open/close 串行执行。结合 SharedWorker，这意味着**多个标签页打开同一工作区，只有一份存储与同步实例**。
 
-### 19.10.3 StoreClient：远程代理 + 本地门面
+### 23.10.3 StoreClient：远程代理 + 本地门面
 
 ```ts
 // 来源：packages/common/nbstore/src/worker/client.ts（StoreClient 构造）
@@ -700,7 +700,7 @@ sequenceDiagram
   L-->>SC: emit update 供 DocSync 推送远端
 ```
 
-### 19.10.4 Worker 入口与 realtime、telemetry
+### 23.10.4 Worker 入口与 realtime、telemetry
 
 Web 端 Worker 入口：
 
@@ -730,9 +730,9 @@ if ('onconnect' in globalThis) {
 - `RealtimeManager`（`realtime/manager.ts`）：复用云端 `SocketConnection`，提供 `realtime.request`/`realtime.subscribe`（基于 `@affine/realtime` 的类型定义，socket 事件 `realtime:request`、`realtime:subscribe`、`realtime:event`），主应用通过 `NbstoreProvider.realtime` 使用（如 `cloud/services/realtime.ts`）；
 - `TelemetryManager`（`telemetry/manager.ts`）：埋点先写入 IndexedDB 队列 `affine-telemetry`（`telemetry/queue.ts`），批量通过 `telemetry:batch` 上报，失败退避重试；`apps/web/src/app.tsx` 中 `setTelemetryTransport(storeManagerClient.telemetry)` 接入。
 
-## 19.11 与云端 socket.io 的协议对接
+## 23.11 与云端 socket.io 的协议对接
 
-### 19.11.1 事件对照表
+### 23.11.1 事件对照表
 
 客户端类型定义在 `packages/common/nbstore/src/impls/cloud/socket.ts` 的 `ServerEvents`/`ClientEvents`，服务端处理在 `packages/backend/server/src/core/sync/gateway.ts`：
 
@@ -755,7 +755,7 @@ if ('onconnect' in globalThis) {
 
 服务端另有 `space:leave`（`@SubscribeMessage('space:leave')`），当前客户端类型中未声明。所有二进制均以 base64 传输（`uint8ArrayToBase64`/`base64ToUint8Array`，有 `Buffer` 时用 `Buffer` 加速）；`idConverter` 负责新旧文档 id 格式转换。
 
-### 19.11.2 推送的服务端处理
+### 23.11.2 推送的服务端处理
 
 ```ts
 // 来源：packages/backend/server/src/core/sync/gateway.ts（onReceiveDocUpdate 节选）
@@ -777,9 +777,9 @@ this.publishDocUpdate(
 return { data: { accepted: true, timestamp } };
 ```
 
-（部分参数压缩为单行。）返回的 `timestamp` 就是客户端 `CloudDocStorage.pushDocUpdate` 拿到的远端时钟。抛出的 `DocActionDenied` 到客户端变成 `error.name` 为 `DOC_ACTION_DENIED` 的错误——正是 `DocSyncPeer` 中 `isRemotePermissionError` 识别的名字。服务端细节见第 27 章。
+（部分参数压缩为单行。）返回的 `timestamp` 就是客户端 `CloudDocStorage.pushDocUpdate` 拿到的远端时钟。抛出的 `DocActionDenied` 到客户端变成 `error.name` 为 `DOC_ACTION_DENIED` 的错误——正是 `DocSyncPeer` 中 `isRemotePermissionError` 识别的名字。服务端细节见<a href="../07-后端服务/27-API层-GraphQL-WebSocket-认证权限.md#ch-27">第 27 章</a>。
 
-### 19.11.3 两级广播：活跃订阅 vs 失效通知
+### 23.11.3 两级广播：活跃订阅 vs 失效通知
 
 `publishDocUpdate` 做了两件事：
 
@@ -788,11 +788,11 @@ return { data: { accepted: true, timestamp } };
 
 客户端收到失效通知后，`CloudDocStorage` 50ms 防抖执行 `repairInvalidatedDocs`：重新 `getDocTimestamps()`，对时间戳比已知更新的文档 `emit('update', { bin: new Uint8Array() })`——一个**空更新**。`DocSyncPeer.events.remoteUpdated` 看到空更新就调度 `pull`。这样，没有打开某文档的客户端不必接收它的全部增量，只在需要时按 state vector 拉取差量，大幅节省带宽。
 
-## 19.12 应用侧接入、搜索与全链路
+## 23.12 应用侧接入、搜索与全链路
 
-### 19.12.1 workspace-engine：配置 + 打开
+### 23.12.1 workspace-engine：配置 + 打开
 
-`WorkspaceFlavourProvider.getEngineWorkerInitOptions(workspaceId)`（第 21 章）生成 `StoreInitOptions`；`WorkspaceEngine.start()`（`core/modules/workspace/entities/engine.ts`）：
+`WorkspaceFlavourProvider.getEngineWorkerInitOptions(workspaceId)`（<a href="./21-Core业务模块与路由.md#ch-21">第 21 章</a>）生成 `StoreInitOptions`；`WorkspaceEngine.start()`（`core/modules/workspace/entities/engine.ts`）：
 
 ```ts
 // 来源：packages/frontend/core/src/modules/workspace/entities/engine.ts（start 节选）
@@ -817,9 +817,9 @@ this.disposables.push(() => this.doc.stop());
 store.blobFrontend.fullDownload('v1').catch(() => {});
 ```
 
-之后 `Workspace.docCollection` 的 `onLoadDoc` 回调对每个子文档 `engine.doc.connectDoc(doc)`，ORM 的表文档也同样 `connectDoc`（第 20 章）。`NbstoreService` 只是 `NbstoreProvider` 的薄包装，Web 端由 `apps/web/src/app.tsx` 用 `storeManagerClient.open` 实现。
+之后 `Workspace.docCollection` 的 `onLoadDoc` 回调对每个子文档 `engine.doc.connectDoc(doc)`，ORM 的表文档也同样 `connectDoc`（<a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>）。`NbstoreService` 只是 `NbstoreProvider` 的薄包装，Web 端由 `apps/web/src/app.tsx` 用 `storeManagerClient.open` 实现。
 
-### 19.12.2 Electron 与原生 SQLite
+### 23.12.2 Electron 与原生 SQLite
 
 Electron 渲染层的存储 Worker 在 `packages/frontend/apps/electron-renderer/src/background-worker/index.ts`：
 
@@ -860,7 +860,7 @@ flowchart LR
 
 `universalId`（`utils/universal-id.ts`）把 `{peer, type, id}` 编码为 `@peer(...);@type(...);@id(...);`，作为原生侧区分数据库的唯一键。
 
-### 19.12.3 搜索索引：indexer 与 docs-search
+### 23.12.3 搜索索引：indexer 与 docs-search
 
 `core/modules/docs-search` 的 README 写道："负责订阅文档引擎的更新并把文档内容写入索引，提供搜索与聚合能力"。实际上写入已由 nbstore 的 `IndexerSync` 完成，`DocsSearchService` 主要做查询：
 
@@ -884,7 +884,7 @@ searchTitle$(query: string) {
 | Web | `IndexedDBIndexerStorage`：自研分词（`tokenizer.ts`）+ 倒排表 + BM25 打分 + 高亮 | `CloudIndexerStorage`（服务器开启 Indexer 特性时） |
 | Electron/移动 | `SqliteIndexerStorage`：查询经 `NativeDBApis` 交给 Rust 侧（`native/nbstore/src/indexer/`，依赖 `memory-indexer` crate） | 同上 |
 
-### 19.12.4 完整时序：离线编辑 → 上线同步
+### 23.12.4 完整时序：离线编辑 → 上线同步
 
 ```mermaid
 sequenceDiagram
@@ -940,7 +940,7 @@ sequenceDiagram
 - 远端拉下的数据写入本地存储后，通过 `subscribeDocUpdate` 回到 `DocFrontend` 再应用到 YDoc——**数据永远经由本地存储流向 UI**，单一数据通路保证了一致性；
 - 其他在线客户端：打开该文档的收到 `space:broadcast-doc-updates` → `save`；没打开的收到失效通知 → 空更新 → 稍后 `pull`。
 
-### 19.12.5 本章小结
+### 23.12.5 本章小结
 
 - nbstore 以 Yjs 更新为数据单元，用"七类存储 + SpaceStorage 组合 + 多对端同步"实现 local-first；
 - `SnapshotDocStorageBase` 的追加写、惰性压实，`AutoReconnectConnection` 的引用计数与退避，`share()` 的连接复用，是性能与稳定性的基础；
@@ -980,7 +980,7 @@ sequenceDiagram
 ### 练习 2：观察浏览器中的本地存储（基础）
 
 - **目标**：把 schema 注释与真实数据对应起来。
-- **步骤**：本地启动 Web 端（第 15 章），创建一个本地工作区并输入几段文字；打开 DevTools → Application → IndexedDB，找到名为 `local:workspace:<id>` 的库，查看 `updates`、`snapshots`、`clocks` 表；刷新页面后再看 `updates` 是否被合并进 `snapshots`。
+- **步骤**：本地启动 Web 端（<a href="../04-工程化与开发环境/15-本地开发环境搭建与调试.md#ch-15">第 15 章</a>），创建一个本地工作区并输入几段文字；打开 DevTools → Application → IndexedDB，找到名为 `local:workspace:<id>` 的库，查看 `updates`、`snapshots`、`clocks` 表；刷新页面后再看 `updates` 是否被合并进 `snapshots`。
 - **验收标准**：能说明"追加写、惰性压实"在数据上的表现。
 
 ### 练习 3：手推三种时钟（进阶）
@@ -1049,11 +1049,11 @@ sequenceDiagram
 - `packages/frontend/core/src/modules/docs-search/README.md`；
 - Yjs 文档：Document Updates、State Vector、`mergeUpdates`/`diffUpdate`；y-protocols Awareness；
 - 论文/文章：Ink & Switch《Local-first software》；
-- 第 12 章 CRDT 与 Yjs 原理：理解 update 与 state vector；
-- 第 20 章：`op` RPC 与 ORM 如何接入 DocFrontend；
-- 第 24 章：Electron helper 与移动端原生桥；
+- <a href="../03-编程语言与基础技术/12-CRDT与Yjs原理.md#ch-12">第 12 章</a> CRDT 与 Yjs 原理：理解 update 与 state vector；
+- <a href="./20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>：`op` RPC 与 ORM 如何接入 DocFrontend；
+- <a href="./24-多端-Electron与移动端.md#ch-24">第 24 章</a>：Electron helper 与移动端原生桥；
 - 第 26、27 章：服务端文档存储与 WebSocket 网关；
-- 第 33 章：端到端链路追踪。
+- <a href="../10-综合实战/33-端到端链路追踪.md#ch-33">第 33 章</a>：端到端链路追踪。
 
 ## 学时拆分
 
@@ -1068,4 +1068,4 @@ sequenceDiagram
 | **合计** | **10 小时** |
 
 ---
-上一章：[第 22 章 组件库、主题与国际化](./22-组件库主题与国际化.md) ｜ 下一章：[第 24 章 多端：Electron 与移动端](./24-多端-Electron与移动端.md) ｜ [返回目录](../README.md)
+上一章：[第 22 章 组件库、主题与国际化](22-组件库主题与国际化.md) ｜ 下一章：[第 24 章 多端：Electron 与移动端](24-多端-Electron与移动端.md) ｜ [返回目录](../README.md)

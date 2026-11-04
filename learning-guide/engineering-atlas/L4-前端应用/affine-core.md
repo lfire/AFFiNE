@@ -223,4 +223,4 @@ export function configureDesktopWorkbenchModule(services: Framework) {
 - 地基：L1 `@toeverything/infra`（`Framework`/`Scope`/`LiveData`/ORM，见 `toeverything-infra.md`）——core 是它最大的使用者；`@affine/nbstore`（本地优先存储与同步，经 `NbstoreService` 衔接）。
 - 编辑器：L3 `@blocksuite/affine`（聚合门面，见 `blocksuite-affine.md`）——core 在 `blocksuite/manager/` 消费其两份扩展清单与 `AffineSchemas`。
 - 使用方：`apps/web`、`apps/electron-renderer`、`apps/mobile`、`apps/ios`、`apps/android`（另有 `apps/mobile-shared`、`@affine/admin` 引用部分模块）——它们挑平台模块、填平台 impl、构造 `Framework` 并渲染 `FrameworkRoot`。
-- 对应教程：learning-guide 第 20 章（DI 与 LiveData）为前置，第 21–24 章讲 `@affine/core` 的模块化架构、作用域模型、本地优先数据流与跨端同构。
+- 对应教程：learning-guide <a href="../../06-前端应用/20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>（DI 与 LiveData）为前置，第 21–24 章讲 `@affine/core` 的模块化架构、作用域模型、本地优先数据流与跨端同构。

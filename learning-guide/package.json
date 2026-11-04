@@ -8,7 +8,9 @@
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview",
-    "check": "node scripts/check-mermaid.mjs"
+    "check": "node scripts/check-mermaid.mjs && node scripts/numbering.mjs --check",
+    "numbering:fix": "node scripts/numbering.mjs --fix",
+    "numbering:refs": "node scripts/numbering.mjs --fix --refs"
   },
   "devDependencies": {
     "happy-dom": "^21.0.4",

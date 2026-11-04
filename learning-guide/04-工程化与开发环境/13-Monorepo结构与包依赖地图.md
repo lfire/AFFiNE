@@ -1,6 +1,6 @@
 # 第 13 章 Monorepo 结构与包依赖地图
 
-> **所属部分**：第 4 部分 · 工程化与开发环境 ｜ **难度**：★★☆☆☆ ｜ **建议学时**：4 小时 ｜ **前置章节**：第 1 章
+> **所属部分**：第 4 部分 · 工程化与开发环境 ｜ **难度**：★★☆☆☆ ｜ **建议学时**：4 小时 ｜ **前置章节**：<a href="../01-产品认知/01-产品定位与核心概念.md#ch-1">第 1 章</a>
 
 ## 本章导读
 
@@ -60,9 +60,9 @@ mindmap
       affine init 生成物
 ```
 
-## 9.1 Monorepo 是什么，AFFiNE 为什么需要它
+## 13.1 Monorepo 是什么，AFFiNE 为什么需要它
 
-### 9.1.1 概念
+### 13.1.1 概念
 
 Monorepo（单体仓库）指**把多个可独立发布或独立构建的项目放在同一个版本库中管理**。注意它和"单体应用（monolith）"是两回事：Monorepo 里的包依旧边界清晰、各自有 `package.json`，只是共享同一份 Git 历史、同一套依赖安装和同一套工具链。
 
@@ -75,7 +75,7 @@ Monorepo（单体仓库）指**把多个可独立发布或独立构建的项目�
 | 新人上手 | 单仓小，但不知道去哪儿找相关代码 | 仓库大，但"全局搜索"即可找到一切 |
 | 安装体积 | 小 | 大（AFFiNE 的 `yarn.lock` 超过 3 万行） |
 
-### 9.1.2 AFFiNE 的特殊性
+### 13.1.2 AFFiNE 的特殊性
 
 AFFiNE 有三个特点让 Monorepo 几乎成为必选项：
 
@@ -83,23 +83,23 @@ AFFiNE 有三个特点让 Monorepo 几乎成为必选项：
 2. **多端共享同一套业务代码**。Web、Electron、iOS、Android、移动 Web、Admin 后台共用 `@affine/core`，差异只在 `packages/frontend/apps/*` 的入口层。
 3. **前后端共享协议**。`@affine/graphql` 的类型由后端 `packages/backend/server/src/schema.gql` 生成，前端直接 import；`@affine/realtime` 定义的实时消息类型被前端和服务端共同引用。
 
-### 9.1.3 AFFiNE 的工具选择
+### 13.1.3 AFFiNE 的工具选择
 
 业界常见的 Monorepo 方案有 Nx、Turborepo、pnpm workspaces、Lerna、Rush 等。AFFiNE 选择的是：
 
 - **Yarn 4 workspaces**：负责依赖安装、链接、版本锁定；
-- **自研 CLI `@affine-tools/cli`**（`tools/cli`）：负责"按包执行脚本、带依赖执行、自动生成 tsconfig references"等编排工作，第 14 章会详细展开；
+- **自研 CLI `@affine-tools/cli`**（`tools/cli`）：负责"按包执行脚本、带依赖执行、自动生成 tsconfig references"等编排工作，<a href="./14-构建工具链与代码规范.md#ch-14">第 14 章</a>会详细展开；
 - **TypeScript Project References**：根 `tsconfig.json` 的 `references` 由 CLI 自动生成，`yarn typecheck` 即 `tsc -b`。
 
 这种组合的好处是没有引入额外的任务编排框架，所有逻辑都在仓库内可读可改；代价是缓存、增量构建等高级能力需要自己实现或依赖底层工具（rspack、tsc -b）。
 
 **小结**：Monorepo 的核心收益是"原子修改 + 统一治理"，AFFiNE 的多端、多语言、前后端共享协议的特点放大了这个收益。
 
-## 9.2 根 package.json 逐段解剖
+## 13.2 根 package.json 逐段解剖
 
 根 `package.json` 是整个仓库的"宪法"。我们分段阅读。
 
-### 9.2.1 workspaces：哪些目录算作包
+### 13.2.1 workspaces：哪些目录算作包
 
 来源：`package.json`
 
@@ -142,7 +142,7 @@ AFFiNE 有三个特点让 Monorepo 几乎成为必选项：
 
 `engines.node` 把 Node 版本卡死在 22.x，配合根目录 `.nvmrc`（内容为 `22.23.4`）和 `.npmrc` 中的 `engine-strict=true`，可以尽早暴露版本不匹配的问题。
 
-### 9.2.2 scripts：根脚本只做"转发"
+### 13.2.2 scripts：根脚本只做"转发"
 
 来源：`package.json`
 
@@ -172,7 +172,7 @@ AFFiNE 有三个特点让 Monorepo 几乎成为必选项：
 - `dev`/`build` 只是 `yarn affine dev`/`yarn affine build` 的别名，真正的逻辑在 CLI 里。
 - `postinstall` 会在每次 `yarn install` 之后执行 `yarn affine init`（重新生成 workspace 元信息与 tsconfig references）和 `yarn husky`（安装 Git 钩子）。这意味着**你新增或删除一个包之后，只要再跑一次 `yarn install`，相关生成物就会自动更新**。
 
-### 9.2.3 根 devDependencies：全仓共享的工具
+### 13.2.3 根 devDependencies：全仓共享的工具
 
 根 `devDependencies` 中放的是全仓共用的工具：`oxlint`、`oxfmt`、`vitest`、`@playwright/test`、`husky`、`lint-staged`、`typescript`、`electron` 等。值得注意的有两条：
 
@@ -188,9 +188,9 @@ AFFiNE 有三个特点让 Monorepo 几乎成为必选项：
 
 **小结**：根 `package.json` 定义了"哪些目录是包"、"Node 版本"、"全仓工具"，并通过 `postinstall` 把 CLI 的代码生成挂进安装流程。
 
-## 9.3 Yarn 4：packageManager、.yarnrc.yml 与 .yarn 目录
+## 13.3 Yarn 4：packageManager、.yarnrc.yml 与 .yarn 目录
 
-### 9.3.1 packageManager 字段与 yarnPath
+### 13.3.1 packageManager 字段与 yarnPath
 
 根 `package.json` 末尾有：
 
@@ -220,7 +220,7 @@ CI 里专门有一个 job 校验两者一致。
 
 逻辑是：读取 `packageManager` 中的版本号，执行 `yarn set version`，如果 `.yarn/releases/` 或 `.yarnrc.yml` 因此产生 diff，说明有人只改了一处，CI 失败。
 
-### 9.3.2 .yarnrc.yml 逐项解读
+### 13.3.2 .yarnrc.yml 逐项解读
 
 来源：`.yarnrc.yml`
 
@@ -262,7 +262,7 @@ yarnPath: .yarn/releases/yarn-4.18.0.cjs
 
 `nodeLinker: node-modules` 是一个重要的取舍：PnP 更快更严格，但 Electron 打包、Prisma 引擎、`.node` 原生模块对 `node_modules` 目录结构有强假设。`docs/building-desktop-client-app.md` 还专门提到打包桌面端时要切换 `nmMode classic` 与 `nmHoistingLimits workspaces`，CI 的 `.github/actions/setup-node/action.yml` 也提供了对应的输入参数。
 
-### 9.3.3 .yarn 目录里该提交什么
+### 13.3.3 .yarn 目录里该提交什么
 
 `ls .yarn` 可以看到三样东西：`.yarn/releases/yarn-4.18.0.cjs`（Yarn 二进制）、`.yarn/patches/`（8 个 `.patch` 文件）和 `.yarn/install-state.gz`。对照 `.gitignore`：
 
@@ -282,9 +282,9 @@ yarnPath: .yarn/releases/yarn-4.18.0.cjs
 
 **小结**：Yarn 版本被 `packageManager` + `yarnPath` + CI 三重锁定；`enableScripts: false` 与 `approvedGitRepositories` 体现了对供应链安全的重视；`node-modules` 链接器是为 Electron 与原生模块做出的兼容性选择。
 
-## 9.4 依赖协议与依赖治理
+## 13.4 依赖协议与依赖治理
 
-### 9.4.1 workspace:* 协议
+### 13.4.1 workspace:* 协议
 
 在任意子包的 `package.json` 中，引用另一个 workspace 包都写成 `workspace:*`：
 
@@ -319,7 +319,7 @@ yarnPath: .yarn/releases/yarn-4.18.0.cjs
 
 这里还有一个对理解整个仓库**至关重要**的细节：`exports` 直接指向 `./src/*.ts` 源码，而不是 `dist/`。也就是说，**AFFiNE 内部绝大多数包是"源码直连"的**：消费方（rspack、vitest、tsc）直接编译依赖包的 TS 源码，不需要先 build 依赖包。这大幅简化了开发流程——改了 `@toeverything/infra` 的代码，`@affine/web` 的 dev server 立刻能感知到。
 
-### 9.4.2 resolutions：全仓版本仲裁
+### 13.4.2 resolutions：全仓版本仲裁
 
 根 `package.json` 的 `resolutions` 共有 **104 条**，可以分为三类：
 
@@ -354,7 +354,7 @@ yarnPath: .yarn/releases/yarn-4.18.0.cjs
 
 后两组展示了另外两种写法：`macos-alias`、`fs-xattr` 被替换为 napi-rs 实现的版本（避免 node-gyp 编译）；`ws@npm:^8.18.0` 这种"带范围的 key"只覆盖特定范围的请求，用于把有安全问题的旧版本统一升级。
 
-### 9.4.3 patch: 协议与补丁文件
+### 13.4.3 patch: 协议与补丁文件
 
 `patch:` 协议允许在安装时对第三方包打补丁。以 yjs 为例：
 
@@ -370,7 +370,7 @@ diff --git a/dist/yjs.cjs b/dist/yjs.cjs
 // ...
 ```
 
-这个补丁把 Yjs 文档的 `clientId` 生成从 32 位随机数扩大到 53 位，显著降低多端协作时 clientId 碰撞的概率（第 12 章讲过，Yjs 用 clientId + clock 唯一标识每个操作）。`yarn.lock` 中可以看到最终解析结果为 `yjs@patch:yjs@npm%3A13.6.21#~/.yarn/patches/yjs-npm-13.6.21-c9f1f3397c.patch`，即**全仓所有 yjs 引用都被统一到打过补丁的 13.6.21**。
+这个补丁把 Yjs 文档的 `clientId` 生成从 32 位随机数扩大到 53 位，显著降低多端协作时 clientId 碰撞的概率（<a href="../03-编程语言与基础技术/12-CRDT与Yjs原理.md#ch-12">第 12 章</a>讲过，Yjs 用 clientId + clock 唯一标识每个操作）。`yarn.lock` 中可以看到最终解析结果为 `yjs@patch:yjs@npm%3A13.6.21#~/.yarn/patches/yjs-npm-13.6.21-c9f1f3397c.patch`，即**全仓所有 yjs 引用都被统一到打过补丁的 13.6.21**。
 
 补丁不一定都写在根目录。以下三个补丁是在子包的依赖中直接声明的：
 
@@ -382,7 +382,7 @@ diff --git a/dist/yjs.cjs b/dist/yjs.cjs
 
 制作补丁的标准流程是 `yarn patch <pkg>` → 修改临时目录中的文件 → `yarn patch-commit -s <dir>`，Yarn 会自动生成 `.patch` 文件并改写 `package.json`。
 
-### 9.4.4 dependenciesMeta.built：逐包控制构建脚本
+### 13.4.4 dependenciesMeta.built：逐包控制构建脚本
 
 `.yarnrc.yml` 全局设置了 `enableScripts: false`，但有些第三方包**必须**执行安装脚本才能工作（比如下载平台相关的二进制）。根 `package.json` 用 `dependenciesMeta` 做逐包声明：
 
@@ -416,7 +416,7 @@ diff --git a/dist/yjs.cjs b/dist/yjs.cjs
 
 > workspace 自身的脚本不受 `enableScripts` 影响。例如 `packages/frontend/templates/package.json` 中的 `"postinstall": "yarn build"`、`packages/backend/server/package.json` 中的 `"postinstall": "prisma generate"` 都会在安装时执行。具体语义请以 Yarn 官方文档对 `enableScripts` 与 `dependenciesMeta` 的说明为准。
 
-### 9.4.5 依赖去重检查
+### 13.4.5 依赖去重检查
 
 CI 的 lint job 末尾有一步：
 
@@ -431,9 +431,9 @@ CI 的 lint job 末尾有一步：
 
 **小结**：`workspace:*` 让内部包源码直连；`resolutions` 以 nolyfill、补丁、范围覆盖三种手段对全仓依赖做仲裁；`dependenciesMeta` 在"默认禁用脚本"的安全基线上做白名单放行。
 
-## 9.5 全量包清单：122 个 workspace 一览
+## 13.5 全量包清单：122 个 workspace 一览
 
-### 9.5.1 用只读脚本枚举
+### 13.5.1 用只读脚本枚举
 
 最权威的方式是让 Yarn 自己列出来：
 
@@ -487,7 +487,7 @@ export const yarnList = once(() => {
 
 `yarn affine init` 调用它并写入 `tools/utils/src/workspace.gen.ts`，其中导出 `PackageList`（每个包的 `location`、`name`、`workspaceDependencies`）和联合类型 `PackageName`。CLI 的参数校验、别名映射都基于这个文件。
 
-### 9.5.2 完整清单
+### 13.5.2 完整清单
 
 **A. BlockSuite 框架层（`blocksuite/framework/*`，4 个）**
 
@@ -502,7 +502,7 @@ export const yarnList = once(() => {
 
 | 包名 | 路径 | 职责 |
 | --- | --- | --- |
-| `@blocksuite/affine` | `blocksuite/affine/all` | 聚合包，按子路径 re-export 全部 affine 能力（见 9.8） |
+| `@blocksuite/affine` | `blocksuite/affine/all` | 聚合包，按子路径 re-export 全部 affine 能力（见 <a href="./13-Monorepo结构与包依赖地图.md#sec-13-8">13.8</a>） |
 | `@blocksuite/affine-model` | `blocksuite/affine/model` | AFFiNE 所有块与 gfx 元素的数据模型定义 |
 | `@blocksuite/affine-shared` | `blocksuite/affine/shared` | 共享的服务、工具函数、主题、类型 |
 | `@blocksuite/affine-components` | `blocksuite/affine/components` | 可复用 UI 组件（按钮、菜单、工具栏元素等） |
@@ -675,7 +675,7 @@ export const yarnList = once(() => {
 
 **小结**：用 `yarn workspaces list --json` 为准枚举包；按目录可以快速判断层级——`blocksuite/framework` 是编辑器内核，`blocksuite/affine` 是 AFFiNE 风格的编辑器能力，`packages/common` 是前后端通用库，`packages/frontend` 是产品前端，`packages/backend` 是服务端。
 
-## 9.6 分层依赖图：依据真实 dependencies 绘制
+## 13.6 分层依赖图：依据真实 dependencies 绘制
 
 下表是用只读脚本从各包 `package.json` 中提取的 `workspace:*` 依赖（含 dependencies、devDependencies、peerDependencies，`bs:` 表示 `@blocksuite/affine-` 前缀）：
 
@@ -703,7 +703,7 @@ export const yarnList = once(() => {
 | `@blocksuite/sync` | global |
 | `@affine/server` | s3-compat, server-native, graphql, realtime, `@affine-tools/cli`, `@affine-tools/utils` |
 
-### 9.6.1 前端分层图
+### 13.6.1 前端分层图
 
 ```mermaid
 flowchart TB
@@ -773,7 +773,7 @@ flowchart TB
 3. **nbstore 依赖编辑器**：`@affine/nbstore` 依赖 `@blocksuite/affine`，因为索引、文档解析需要理解块结构。
 4. **`@affine/error` 与 `@affine/graphql` 的关系**：`graphql` 把 `error` 列为 dependencies，而 `error` 把 `graphql` 列为 **peerDependencies**，避免形成硬性循环依赖。
 
-### 9.6.2 后端分层图
+### 13.6.2 后端分层图
 
 ```mermaid
 flowchart LR
@@ -787,9 +787,9 @@ flowchart LR
   gql -. 由后端 schema 生成 .-> server
 ```
 
-后端只依赖少量 workspace 包；其中 `@affine/graphql` 是"反向生成"的：后端代码生成 `packages/backend/server/src/schema.gql`，前端的 `@affine/graphql` 再根据它生成 TS 类型（第 14 章）。后端 import `@affine/graphql` 主要用于测试中复用查询语句（如 `packages/backend/server/src/__tests__/e2e/user/account.spec.ts` 中的 `getCurrentUserQuery`）。
+后端只依赖少量 workspace 包；其中 `@affine/graphql` 是"反向生成"的：后端代码生成 `packages/backend/server/src/schema.gql`，前端的 `@affine/graphql` 再根据它生成 TS 类型（<a href="./14-构建工具链与代码规范.md#ch-14">第 14 章</a>）。后端 import `@affine/graphql` 主要用于测试中复用查询语句（如 `packages/backend/server/src/__tests__/e2e/user/account.spec.ts` 中的 `getCurrentUserQuery`）。
 
-### 9.6.3 CLI 对依赖图的约束
+### 13.6.3 CLI 对依赖图的约束
 
 依赖图不只是"约定"，CLI 在构建 Workspace 模型时会强制检查：
 
@@ -825,7 +825,7 @@ class ForbiddenPackageRefError extends Error {
 
 **小结**：AFFiNE 的依赖图是一条清晰的五层单向链：apps → core → 公共库 → blocksuite affine → blocksuite framework；CLI 与 lint 规则共同守护这张图。
 
-## 9.7 Rust 侧：Cargo workspace 与 JS 包的对应
+## 13.7 Rust 侧：Cargo workspace 与 JS 包的对应
 
 根目录的 `Cargo.toml` 定义了 Rust workspace：
 
@@ -912,13 +912,13 @@ JS 包与 Rust crate 共用同一个目录（如 `packages/frontend/native` 下�
   },
 ```
 
-所以 `yarn affine @affine/native build` 本质上就是在该目录执行 `napi build -p affine_native --platform --release`。这一点在第 11 章讲 NAPI-rs 时已有铺垫，第 14、15 章会继续使用。
+所以 `yarn affine @affine/native build` 本质上就是在该目录执行 `napi build -p affine_native --platform --release`。这一点在<a href="../03-编程语言与基础技术/11-Rust与NAPI-rs.md#ch-11">第 11 章</a>讲 NAPI-rs 时已有铺垫，第 14、15 章会继续使用。
 
 **小结**：Rust workspace 共 7 个显式成员（加 1 个隐式 path 成员），产出两类二进制：napi 的 `.node`（给 Node/Electron）与 uniffi 的静态/动态库（给 iOS/Android）。
 
-## 9.8 命名空间约定与 @blocksuite/affine 聚合包
+## 13.8 命名空间约定与 @blocksuite/affine 聚合包
 
-### 9.8.1 命名空间
+### 13.8.1 命名空间
 
 | 命名空间 | 含义 | 是否发布 npm |
 | --- | --- | --- |
@@ -955,7 +955,7 @@ export const AliasToPackage = new Map<string, PackageName>([
 
 除了手写的 10 个别名，每个包名斜杠后的部分都自动成为别名，所以 `yarn affine server dev`、`yarn affine gql build`、`yarn affine i18n build`、`yarn affine bs-docs build` 都是合法的。
 
-### 9.8.2 @blocksuite/affine 聚合包
+### 13.8.2 @blocksuite/affine 聚合包
 
 `blocksuite/affine/all` 的 `package.json` 有 **207 个 `exports` 子路径**，它自身几乎没有逻辑，只做 re-export：
 
@@ -983,11 +983,11 @@ export * from '@blocksuite/std';
 
 **小结**：命名空间区分了"发布与否"和"职责归属"；短别名提升 CLI 使用体验；`@blocksuite/affine` 以子路径 re-export 的方式成为编辑器能力的统一门面。
 
-## 9.9 新增一个包需要做什么
+## 13.9 新增一个包需要做什么
 
 假设我们要在 `packages/common` 下新增一个纯 TS 工具包 `@affine/hello`。
 
-### 步骤 1：创建目录与 package.json
+### 13.9.1 步骤 1：创建目录与 package.json
 
 目录必须落在某条 workspaces glob 之内，`packages/common/hello` 匹配 `packages/*/*`。参照 `packages/common/error/package.json` 的最小结构：
 
@@ -1014,7 +1014,7 @@ export * from '@blocksuite/std';
 
 要点：`private: true`、`type: module`、`version` 与仓库一致、`exports` 指向源码。
 
-### 步骤 2：创建 tsconfig.json
+### 13.9.2 步骤 2：创建 tsconfig.json
 
 参照 `packages/common/infra/tsconfig.json`，继承根目录的 `tsconfig.web.json`（浏览器环境）或 `tsconfig.node.json`（Node 环境）：
 
@@ -1040,7 +1040,7 @@ export * from '@blocksuite/std';
 
 `references` 不需要手写，下一步会自动生成。注意 `@toeverything/infra` 依赖了 `@affine/templates`，但 references 中没有它——因为 `templates` 没有 `tsconfig.json`，不是 TS project，CLI 自动跳过了。
 
-### 步骤 3：在消费方声明依赖并安装
+### 13.9.3 步骤 3：在消费方声明依赖并安装
 
 在需要使用它的包中加入 `"@affine/hello": "workspace:*"`，然后在根目录执行 `yarn install`。`postinstall` 会触发 `yarn affine init`：
 
@@ -1081,14 +1081,14 @@ export * from '@blocksuite/std';
 | `.oxlintrc.json` | `ignorePatterns` 与 `.prettierignore` 同步 |
 | 各 TS 包的 `tsconfig.json` | `references` 按 workspace 依赖重算，消费方会引用新包 |
 
-### 步骤 4：提交生成物并通过 CI
+### 13.9.4 步骤 4：提交生成物并通过 CI
 
 CI 的 `check-git-status` job 会重新执行 `yarn affine init && yarn affine gql build && yarn affine i18n build && yarn affine server genconfig`，若产生 diff 就失败。因此**生成物必须和源码一起提交**。
 
-### 步骤 5（按需）：其他登记
+### 13.9.5 步骤 5（按需）：其他登记
 
 - 如果希望 PR 标题能用新的 scope（如 `feat(hello): ...`），需要在 `tools/commitlint/.commitlintrc.json` 的 `scope-enum` 中加入；
-- 如果它需要单元测试，`*.spec.ts` 放在 `packages/common/**` 下会被根 `vitest.config.ts` 的 include 自动收集（第 29 章）；
+- 如果它需要单元测试，`*.spec.ts` 放在 `packages/common/**` 下会被根 `vitest.config.ts` 的 include 自动收集（<a href="../08-质量保障/29-测试体系.md#ch-29">第 29 章</a>）；
 - 如果它需要被 rspack 打包为独立产物，需要在 `tools/cli/src/bundle-shared.ts` 的 `RSPACK_SUPPORTED_PACKAGES` 与 `tools/cli/src/bundle.ts` 中登记（目前只有 admin、web、mobile、ios、android、electron-renderer、server、reader）。
 
 **小结**：新增包的核心是"放对目录 + 写对 package.json/tsconfig + 跑 yarn install + 提交生成物"，其余登记按需进行。
@@ -1241,4 +1241,4 @@ CI 的 `check-git-status` job 会重新执行 `yarn affine init && yarn affine g
 | **合计** | **4 小时** |
 
 ---
-上一章：[第 12 章 CRDT 与 Yjs 原理](../03-编程语言与基础技术/12-CRDT与Yjs原理.md) ｜ 下一章：[第 14 章 构建工具链与代码规范](./14-构建工具链与代码规范.md) ｜ [返回目录](../README.md)
+上一章：[第 12 章 CRDT 与 Yjs 原理](../03-编程语言与基础技术/12-CRDT与Yjs原理.md) ｜ 下一章：[第 14 章 构建工具链与代码规范](14-构建工具链与代码规范.md) ｜ [返回目录](../README.md)

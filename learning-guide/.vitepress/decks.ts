@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url';
 import MarkdownIt from 'markdown-it';
 import { createHighlighter, type Highlighter } from 'shiki';
 
+import { expandRefs } from './semantic-refs.mjs';
+
 export const guideRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const decksDir = path.join(guideRoot, 'slides', 'decks');
 
@@ -228,7 +230,11 @@ function renderScene(md: MarkdownIt, raw: string): Scene {
   return {
     kind,
     title,
-    html: md.render(preprocessInline(dedentClosingTags(body))),
+    html: md.render(
+      // 语义引用（L2）必须在行内语法预处理之前展开：
+      // 页面挂在 /slides/NN.html，链接要按「../部分/章节.html」重写。
+      preprocessInline(dedentClosingTags(expandRefs(body, { context: 'deck' })))
+    ),
     mermaid,
   };
 }

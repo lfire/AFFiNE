@@ -111,10 +111,10 @@ framework.override(Id, MockImpl); // 测试时覆盖
 
 - 主入口导出 `Framework`、`LiveData`、`useLiveData` 等；子入口 `./op`、`./orm`、`./storage`、`./atom` 按需引入，利于摇树。
 - **注意**：`get` 解析不到会抛错，可选依赖用 `getOptional`；实体（entity）是工厂多实例，不要误当单例缓存。
-- DI 的作用域一旦注册错层，会出现"Missing dependency [X] in creating [Y]"——排查见 learning-guide 第 20 章常见坑表。
+- DI 的作用域一旦注册错层，会出现"Missing dependency [X] in creating [Y]"——排查见 learning-guide <a href="../../06-前端应用/20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>常见坑表。
 
 ## 7. 延伸
 
 - 同层：`@affine/nbstore`（建立在 Op/storage 之上）、`@affine/env`（提供 `BUILD_CONFIG`）。
 - 上层：`@affine/core` 用 `configureXxxModule` 把业务模块注册进 `Framework`。
-- 对应教程：learning-guide 第 20 章《前端基础设施：DI 与 LiveData》。
+- 对应教程：learning-guide <a href="../../06-前端应用/20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>《前端基础设施：DI 与 LiveData》。

@@ -1,12 +1,12 @@
 # 第 17 章 BlockSuite Std：视图、扩展、命令、事件
 
-> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：第 16 章（BlockSuite 架构与 Store 数据层）
+> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：12 小时 ｜ **前置章节**：<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a>（BlockSuite 架构与 Store 数据层）
 
 ---
 
 ## 本章导读
 
-第 16 章我们看到，一篇文档在 BlockSuite 里是一棵存放在 Yjs 中的 Block 树，由 `Store` 管理。但 Store 不认识 DOM：它不知道段落该渲染成什么标签，不知道用户按下 Enter 时该做什么，也不知道光标在哪里。把"数据"变成"可编辑的界面"，是 `@blocksuite/std`（`blocksuite/framework/std`）的工作。
+<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a>我们看到，一篇文档在 BlockSuite 里是一棵存放在 Yjs 中的 Block 树，由 `Store` 管理。但 Store 不认识 DOM：它不知道段落该渲染成什么标签，不知道用户按下 Enter 时该做什么，也不知道光标在哪里。把"数据"变成"可编辑的界面"，是 `@blocksuite/std`（`blocksuite/framework/std`）的工作。
 
 `std` 是 BlockSuite 的**编辑器标准库**，它提供：
 
@@ -62,15 +62,15 @@ mindmap
 
 ---
 
-## 13.1 std 全景与 BlockStdScope
+## 17.1 std 全景与 BlockStdScope
 
-### 13.1.1 目录结构
+### 17.1.1 目录结构
 
 `blocksuite/framework/std/src/` 下的子目录与本章小节一一对应：`scope/`（13.1）、`extension/` 与 `spec/`（13.2）、`view/`（13.3–13.4）、`command/`（13.5）、`event/`（13.6）、`selection/`（13.7）、`inline/`（13.8，子路径 `@blocksuite/std/inline`）、`clipboard/`（13.9）、`gfx/`（13.11，子路径 `@blocksuite/std/gfx`），外加集中定义 DI 标识符的 `identifier.ts` 与注册自定义元素的 `effects.ts`。
 
-`package.json` 的 `exports` 只有四个：`.`、`./gfx`、`./effects`、`./inline`。`effects.ts` 注册了 `editor-host`、`gfx-viewport`、`v-element`、`v-line`、`v-text` 五个自定义元素——**所有 `customElements.define` 都集中在 effects 中执行**，这是 BlockSuite 的约定（预置块也一样，见 13.10）。
+`package.json` 的 `exports` 只有四个：`.`、`./gfx`、`./effects`、`./inline`。`effects.ts` 注册了 `editor-host`、`gfx-viewport`、`v-element`、`v-line`、`v-text` 五个自定义元素——**所有 `customElements.define` 都集中在 effects 中执行**，这是 BlockSuite 的约定（预置块也一样，见 <a href="./17-BlockSuite-Std视图扩展命令事件.md#sec-17-10">17.10</a>）。
 
-### 13.1.2 BlockStdScope：视图层的 DI 作用域
+### 17.1.2 BlockStdScope：视图层的 DI 作用域
 
 ```ts
 // 来源：blocksuite/framework/std/src/scope/std-scope.ts（节选）
@@ -108,7 +108,7 @@ export class BlockStdScope {
 2. **内置扩展在前，用户扩展在后**：用户可以用 `di.override` 覆盖内置实现。
 3. **便捷 getter**：`std.command`、`std.event`、`std.selection`（注意它返回 Store 层的 `StoreSelectionExtension`）、`std.range`、`std.view`、`std.clipboard`、`std.dnd`、`std.host`、`std.get`、`std.getOptional`、`std.getView(flavour)`。
 
-### 13.1.3 生命周期
+### 17.1.3 生命周期
 
 `LifeCycleWatcher`（`blocksuite/framework/std/src/extension/lifecycle-watcher.ts`）定义了四个钩子，源码注释给出了调用顺序：
 
@@ -125,9 +125,9 @@ export class BlockStdScope {
 
 ---
 
-## 13.2 扩展体系：标识符与工厂函数
+## 17.2 扩展体系：标识符与工厂函数
 
-### 13.2.1 标识符总表
+### 17.2.1 标识符总表
 
 `blocksuite/framework/std/src/identifier.ts` 集中定义了视图层的 DI 标识符：
 
@@ -142,7 +142,7 @@ export class BlockStdScope {
 | `BlockServiceIdentifier` | flavour | service 实例 | `BlockService.setup`（已弃用） |
 | `StdIdentifier` | — | `BlockStdScope` | 内置 |
 
-### 13.2.2 BlockViewExtension 与 WidgetViewExtension
+### 17.2.2 BlockViewExtension 与 WidgetViewExtension
 
 ```ts
 // 来源：blocksuite/framework/std/src/extension/block-view.ts（节选）
@@ -172,7 +172,7 @@ BlockViewExtension(flavour, model => {
 
 flavour 还支持 `xxx/*` 形式的"祖先路径匹配"（见 `EditorHost` 中的 `isMatchFlavour`），例如 `affine:page/affine:note/*` 表示"父链为 page→note 的任意块"。
 
-### 13.2.3 ConfigExtensionFactory：块级配置
+### 17.2.3 ConfigExtensionFactory：块级配置
 
 ```ts
 // 来源：blocksuite/framework/std/src/extension/config.ts（节选）
@@ -192,19 +192,19 @@ export function ConfigExtensionFactory<Config extends Record<string, any>>(
 
 注意它用的是 **`override`**——后注册的配置覆盖先注册的。这就是应用层能"打补丁"的原理：段落块 `ParagraphBlockConfigExtension({ getPlaceholder })` 在块内注册一次，AFFiNE 通过 `manager.configure(ParagraphViewExtension, { getPlaceholder })` 改变 Provider 的参数，最终生效的是带应用文案的版本（13.10）。读取时使用 `std.getOptional(XxxConfigExtension.identifier)`。
 
-### 13.2.4 KeymapExtension
+### 17.2.4 KeymapExtension
 
 `KeymapExtension(keymapFactory, options?)`（`extension/keymap.ts`）以自增的 `KeymapIdentifier(\`Keymap-${id++}\`)` 注册 `{ getter: keymapFactory, options }`。`UIEventDispatcher.mounted()` 中遍历 `provider.getAll(KeymapIdentifier)`，以 `bindHotkey(getter(std), options)` 绑定。`options.flavour` 让快捷键只在**选择落在该 flavour 的块（或其子孙）上**时生效。
 
 > 源码注释差异：`keymap.ts` 的 JSDoc 示例写的是工厂返回 `{ keymap, options }`，但实际签名是"工厂返回 `Record<string, UIEventHandler>`，`options` 作为第二个参数"。以签名为准，参照 `ParagraphKeymapExtension`、`CalloutKeymapExtension` 的写法。
 
-### 13.2.5 LifeCycleWatcher 与 BlockService
+### 17.2.5 LifeCycleWatcher 与 BlockService
 
 自定义带生命周期的视图扩展：继承 `LifeCycleWatcher`，声明唯一的 `static key`，构造参数固定为 `std`（`setup` 中以 `[StdIdentifier]` 注入）。代码高亮器 `CodeBlockHighlighter`（`blocksuite/affine/blocks/code/src/code-block-service.ts`，key `code-block-highlighter`）就是一个 LifeCycleWatcher：在 `mounted` 中加载 shiki 高亮器并把结果放进 `highlighter$` signal。
 
 `BlockService`（`extension/service.ts`）标注了 **`@deprecated`**："BlockService is deprecated. You should reconsider where to put your feature." 它按 flavour 实例化（依赖 `BlockFlavourIdentifier(flavour)`，因此必须同时注册 `FlavourExtension`），由内置的 `ServiceManager` 在 `mounted/unmounted` 时统一调用。现存使用者只剩 embed 系列块与 `EdgelessRootService`。**新代码应使用 `LifeCycleWatcher`、`ConfigExtensionFactory` 或普通 DI 服务。**
 
-### 13.2.6 DnD
+### 17.2.6 DnD
 
 `DndController`（`extension/dnd/index.ts`）是基于 `@atlaskit/pragmatic-drag-and-drop` 的 LifeCycleWatcher，封装了 `draggable`、`dropTarget`、`monitor`、`autoScroll` 等能力，并定义了 `DragPayload<{ bsEntity, from }>` 数据格式。拖拽手柄 widget 与文件拖放（`FileDropExtension`）都建立在它之上，通过 `std.dnd` 访问。
 
@@ -212,9 +212,9 @@ export function ConfigExtensionFactory<Config extends Record<string, any>>(
 
 ---
 
-## 13.3 视图层：EditorHost 与渲染流程
+## 17.3 视图层：EditorHost 与渲染流程
 
-### 13.3.1 EditorHost：Block 树 → 组件树
+### 17.3.1 EditorHost：Block 树 → 组件树
 
 `EditorHost`（`blocksuite/framework/std/src/view/element/lit-host.ts`）是 `SignalWatcher(WithDisposable(ShadowlessElement))`，通过 `@lit/context` 向下 `provide` 了 `storeContext` 与 `stdContext`。它的 `render()` 只渲染根模型，核心逻辑在 `_renderModel`：
 
@@ -263,7 +263,7 @@ renderChildren = (model: BlockModel, filter?: (model: BlockModel) => boolean): T
 - 子块渲染使用 `repeat` + id 作 key，保证块移动时 DOM 复用；
 - 找不到 Schema 或 View 时只是 `console.warn` 并跳过——**注册了 Schema 却忘了 View，块会"静默消失"**。
 
-### 13.3.2 渲染递归
+### 17.3.2 渲染递归
 
 ```mermaid
 flowchart TD
@@ -279,7 +279,7 @@ flowchart TD
 
 `BlockComponent.renderChildren` 是 `this.host.renderChildren.bind(this)`——块组件不自己实现递归，而是回调宿主，宿主再为每个子模型查 View。这让"渲染哪个组件"的决定权始终集中在 DI 中。
 
-### 13.3.3 ShadowlessElement 与样式
+### 17.3.3 ShadowlessElement 与样式
 
 `ShadowlessElement`（`view/element/shadowless-element.ts`）关闭了 Shadow DOM：块组件渲染在 light DOM 中，`static styles` 会被注入到最近的根节点并按构造器去重。这样做是为了让**原生 Selection 能跨块连续选择**（Shadow DOM 会切断 Range）以及让全局主题 CSS 变量直接生效。
 
@@ -287,9 +287,9 @@ flowchart TD
 
 ---
 
-## 13.4 BlockComponent 与 WidgetComponent
+## 17.4 BlockComponent 与 WidgetComponent
 
-### 13.4.1 BlockComponent 的关键成员
+### 17.4.1 BlockComponent 的关键成员
 
 `BlockComponent<Model, Service, WidgetName>`（`view/element/block-component.ts`，约 315 行）：
 
@@ -305,9 +305,9 @@ flowchart TD
 | `selected$` | `computed`：当前块是否被 `BlockSelection` 选中 |
 | `parentComponent` / `childBlocks` / `rootComponent` / `widgetComponents` | 组件树导航 |
 | `topContenteditableElement` | 最近的可编辑根（Page 模式为根组件，Edgeless 中为 note） |
-| `isVersionMismatch` / `renderVersionMismatch` | 版本校验（第 16 章 12.5.5） |
+| `isVersionMismatch` / `renderVersionMismatch` | 版本校验（<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.5.5） |
 
-### 13.4.2 渲染管线：renderers
+### 17.4.2 渲染管线：renderers
 
 `BlockComponent.render()` 不是直接调用 `renderBlock`，而是把一组 renderer 依次 reduce：
 
@@ -335,7 +335,7 @@ private _renderViewType(content: unknown) {
 
 管线顺序：`renderBlock` 生成内容 → 版本不匹配时替换为警告 → 按 `viewType` 决定显示/隐藏/仅渲染子块。子类可以 `addRenderer(fn)` 追加包装层。`CaptionedBlockComponent`（`blocksuite/affine/components/src/caption/captioned-block-component.ts`）在构造函数中 `this.addRenderer(this._renderWithWidget)`，统一为块加上选中样式、caption 编辑器与 widgets——**绝大多数 AFFiNE 块继承的是 `CaptionedBlockComponent` 而不是 `BlockComponent`**。
 
-### 13.4.3 与 Lit 生命周期的结合
+### 17.4.3 与 Lit 生命周期的结合
 
 ```ts
 // 来源：blocksuite/framework/std/src/view/element/block-component.ts（节选）
@@ -368,11 +368,11 @@ protected override async getUpdateComplete(): Promise<boolean> {
 - `ViewStore`（`view/view-store.ts`）维护 `blockId → BlockComponent` 与 widget 映射，`std.view.getBlock(id)` 是从模型找组件的标准途径；它还提供 `viewUpdated` Subject。
 - 重写的 `getUpdateComplete` 会**等待所有子块完成渲染**，所以 `await std.host.updateComplete` 后可以安全查询子组件——callout 的 Slash 菜单 action 就是先 `await std.host.updateComplete` 再 `std.view.getBlock(paragraphId)` 聚焦。
 
-### 13.4.4 一个最小真实块组件：divider
+### 17.4.4 一个最小真实块组件：divider
 
-`blocksuite/affine/blocks/divider/src/divider-block.ts` 只有约 50 行，展示了块组件的三个惯例：继承 `CaptionedBlockComponent<DividerBlockModel>`；`connectedCallback` 中设 `contentEditable = 'false'`（非文本块）并 `handleEvent('click')` 设置 `BlockSelection`；`renderBlock` 中渲染 `<hr />` 并调用 `renderChildren(this.model)`。第 19 章会逐行拆解它。
+`blocksuite/affine/blocks/divider/src/divider-block.ts` 只有约 50 行，展示了块组件的三个惯例：继承 `CaptionedBlockComponent<DividerBlockModel>`；`connectedCallback` 中设 `contentEditable = 'false'`（非文本块）并 `handleEvent('click')` 设置 `BlockSelection`；`renderBlock` 中渲染 `<hr />` 并调用 `renderChildren(this.model)`。<a href="./19-自定义Block实战.md#ch-19">第 19 章</a>会逐行拆解它。
 
-### 13.4.5 WidgetComponent
+### 17.4.5 WidgetComponent
 
 `WidgetComponent<Model, Block, Service>`（`view/element/widget-component.ts`）继承 `SignalWatcher(WithDisposable(LitElement))`（**有 Shadow DOM**，因为浮层 UI 不需要参与文本选择），通过 context 消费 `store`、`model`（所属块的模型）、`service`、`std`。`connectedCallback` 中 `std.view.setWidget(this)`。`handleEvent`/`bindHotKey` 默认作用域是所属块的 flavour。`AffineSlashMenuWidget`、`AffineToolbarWidget`、`AffineDragHandleWidget` 等都继承它。
 
@@ -380,9 +380,9 @@ protected override async getUpdateComplete(): Promise<boolean> {
 
 ---
 
-## 13.5 命令系统
+## 17.5 命令系统
 
-### 13.5.1 Command 的定义
+### 17.5.1 Command 的定义
 
 ```ts
 // 来源：blocksuite/framework/std/src/command/types.ts（节选）
@@ -398,7 +398,7 @@ export type Command<Input = InitCommandCtx, Output = {}> = (
 
 命令是一个**纯函数**：读 `ctx`，成功则调用 `next(output)` 并把产出合并进上下文，失败则直接 `return`（不调用 `next`）中断链条。类型参数 `Input`/`Output` 让上下文在链上**类型安全地累积**。
 
-### 13.5.2 CommandManager 与链式调用
+### 17.5.2 CommandManager 与链式调用
 
 `CommandManager`（`command/manager.ts`）是一个 LifeCycleWatcher（key `commandManager`）。链本质上是一个命令数组，`run()` 时递归执行：
 
@@ -448,7 +448,7 @@ function runCmds(ctx: InitCommandCtx, [cmd, ...rest]: Command[]) {
 | `.run()` | 返回 `[success, ctx]` |
 | `exec(cmd, input?)` | `chain().pipe(cmd, input).run()` 的简写 |
 
-### 13.5.3 真实例子
+### 17.5.3 真实例子
 
 段落按 Enter 时的拆分命令：
 
@@ -505,9 +505,9 @@ this.std.command
 
 ---
 
-## 13.6 事件系统
+## 17.6 事件系统
 
-### 13.6.1 结构
+### 17.6.1 结构
 
 ```text
 event/
@@ -520,12 +520,12 @@ event/
 
 `UIEventDispatcher` 支持的事件名（`eventNames`）包括：`click/doubleClick/tripleClick`、`pointerDown/Move/Up/Out`、`dragStart/Move/End`、`pinch/pan`、`keyDown/Up/Press`、`selectionChange`、`compositionStart/Update/End`、`cut/copy/paste`、`nativeDrag*`/`nativeDrop`，以及直接透传的 `beforeInput/blur/focus/contextMenu/wheel`。
 
-### 13.6.2 handler 与上下文
+### 17.6.2 handler 与上下文
 
 `base.ts` 中 `UIEventStateContext` 是一个以 `state.type` 为键的状态表（`add`/`get`/`has`/`static from(...states)`），`get` 取不到时抛出 `EventDispatcherError`；`UIEventHandler = (context) => boolean | null | undefined | void`。
 一个事件会携带多个"状态"：`defaultState`（原始 event）、`sourceState`（作用域来源）以及特定状态如 `keyboardState`、`pointerState`、`clipboardState`。handler 用 `ctx.get('keyboardState').raw` 取原生 `KeyboardEvent`。**handler 返回 `true` 表示"已处理"**：分发器停止调用后续 handler，并对非合成事件 `stopPropagation()`。
 
-### 13.6.3 事件作用域：谁先收到事件
+### 17.6.3 事件作用域：谁先收到事件
 
 ```ts
 // 来源：blocksuite/framework/std/src/event/dispatcher.ts（节选）
@@ -567,11 +567,11 @@ flowchart BT
   START[选择所在块] --> P
 ```
 
-### 13.6.4 active 状态与多编辑器
+### 17.6.4 active 状态与多编辑器
 
 `UIEventDispatcher` 维护静态的 `_activeDispatcher`：页面上可能同时存在多个编辑器（主编辑器、侧边预览、嵌入同步文档），只有**当前激活**的那个才分发事件（`run()` 第一行 `if (!this.active) return;`）。`pointerdown`、`focusin`、`click`、`dragenter` 等会激活，`focusout`（目标移出 host）、`visibilitychange` 隐藏、选区移出 host 等会失活。
 
-### 13.6.5 快捷键与 KeyboardControl
+### 17.6.5 快捷键与 KeyboardControl
 
 `KeyboardControl`（`event/control/keyboard.ts`）在 `document` 上监听 `keydown/keyup/keypress`，并在捕获阶段监听 `compositionstart/compositionend` 维护 `composition` 标志。`_shouldTrigger` 会过滤 `event.isComposing`，以及不带 Shift/Alt 的 `Mod-c/v/x`（交给剪贴板事件处理）。`bindHotkey` 在 `keyDown` 上注册一个 handler，组合输入期间直接返回 `false`；Android 上还额外在 `beforeInput` 上打补丁（`androidBindKeymapPatch`）。
 
@@ -590,11 +590,11 @@ flowchart BT
 
 ---
 
-## 13.7 选择系统
+## 17.7 选择系统
 
-### 13.7.1 选择类型
+### 17.7.1 选择类型
 
-选择管理器其实在 **Store 层**：`std.selection` 返回 `StoreSelectionExtension`（第 16 章 12.7.3）。std 只提供具体的选择类型（`blocksuite/framework/std/src/selection/`），并由 `FoundationStoreExtension` 统一注册：
+选择管理器其实在 **Store 层**：`std.selection` 返回 `StoreSelectionExtension`（<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> 12.7.3）。std 只提供具体的选择类型（`blocksuite/framework/std/src/selection/`），并由 `FoundationStoreExtension` 统一注册：
 
 | 类型 | `type` | `group` | 数据 | 场景 |
 | --- | --- | --- | --- | --- |
@@ -623,7 +623,7 @@ export const BlockSelectionExtension = SelectionExtension(BlockSelection);
 
 每个选择类都必须实现 `fromJSON`/`toJSON`/`equals`——因为选择要被**序列化进 Awareness** 传给其它客户端，也要存入撤销栈的 meta。
 
-### 13.7.2 常用 API
+### 17.7.2 常用 API
 
 | API | 说明 |
 | --- | --- |
@@ -638,7 +638,7 @@ export const BlockSelectionExtension = SelectionExtension(BlockSelection);
 
 group 的意义在于**不同区域的选择互不覆盖**：文档区（`note`）与白板区（`gfx`）可以并存。
 
-### 13.7.3 远程选择
+### 17.7.3 远程选择
 
 ```ts
 // 来源：blocksuite/framework/store/src/extension/selection/selection-extension.ts（节选）
@@ -665,7 +665,7 @@ sequenceDiagram
   W->>W: 渲染远程光标与选区
 ```
 
-### 13.7.4 TextSelection 与原生 Range 的同步
+### 17.7.4 TextSelection 与原生 Range 的同步
 
 `RangeManager`（`inline/range/range-manager.ts`，LifeCycleWatcher）提供 `syncTextSelectionToRange(selection)` 与 `syncRangeToTextSelection(range, isRangeReversed)`；`RangeBinding`（`inline/range/range-binding.ts`）监听 `document` 的 `selectionchange`（`_onNativeSelectionChanged`）与 `selection.slots.changed`（`_onStdSelectionChanged`），实现**双向同步**：用户拖选文字 → 生成 `TextSelection`；代码 `selection.set([TextSelection])` → 设置原生 Range。`TextSelection` 只记录 `blockId + index + length`，这得益于"每个块一个独立 Inline 编辑器"的扁平设计。
 
@@ -675,9 +675,9 @@ sequenceDiagram
 
 ---
 
-## 13.8 Inline 编辑器
+## 17.8 Inline 编辑器
 
-### 13.8.1 定位与结构
+### 17.8.1 定位与结构
 
 `@blocksuite/std/inline`（`blocksuite/framework/std/src/inline/`）是一个**绑定单个 `Y.Text` 的极简富文本编辑器**。每个文本类块（段落、列表、代码、标题）都拥有一个独立的 `InlineEditor` 实例，这让跨块的复杂结构完全交给 Block 树处理，Inline 只管"一行（或多行）带格式的文本"。
 
@@ -718,7 +718,7 @@ transact(fn: () => void, withoutTransact = false): void {
 
 构造函数会校验：`yText` 必须已附着于某个 `Y.Doc`，且不能包含 `\r`（"it will break the range synchronization"）。`transact` 使用 `doc.clientID` 作为 origin——与 `Store.transact` 一致，所以打字可被 `HistoryExtension` 撤销。`eventSource` 参数允许把事件监听放在更上层元素（`topContenteditableElement`）上，因为整个页面根是一个大的 `contenteditable`。
 
-### 13.8.2 Delta 文本模型
+### 17.8.2 Delta 文本模型
 
 Inline 的数据模型就是 Yjs 的 **Delta**：`yText.toDelta()` 返回 `[{ insert: 'Hello ', attributes: { bold: true } }, { insert: 'world' }]` 这样的数组。渲染流程：
 
@@ -749,7 +749,7 @@ export const LinkInlineSpecExtension = InlineSpecExtension<AffineTextAttributes>
 
 `InlineManagerExtension({ id, specs })`（`inline/extensions/inline-manager.ts`）收集一组 spec 的标识符，产出 `InlineManager`：`getRenderer()` 按优先级匹配 spec（`wrapper` 型 spec 可以层层包裹），`getSchema()` 把所有 spec 的 zod schema 求交集，`embedChecker` 判断 delta 是否为嵌入（如 `@提及`、公式），`markdownMatches` 汇总所有 `InlineMarkdownExtension` 注册的行内 Markdown 规则。AFFiNE 的默认管理器是 `DefaultInlineManagerExtension`（`blocksuite/affine/inlines/preset/src/default-inline-manager.ts`），汇集了 bold、italic、link、reference、latex、mention、footnote、comment 等 13 个 spec。
 
-### 13.8.3 IME（输入法）处理
+### 17.8.3 IME（输入法）处理
 
 中文、日文输入需要"组合输入"：用户输入拼音时浏览器在 DOM 中显示临时文字，确认后才产生最终文本。`EventService` 的策略是：
 
@@ -780,7 +780,7 @@ private readonly _onCompositionEnd = async (event: CompositionEvent) => {
 
 即：先 `rerenderWholeEditor()` 用 Yjs 内容**覆盖**浏览器在组合期间产生的脏 DOM，再把组合结果作为一次 `insertText` 写入 Yjs。同理，快捷键层（13.6.5）在组合期间不触发，段落的 Enter handler 也会检查 `raw.isComposing`。Android 输入法行为特殊，`EventService` 另有 `_onAndroidIMEInput` 等分支。
 
-### 13.8.4 RichText：业务封装
+### 17.8.4 RichText：业务封装
 
 AFFiNE 块并不直接 `new InlineEditor`，而是使用 `<rich-text>`（`blocksuite/affine/rich-text/src/rich-text.ts`）。段落块的用法：
 
@@ -806,7 +806,7 @@ AFFiNE 块并不直接 `new InlineEditor`，而是使用 `<rich-text>`（`blocks
 
 ---
 
-## 13.9 剪贴板
+## 17.9 剪贴板
 
 `Clipboard`（`blocksuite/framework/std/src/clipboard/clipboard.ts`）是 LifeCycleWatcher（key `clipboard`），它本身**不监听 DOM 事件**，只提供能力：`copy`/`copySlice`/`duplicateSlice`/`paste`/`pasteBlockSnapshot`/`readFromClipboard`/`writeToClipboard`/`use(middleware)`/`unuse`。
 
@@ -836,9 +836,9 @@ for (const { adapter, mimeType } of byPriority) {
 
 ---
 
-## 13.10 ext-loader 与应用侧组装
+## 17.10 ext-loader 与应用侧组装
 
-### 13.10.1 Provider 与 Manager
+### 17.10.1 Provider 与 Manager
 
 `@blocksuite/affine-ext-loader`（`blocksuite/affine/ext-loader/src/`）解决的问题：扩展数量庞大（每个块十几个），且同一块在不同场景（页面、白板、预览、移动端）需要不同扩展组合，还要能接受宿主配置。
 
@@ -874,11 +874,11 @@ export class ViewExtensionProvider<Options extends object = Empty>
 | `ExtensionManager` | 持有 Provider 类集合与 options；`get(scope)` 实例化（缓存）Provider 并 `setup`，收集 `context.register` 的扩展；`configure(Provider, options)` 修改配置并清除实例缓存 |
 | `StoreExtensionManager` / `ViewExtensionManager` | 在 `get` 结果末尾追加"把 Manager 自身注册进 DI"的扩展 |
 
-以 callout 为例（`blocksuite/affine/blocks/callout/src/view.ts`），`CalloutViewExtension` 在 `effect()` 中调用 `effects()` 定义 `affine-callout` 元素，在 `setup()` 中 `context.register([FlavourExtension('affine:callout'), BlockViewExtension('affine:callout', literal\`affine-callout\`), CalloutKeymapExtension, SlashMenuConfigExtension('affine:callout', calloutSlashMenuConfig), ...createBuiltinToolbarConfigExtension('affine:callout')])`——第 19 章会以此为模板编写自定义块。
+以 callout 为例（`blocksuite/affine/blocks/callout/src/view.ts`），`CalloutViewExtension` 在 `effect()` 中调用 `effects()` 定义 `affine-callout` 元素，在 `setup()` 中 `context.register([FlavourExtension('affine:callout'), BlockViewExtension('affine:callout', literal\`affine-callout\`), CalloutKeymapExtension, SlashMenuConfigExtension('affine:callout', calloutSlashMenuConfig), ...createBuiltinToolbarConfigExtension('affine:callout')])`——<a href="./19-自定义Block实战.md#ch-19">第 19 章</a>会以此为模板编写自定义块。
 
-根块 `RootViewExtension`（`blocksuite/affine/blocks/root/src/view.ts`）则在 `isEdgeless(scope)` 时注册 `affine-edgeless-root`、`EdgelessRootService`、`EdgelessClipboardController`，否则注册 `affine-page-root` 与 `PageClipboard`——**同一个 `affine:page` flavour，因 scope 不同而渲染为完全不同的组件**（第 18 章展开）。
+根块 `RootViewExtension`（`blocksuite/affine/blocks/root/src/view.ts`）则在 `isEdgeless(scope)` 时注册 `affine-edgeless-root`、`EdgelessRootService`、`EdgelessClipboardController`，否则注册 `affine-page-root` 与 `PageClipboard`——**同一个 `affine:page` flavour，因 scope 不同而渲染为完全不同的组件**（<a href="./18-Affine块组件与Edgeless白板.md#ch-18">第 18 章</a>展开）。
 
-### 13.10.2 应用侧：manager/view.ts
+### 17.10.2 应用侧：manager/view.ts
 
 AFFiNE 的视图装配集中在 `packages/frontend/core/src/blocksuite/manager/view.ts`：
 
@@ -944,7 +944,7 @@ sequenceDiagram
   PE->>STD: render 得到 EditorHost
 ```
 
-应用侧还有 `createBlockStdScope(store)`（同文件末尾）给非编辑器场景（如生成预览、导出）快速创建 page scope 的 std。Store 侧对应的是 `packages/frontend/core/src/blocksuite/manager/store.ts` 的 `getStoreManager()`（第 16 章）。
+应用侧还有 `createBlockStdScope(store)`（同文件末尾）给非编辑器场景（如生成预览、导出）快速创建 page scope 的 std。Store 侧对应的是 `packages/frontend/core/src/blocksuite/manager/store.ts` 的 `getStoreManager()`（<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a>）。
 
 > 一个隐蔽的坑：`effectRan` 是静态属性。如果你 `class MyParagraph extends ParagraphViewExtension`，而父类已经执行过 `effect`，子类读取 `constructor.effectRan` 会**继承到父类的 `true`**，导致子类的 `effect` 永远不执行。扩展已有 Provider 时要么不依赖 effect，要么显式声明 `static override effectRan = false`。
 
@@ -952,9 +952,9 @@ sequenceDiagram
 
 ---
 
-## 13.11 gfx 基础：白板的骨架
+## 17.11 gfx 基础：白板的骨架
 
-`@blocksuite/std/gfx`（`blocksuite/framework/std/src/gfx/`）为 Edgeless 白板提供通用基础，第 18 章会在此之上讲具体元素。
+`@blocksuite/std/gfx`（`blocksuite/framework/std/src/gfx/`）为 Edgeless 白板提供通用基础，<a href="./18-Affine块组件与Edgeless白板.md#ch-18">第 18 章</a>会在此之上讲具体元素。
 
 | 模块 | 关键类 | 职责 |
 | --- | --- | --- |
@@ -987,13 +987,13 @@ setTool = <T extends BaseTool>(toolType: ToolType<T>, options?: ToolOptions<T>):
 };
 ```
 
-`GfxBlockComponent`（`view/element/gfx-block-component.ts`）是白板中块组件的基类：`getCSSTransform()` 根据视口计算 `translate + scale`，`onDragStart` 时 `this.model.stash('xywh')`、`onDragEnd` 时 `pop('xywh')`——这正是第 16 章 stash/pop 的典型用途。
+`GfxBlockComponent`（`view/element/gfx-block-component.ts`）是白板中块组件的基类：`getCSSTransform()` 根据视口计算 `translate + scale`，`onDragStart` 时 `this.model.stash('xywh')`、`onDragEnd` 时 `pop('xywh')`——这正是<a href="./16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a> stash/pop 的典型用途。
 
 **小结**：gfx 层提供视口、空间索引、图层、工具、交互与元素模型的通用骨架，AFFiNE 白板功能都以 GfxExtension / BaseTool / 交互扩展的形式插入。
 
 ---
 
-## 13.12 端到端：一次按键的完整旅程
+## 17.12 端到端：一次按键的完整旅程
 
 把前面所有部分串起来：在 Page 模式的段落中间按下 **Enter**。
 
@@ -1043,7 +1043,7 @@ sequenceDiagram
 
 整个过程**没有任何一处直接操作 DOM 来"插入段落"**——DOM 完全是 Yjs 数据的投影。远端协作者收到这次更新时，只走第 5、6 步，结果一致。
 
-### 文档与源码差异汇总
+### 17.12.1 文档与源码差异汇总
 
 | 文档 | 过时内容 | 当前源码 |
 | --- | --- | --- |
@@ -1167,12 +1167,12 @@ sequenceDiagram
 
 ## 延伸阅读
 
-- `blocksuite/docs-site/guide/event.md`、`command.md`、`selection.md`、`inline.md`、`block-view.md`、`block-widgets.md`：对照 13.12 差异表阅读
+- `blocksuite/docs-site/guide/event.md`、`command.md`、`selection.md`、`inline.md`、`block-view.md`、`block-widgets.md`：对照 <a href="./17-BlockSuite-Std视图扩展命令事件.md#sec-17-12">17.12</a> 差异表阅读
 - `blocksuite/affine/ext-loader/README.md`：Provider/Manager 官方说明与示例
 - `blocksuite/playground/examples/inline/`：脱离 Block 树单独使用 InlineEditor 的示例
 - `blocksuite/framework/std/src/__tests__/`：std 的单元测试
 - Lit 官方文档：Reactive update cycle、`@lit/context`、static html（`literal`/`unsafeStatic`）
-- 本书第 18 章（Affine 块与 Edgeless）、第 19 章（自定义 Block 实战）、第 20 章（应用层 DI，对比两套 DI）
+- 本书<a href="./18-Affine块组件与Edgeless白板.md#ch-18">第 18 章</a>（Affine 块与 Edgeless）、<a href="./19-自定义Block实战.md#ch-19">第 19 章</a>（自定义 Block 实战）、<a href="../06-前端应用/20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>（应用层 DI，对比两套 DI）
 
 ---
 
@@ -1192,4 +1192,4 @@ sequenceDiagram
 
 ---
 
-上一章：[第 16 章 BlockSuite 架构与 Store 数据层](./16-BlockSuite架构与Store数据层.md) ｜ 下一章：[第 18 章 Affine 块组件与 Edgeless 白板](./18-Affine块组件与Edgeless白板.md) ｜ [返回目录](../README.md)
+上一章：[第 16 章 BlockSuite 架构与 Store 数据层](16-BlockSuite架构与Store数据层.md) ｜ 下一章：[第 18 章 Affine 块组件与 Edgeless 白板](18-Affine块组件与Edgeless白板.md) ｜ [返回目录](../README.md)

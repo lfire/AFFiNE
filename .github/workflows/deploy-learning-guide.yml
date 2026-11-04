@@ -58,7 +58,7 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Check Mermaid diagrams
+      - name: Check Mermaid diagrams and chapter numbering
         run: npm run check
 
       - name: Build with VitePress

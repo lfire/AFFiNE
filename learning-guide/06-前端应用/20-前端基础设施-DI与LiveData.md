@@ -1,6 +1,6 @@
 # 第 20 章 前端基础设施：DI 与 LiveData
 
-> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：第 10 章 前端技术栈-React-Lit-Signals-RxJS
+> **所属部分**：第 6 部分 · 前端应用 ｜ **难度**：★★★★☆ ｜ **建议学时**：8 小时 ｜ **前置章节**：<a href="../03-编程语言与基础技术/10-前端技术栈-React-Lit-Signals-RxJS.md#ch-10">第 10 章</a> 前端技术栈-React-Lit-Signals-RxJS
 
 ## 本章导读
 
@@ -60,9 +60,9 @@ mindmap
       AsyncLock 与 AsyncQueue
 ```
 
-## 16.1 infra 全景：一个包，三层能力
+## 20.1 infra 全景：一个包，三层能力
 
-`@toeverything/infra` 是 `private` 的 workspace 包。`packages/common/infra/package.json` 的 `exports` 直接指向 `.ts` 源文件（`".": "./src/index.ts"`、`"./op": "./src/op/index.ts"` 等），由上层构建工具统一转译（见第 14 章）。根入口 `src/index.ts` 再导出 `app-config-storage`、`atom`、`framework`、`livedata`、`media`、`orm`、`storage`、`utils`——**唯独 `op` 不在根入口**，必须 `import { OpClient } from '@toeverything/infra/op'`。这是有意为之：`op` 会在 Worker 里用，而 Worker 不应把 React（`framework/react`、`livedata/react`）打进包里。
+`@toeverything/infra` 是 `private` 的 workspace 包。`packages/common/infra/package.json` 的 `exports` 直接指向 `.ts` 源文件（`".": "./src/index.ts"`、`"./op": "./src/op/index.ts"` 等），由上层构建工具统一转译（见<a href="../04-工程化与开发环境/14-构建工具链与代码规范.md#ch-14">第 14 章</a>）。根入口 `src/index.ts` 再导出 `app-config-storage`、`atom`、`framework`、`livedata`、`media`、`orm`、`storage`、`utils`——**唯独 `op` 不在根入口**，必须 `import { OpClient } from '@toeverything/infra/op'`。这是有意为之：`op` 会在 Worker 里用，而 Worker 不应把 React（`framework/react`、`livedata/react`）打进包里。
 
 | 子目录 | 核心导出 | 职责 | 主要使用方 |
 |---|---|---|---|
@@ -87,9 +87,9 @@ flowchart TB
 
 记住方向：**UI 只认识 Service/Entity 暴露的 LiveData 与方法；Store 是唯一"碰"外部数据源的层**。
 
-## 16.2 Framework：三层 Map 的组件注册表
+## 20.2 Framework：三层 Map 的组件注册表
 
-### 16.2.1 数据结构
+### 20.2.1 数据结构
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/framework.ts（节选）
@@ -117,7 +117,7 @@ export class Framework {
 
 值是 `ComponentFactory<T> = (provider) => T`——**注册的永远是工厂，不是实例**，这是懒加载的基础。
 
-### 16.2.2 FrameworkEditor：链式注册
+### 20.2.2 FrameworkEditor：链式注册
 
 每次访问 `framework.service` 都会 `new FrameworkEditor(this)`，编辑器维护一个 `currentScopeStack`。`.scope(X)` 把 X 压栈：
 
@@ -142,7 +142,7 @@ scope = (scope: Type<Scope<any>>): this => {
 - Scope 类自身也作为组件注册进该作用域（`override: true`，因为多个模块会重复 `.scope(WorkspaceScope)`）；
 - `framework.scope` 是 getter，每次返回**新** editor：`framework.scope(A).service(X)` 之后再写 `framework.service(Y)`，Y 回到根作用域。所以各模块的 `configureXxxModule` 总是"一条链写到底"。
 
-### 16.2.3 六种注册方法
+### 20.2.3 六种注册方法
 
 | 方法 | 第一参数 | 第二参数 | 重复检查 | 典型用途 |
 |---|---|---|---|---|
@@ -166,7 +166,7 @@ scope = (scope: Type<Scope<any>>): this => {
 })
 ```
 
-### 16.2.4 依赖数组如何变成工厂
+### 20.2.4 依赖数组如何变成工厂
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/framework.ts（dependenciesToFactory 节选）
@@ -192,7 +192,7 @@ return (provider: FrameworkProvider) => {
 - 构造函数额外收到 `provider` 作为最后一个参数；
 - 依赖数组与构造参数"手动对齐"，`TypesToDeps<ConstructorParameters<T>>` 在类型层面校验顺序。AFFiNE 没用 `reflect-metadata` 自动注入，换来零运行时反射、对 SWC/esbuild 友好、依赖关系在注册处一目了然。
 
-## 16.3 Identifier、Variant 与面向接口编程
+## 20.3 Identifier、Variant 与面向接口编程
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/identifier.ts（节选）
@@ -238,7 +238,7 @@ framework
 
 `collection-rules` 模块把这个模式用到极致：`FilterProvider('system:tags')`、`FilterProvider('property:date')`……几十个变体按 `type:key` 动态挑选，本质是一个**插件注册表**。
 
-## 16.4 组件模型：Component 与四个子类
+## 20.4 组件模型：Component 与四个子类
 
 四个子类都继承 `Component`（`framework/core/components/component.ts`），后者提供 `framework`、`props`、`disposables`、`eventBus`、`dispose`；`Scope` 额外把 `get/getAll/createEntity/createScope/emitEvent` 代理到自己的子 Provider 上。
 
@@ -251,7 +251,7 @@ framework
 
 `Service`/`Store`/`Scope` 带 `__injectable = true` 标记，`Entity` 带 `__isEntity`。真正决定语义的是解析方式：Entity 以 `noCache` 解析，每次都是新实例，不适合作为单例依赖。
 
-### 16.4.1 constructor-context：零参数拿到 framework
+### 20.4.1 constructor-context：零参数拿到 framework
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/constructor-context.ts（节选）
@@ -286,7 +286,7 @@ constructor() {
 
 `Component` 实现了 `Symbol.dispose`，可配合 TS 的 `using` 语法；`dispose()` 依次调用 `disposables` 里的清理函数，所以 Entity 订阅 RxJS 后通常 `this.disposables.push(() => sub.unsubscribe())`，`FeatureFlagService.setupRestartListener` 即如此。
 
-## 16.5 Provider：解析、缓存与作用域树
+## 20.5 Provider：解析、缓存与作用域树
 
 三个 Provider 实现都继承抽象类 `FrameworkProvider`（提供 `get/getAll/getOptional/createEntity/createScope/emitEvent`）：
 
@@ -294,7 +294,7 @@ constructor() {
 - `Resolver`：一次解析中的临时对象，记录 `stack` 与 `depth` 做循环检测；
 - `FrameworkStackProvider`：把多个 Provider 叠成栈依次查找，专为 React 嵌套作用域设计（16.7）。
 
-### 16.5.1 解析流程
+### 20.5.1 解析流程
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/provider.ts（Resolver.getRaw 节选）
@@ -351,7 +351,7 @@ flowchart TD
 2. **组件在定义它的作用域的 Provider 中创建并缓存**。DocScope 解析 `WorkspaceService` 时交给父 Provider，由父 Provider 缓存，因此同一工作区所有文档共享同一个 `WorkspaceService`；且该服务的 `this.framework` 是工作区 Provider。
 3. `track` 把标识符压栈，重复则抛 `CircularDependencyError`，深度 ≥ 100 抛 `RecursionLimitError`。
 
-### 16.5.2 createEntity 与 createScope
+### 20.5.2 createEntity 与 createScope
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/provider.ts（节选，泛型签名省略）
@@ -395,7 +395,7 @@ workspace.engine.start();
 workspaceScope.emitEvent(WorkspaceInitialized, workspace);
 ```
 
-### 16.5.3 AFFiNE 实际的作用域树
+### 20.5.3 AFFiNE 实际的作用域树
 
 ```mermaid
 flowchart TB
@@ -406,9 +406,9 @@ flowchart TB
   WS --> View[ViewScope 每个工作台视图]
 ```
 
-分别定义于 `modules/cloud/scopes/server.ts`、`modules/workspace/scopes/workspace.ts`、`modules/doc/scopes/doc.ts`、`modules/editor/scopes/editor.ts`、`modules/workbench/scopes/view.ts`，第 21 章详细展开。
+分别定义于 `modules/cloud/scopes/server.ts`、`modules/workspace/scopes/workspace.ts`、`modules/doc/scopes/doc.ts`、`modules/editor/scopes/editor.ts`、`modules/workbench/scopes/view.ts`，<a href="./21-Core业务模块与路由.md#ch-21">第 21 章</a>详细展开。
 
-### 16.5.4 错误类型速查
+### 20.5.4 错误类型速查
 
 | 错误类（`framework/core/error.ts`） | 触发条件 | 排查思路 |
 |---|---|---|
@@ -418,7 +418,7 @@ flowchart TB
 | `DuplicateDefinitionError` | 同作用域同标识符同变体注册两次 | 用 `override`，或检查模块是否 configure 两次 |
 | `RecursionLimitError` | 解析深度 ≥ 100 | 工厂函数里递归 `get` 自己 |
 
-## 16.6 事件：createEvent、@OnEvent 与 EventBus
+## 20.6 事件：createEvent、@OnEvent 与 EventBus
 
 事件就是一个带类型的普通对象 `createEvent<T>(id)` → `{ id, _type }`。`lifecycle` 模块定义了最常用的两个全局事件：
 
@@ -439,7 +439,7 @@ export class LifecycleService extends Service {
 
 订阅方用类装饰器声明式绑定，如 `modules/feature-flag/services/feature-flag.ts` 的 `@OnEvent(ApplicationStarted, e => e.setupRestartListener)`。
 
-### 16.6.1 @OnEvent：注册为子组件
+### 20.6.1 @OnEvent：注册为子组件
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/event.ts（OnEvent 节选）
@@ -464,7 +464,7 @@ return (target: C): C => {
 
 装饰器不立即订阅，只往类上挂 `SUB_COMPONENTS`；`framework.service(X)` 注册时检测到它，额外注册若干 `EventHandler` 变体；`EventBus` 构造时 `provider.getAll(EventHandler, { sameScope: true })` 把本作用域的 handler 挂上。注意 handler 中 `provider.get(target)`——**事件触发时才实例化服务**，从未被 UI 使用的服务也会因订阅 `ApplicationStarted` 而在启动时被创建。
 
-### 16.6.2 传播方向：从发出者向下广播
+### 20.6.2 传播方向：从发出者向下广播
 
 ```ts
 // 来源：packages/common/infra/src/framework/core/event.ts（EventBus.on 节选）
@@ -501,7 +501,7 @@ sequenceDiagram
   Note over H1: 收不到工作区事件
 ```
 
-## 16.7 framework/react：把容器接进组件树
+## 20.7 framework/react：把容器接进组件树
 
 `packages/common/infra/src/framework/react/index.tsx` 只有 81 行，导出 `FrameworkProviderContext`、`useFramework`、`useService`、`useServices`、`useServiceOptional`、`FrameworkRoot`、`FrameworkScope`。
 
@@ -553,11 +553,11 @@ export function App() {
 }
 ```
 
-## 16.8 完整案例：favorite 模块的五层闭环
+## 20.8 完整案例：favorite 模块的五层闭环
 
 目录 `packages/frontend/core/src/modules/favorite/` 包含：`constant.ts`（支持收藏的类型 collection/doc/tag/folder）、`index.ts`（`configureFavoriteModule`）、`stores/favorite.ts`、`entities/favorite-list.ts`、`services/favorite.ts`，以及 `services/old/`（旧数据迁移/兼容适配器）。
 
-### 16.8.1 Store：只管数据
+### 20.8.1 Store：只管数据
 
 ```ts
 // 来源：packages/frontend/core/src/modules/favorite/stores/favorite.ts（节选）
@@ -589,7 +589,7 @@ export class FavoriteStore extends Store {
 - `userdataDB$` 本身是 `LiveData<DB>`——登录/切换账号时 DB 会换（见 `modules/db/services/db.ts` 的 `userdataDB$`）。`map(db => LiveData.from(...)).flat()` 是"**切换数据源并自动重订阅**"的惯用法，相当于 `switchMap`；
 - 存储格式 `key = "doc:xxxx"` 由 Store 编解码，上层无感。
 
-### 16.8.2 Entity：业务语义
+### 20.8.2 Entity：业务语义
 
 ```ts
 // 来源：packages/frontend/core/src/modules/favorite/entities/favorite-list.ts（节选）
@@ -619,7 +619,7 @@ export class FavoriteList extends Entity {
 
 `index` 是**分数索引**字符串：在 a、b 之间插入时生成字典序介于两者之间的新串，无需改动其他条目。这对 CRDT 场景很重要——多人同时拖拽排序不会互相覆盖整个列表。
 
-### 16.8.3 Service、注册与 React
+### 20.8.3 Service、注册与 React
 
 ```ts
 // 来源：packages/frontend/core/src/modules/favorite/services/favorite.ts
@@ -655,7 +655,7 @@ const onToggleFavoriteCollection = useCallback(() => {
 }, [favoriteService, tag.id]);
 ```
 
-### 16.8.4 全链路时序
+### 20.8.4 全链路时序
 
 ```mermaid
 sequenceDiagram
@@ -678,9 +678,9 @@ sequenceDiagram
 
 `toggle` 没有任何"通知 UI"的代码——写入 Yjs 后，观察链自动把新数据推回 UI。这就是 AFFiNE 前端的**单向数据流**：写走方法，读走 LiveData。
 
-## 16.9 LiveData：量身定做的响应式类型
+## 20.9 LiveData：量身定做的响应式类型
 
-### 16.9.1 本质：BehaviorSubject + 操作流
+### 20.9.1 本质：BehaviorSubject + 操作流
 
 ```ts
 // 来源：packages/common/infra/src/livedata/livedata.ts（节选）
@@ -709,7 +709,7 @@ getValue = (): T => {
 
 LiveData 继承 `Observable`，内部用 `BehaviorSubject` 存当前值，**另维护一条 `ops$` 操作流**：`getValue` 发 `'get'`、`subscribe` 发 `'watch'`、退订发 `'unwatch'`、`setValue` 发 `'set'`。上游由此"看见"下游的使用情况。
 
-### 16.9.2 LiveData.from：引用计数式懒订阅
+### 20.9.2 LiveData.from：引用计数式懒订阅
 
 ```ts
 // 来源：packages/common/infra/src/livedata/livedata.ts（from 节选）
@@ -733,7 +733,7 @@ stream$.pipe(
 
 这解决了 RxJS 的经典痛点：`BehaviorSubject` 能同步取值但不懒；`shareReplay` 懒但取不到同步值。
 
-### 16.9.3 API 速查
+### 20.9.3 API 速查
 
 | API | 作用 | 备注 |
 |---|---|---|
@@ -767,7 +767,7 @@ location$ = LiveData.computed(get => {
 
 **Poisoned**：上游抛错时 LiveData 进入不可恢复的 poisoned 状态，之后任何读写都抛 `PoisonedError`。源码注释说明了理念："livedata 的开发规范是不抛任何错误，进入 poisoned 状态通常意味着编程错误"。异步错误应用 `catchErrorInto(error$)` 建模为数据。
 
-### 16.9.4 与 BehaviorSubject、Signals 的对比
+### 20.9.4 与 BehaviorSubject、Signals 的对比
 
 | 维度 | RxJS `BehaviorSubject` | Preact Signals | `LiveData` |
 |---|---|---|---|
@@ -780,9 +780,9 @@ location$ = LiveData.computed(get => {
 
 一句话：**LiveData = 能同步读的、懒的、可当 Signal 用的 Observable**。
 
-## 16.10 React 绑定与 effect
+## 20.10 React 绑定与 effect
 
-### 16.10.1 useLiveData
+### 20.10.1 useLiveData
 
 ```ts
 // 来源：packages/common/infra/src/livedata/react.ts（节选，返回类型省略）
@@ -826,7 +826,7 @@ reactGetSnapshot = () => {
 
 > **坑**：`useLiveData(list.isFavorite$('doc', id))` 每次渲染都新建 LiveData，长列表里有开销，必要时 `useMemo`。`livedata/__tests__/react.spec.tsx` 的 `react useMemo livedata.map heavy object copy` 用例可参考。
 
-### 16.10.2 effect：把异步流程写成管道
+### 20.10.2 effect：把异步流程写成管道
 
 `effect(op1, op2, ...)`（`livedata/effect/index.ts`）内部创建一个 `Subject`，把操作符 `pipe` 起来并订阅，返回一个"调用即推值"的函数，附带 `unsubscribe()` 与 `reset()`。若管道 complete 或 error，会在 `setTimeout` 中抛出 `EffectError` 变成未捕获异常——**错误必须在管道内被处理**。真实用法（发票分页）：
 
@@ -869,9 +869,9 @@ readonly revalidate = effect(
 | `smartRetry()` | 网络错误（`UserFriendlyError.isNetworkError`）无限重试 + 其他错误最多 3 次 |
 | `exhaustMapSwitchUntilChanged(cmp, project)` | 输入不变时 exhaustMap，变化时 switchMap |
 
-## 16.11 周边工具：ORM、op、storage 与 utils
+## 20.11 周边工具：ORM、op、storage 与 utils
 
-### 16.11.1 ORM：把 Yjs 当成数据库
+### 20.11.1 ORM：把 Yjs 当成数据库
 
 工作区里有很多"非文档"结构化数据：文件夹树、文档属性、收藏、固定的收藏夹……它们要**像文档一样被同步与合并**，底层必须是 Yjs；业务又希望像操作表一样 `create/update/find$`。`orm/core` 就是这座桥。
 
@@ -920,11 +920,11 @@ flowchart LR
   YDoc --> Engine[nbstore DocFrontend 持久化与同步]
 ```
 
-`YjsTableAdapter`（`orm/core/adapters/yjs/table.ts`）的注释写明结构："每张表是一个 YDoc，key → 行（YMap），行内字段 → 原始值"，删除采用软删除标记 `$$DELETED`。每张表的 YDoc 通过 `engine.doc.connectDoc` 接入第 23 章的 nbstore，于是**收藏数据自动获得本地持久化与多端同步**。
+`YjsTableAdapter`（`orm/core/adapters/yjs/table.ts`）的注释写明结构："每张表是一个 YDoc，key → 行（YMap），行内字段 → 原始值"，删除采用软删除标记 `$$DELETED`。每张表的 YDoc 通过 `engine.doc.connectDoc` 接入<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>的 nbstore，于是**收藏数据自动获得本地持久化与多端同步**。
 
 `Table`（`orm/core/table.ts`）提供 `create`、`update`、`get/get$`、`find/find$`、`select/select$`、`keys/keys$`、`delete`；带 `$` 的返回 Observable，正好喂给 `LiveData.from`。`ORMClient.defineHook` 支持写入前变换，见 `orm/core/__tests__/hook.spec.ts`。
 
-### 16.11.2 op：Worker 间的极简 RPC
+### 20.11.2 op：Worker 间的极简 RPC
 
 `packages/common/infra/src/op/message.ts` 定义了 8 种消息：
 
@@ -957,9 +957,9 @@ const sum = await client.call('add', { a: 1, b: 2 }); // 3
 const sub = client.ob$('ticks', 1000).subscribe(console.log);
 ```
 
-Consumer 的 handler 可返回值、Promise 或 Observable，内部统一 `defer` 为 Observable 并 `takeUntil(abort)`；`call` 取第一个值即完成。Client 端 `call` 最后一个参数可传 `AbortSignal`，取消时发送 `cancel`，Consumer 侧对应的 AbortController 被 abort。`transfer(data, [buffer])` 把可转移对象登记到模块级 `Map`，`postMessage` 时取出——nbstore 正是用它把 `MessagePort` 转交给 Worker（`packages/common/nbstore/src/worker/client.ts` 的 `open`）。第 23 章详述。
+Consumer 的 handler 可返回值、Promise 或 Observable，内部统一 `defer` 为 Observable 并 `takeUntil(abort)`；`call` 取第一个值即完成。Client 端 `call` 最后一个参数可传 `AbortSignal`，取消时发送 `cancel`，Consumer 侧对应的 AbortController 被 abort。`transfer(data, [buffer])` 把可转移对象登记到模块级 `Map`，`postMessage` 时取出——nbstore 正是用它把 `MessagePort` 转交给 Worker（`packages/common/nbstore/src/worker/client.ts` 的 `open`）。<a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>详述。
 
-### 16.11.3 storage、atom、app-config 与 utils
+### 20.11.3 storage、atom、app-config 与 utils
 
 `Memento` 接口（`storage/memento.ts`）定义 `get/watch/set/del/clear/keys`：
 
@@ -980,9 +980,9 @@ Consumer 的 handler 可返回值、Promise 或 Observable，内部统一 `defer
 | `yjsGetPath` / `yjsObserve*` | Yjs 结构转 Observable | `Workspace.name$` |
 | `throwIfAborted` / `MANUALLY_STOP` | 取消语义 | `fromPromise`、nbstore |
 
-## 16.12 对比与小结
+## 20.12 对比与小结
 
-### 16.12.1 与 BlockSuite global/di 的异同
+### 20.12.1 与 BlockSuite global/di 的异同
 
 BlockSuite 在 `blocksuite/framework/global/src/di` 有一套几乎同源的 DI：`Container`、`ServiceProvider`、`createIdentifier`、`createScope`。
 
@@ -994,11 +994,11 @@ BlockSuite 在 `blocksuite/framework/global/src/di` 有一套几乎同源的 DI�
 | Scope 表示 | Scope 是带 props 的组件类 | `createScope(name, base)` 返回字符串数组 |
 | 事件 | 内置 `EventBus` + `@OnEvent` | 无（BlockSuite 用自己的扩展机制） |
 | React 集成 | 有 | 无（Lit 世界） |
-| 用途 | 应用层业务模块 | 编辑器扩展（`ExtensionType`、`StdIdentifier`，见第 17 章） |
+| 用途 | 应用层业务模块 | 编辑器扩展（`ExtensionType`、`StdIdentifier`，见<a href="../05-编辑器内核BlockSuite/17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>） |
 
 可以把 infra framework 看作 BlockSuite DI 的"应用层增强版"。两套容器**互不相通**：AFFiNE 向编辑器注入应用能力时，在 `packages/frontend/core/src/blocksuite/view-extensions` 中让各 `ViewExtensionProvider` 通过 options 接收 infra 的 `FrameworkProvider`（如 `view-extensions/database/index.ts` 的 `framework: z.instanceof(FrameworkProvider).optional()`），再把服务包装成 BlockSuite 扩展 `context.register(...)`。
 
-### 16.12.2 本章小结
+### 20.12.2 本章小结
 
 - `Framework` 是"作用域 × 标识符 × 变体 → 工厂"的注册表，Provider 按作用域树解析、缓存与销毁；
 - 四件套分工明确：Store 碰数据、Entity 表达业务、Service 做门面、Scope 划生命周期；
@@ -1111,9 +1111,9 @@ BlockSuite 在 `blocksuite/framework/global/src/di` 有一套几乎同源的 DI�
 
 - `packages/common/infra/src/op/README.md`：op 官方用法；
 - `packages/common/infra/src/framework/core/identifier.ts` 顶部长注释：作者对控制反转与 variant 的说明；
-- 第 17 章 BlockSuite-Std 视图扩展命令事件：BlockSuite DI 与扩展机制；
-- 第 21 章 Core 业务模块与路由：作用域树在业务中的完整展开；
-- 第 23 章 存储与同步引擎 nbstore：op 与 ORM 背后的存储引擎；
+- <a href="../05-编辑器内核BlockSuite/17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a> BlockSuite-Std 视图扩展命令事件：BlockSuite DI 与扩展机制；
+- <a href="./21-Core业务模块与路由.md#ch-21">第 21 章</a> Core 业务模块与路由：作用域树在业务中的完整展开；
+- <a href="./23-存储与同步引擎nbstore.md#ch-23">第 23 章</a> 存储与同步引擎 nbstore：op 与 ORM 背后的存储引擎；
 - React 文档 `useSyncExternalStore`；RxJS 文档 `BehaviorSubject`、`switchMap`、`exhaustMap`；Android Jetpack LiveData（命名来源，见 `livedata.ts` 注释）。
 
 ## 学时拆分
@@ -1129,4 +1129,4 @@ BlockSuite 在 `blocksuite/framework/global/src/di` 有一套几乎同源的 DI�
 | **合计** | **8 小时** |
 
 ---
-上一章：[第 19 章 自定义 Block 实战](../05-编辑器内核BlockSuite/19-自定义Block实战.md) ｜ 下一章：[第 21 章 Core 业务模块与路由](./21-Core业务模块与路由.md) ｜ [返回目录](../README.md)
+上一章：[第 19 章 自定义 Block 实战](../05-编辑器内核BlockSuite/19-自定义Block实战.md) ｜ 下一章：[第 21 章 Core 业务模块与路由](21-Core业务模块与路由.md) ｜ [返回目录](../README.md)

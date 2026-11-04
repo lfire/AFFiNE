@@ -1,6 +1,6 @@
 # 第 16 章 BlockSuite 架构与 Store 数据层
 
-> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：第 10 章（React / Lit / Signals / RxJS）、第 12 章（CRDT 与 Yjs 原理）
+> **所属部分**：第 5 部分 · 编辑器内核 BlockSuite ｜ **难度**：★★★★☆ ｜ **建议学时**：10 小时 ｜ **前置章节**：<a href="../03-编程语言与基础技术/10-前端技术栈-React-Lit-Signals-RxJS.md#ch-10">第 10 章</a>（React / Lit / Signals / RxJS）、<a href="../03-编程语言与基础技术/12-CRDT与Yjs原理.md#ch-12">第 12 章</a>（CRDT 与 Yjs 原理）
 
 ---
 
@@ -8,7 +8,7 @@
 
 如果把 AFFiNE 比作一辆车，BlockSuite 就是它的发动机：文档页（Page）、白板（Edgeless）、数据库视图、富文本、协同光标……几乎所有"编辑"能力都来自仓库里的 `blocksuite/` 目录，React 应用层（`packages/frontend/core`）只负责把发动机装进车壳。
 
-学习 BlockSuite 最容易犯的错误，是一上来就钻进某个块组件的 Lit 渲染代码，被扩展注册、DI 标识符、Signal、Yjs 事件绕晕。正确的顺序是**自底向上**：先看清分层（哪些包是框架、哪些是 AFFiNE 预置块），再吃透数据层 `@blocksuite/store`——所有块最终都是一棵存在 Yjs 里的 **Block 树**，视图只是它的投影；最后（第 17 章）才看 `@blocksuite/std` 如何把数据变成可交互的 DOM。
+学习 BlockSuite 最容易犯的错误，是一上来就钻进某个块组件的 Lit 渲染代码，被扩展注册、DI 标识符、Signal、Yjs 事件绕晕。正确的顺序是**自底向上**：先看清分层（哪些包是框架、哪些是 AFFiNE 预置块），再吃透数据层 `@blocksuite/store`——所有块最终都是一棵存在 Yjs 里的 **Block 树**，视图只是它的投影；最后（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>）才看 `@blocksuite/std` 如何把数据变成可交互的 DOM。
 
 本章覆盖：分层架构与聚合包、`framework/global` 基础设施、Workspace / Doc / Store 三层容器、Block 树存储布局、Schema、BlockModel 响应式、事务与撤销、Transformer / Adapter、Store 侧扩展，以及 `framework/sync` 与 nbstore 的关系。我们会对照 `blocksuite/docs-site/guide` 指出**文档落后于源码之处**——在 BlockSuite 中这很普遍，务必养成"以源码为准"的习惯。
 
@@ -53,9 +53,9 @@ mindmap
 
 ---
 
-## 12.1 BlockSuite 的定位与分层架构
+## 16.1 BlockSuite 的定位与分层架构
 
-### 12.1.1 它是"编辑器框架"，而不是"一个编辑器"
+### 16.1.1 它是"编辑器框架"，而不是"一个编辑器"
 
 `blocksuite/docs-site/guide/overview.md` 开篇即说明：BlockSuite 是**用来构建编辑器与协同应用的工具集**，由一个最小化的 vanilla framework 加一组预置组件组成。它与 AFFiNE 的关系类似 Monaco 与 VS Code，但 BlockSuite 使用 **Web Components（Lit）**，AFFiNE 使用 React，这迫使两者之间必须有清晰的包边界。
 
@@ -65,7 +65,7 @@ mindmap
 | affine（预置层） | AFFiNE 用到的块、小部件（widget）、行内元素、白板元素 | React、路由、账号、云同步 |
 | `packages/frontend/core`（应用层） | 把编辑器嵌入 React 页面，注入主题、AI、云端用户等服务 | 块的内部实现 |
 
-### 12.1.2 目录与子包地图
+### 16.1.2 目录与子包地图
 
 ```text
 blocksuite/
@@ -104,7 +104,7 @@ blocksuite/
 | `foundation` / `ext-loader` | `@blocksuite/affine-foundation` / `@blocksuite/affine-ext-loader` | 基础扩展集合 / 扩展加载器 |
 | `all` | `@blocksuite/affine` | **聚合包**，把上述所有包按子路径重导出 |
 
-### 12.1.3 聚合包 `@blocksuite/affine`
+### 16.1.3 聚合包 `@blocksuite/affine`
 
 应用层几乎只从 `@blocksuite/affine/...` 导入。`blocksuite/affine/all/package.json` 的 `exports` 有 207 个条目，模式规整：
 
@@ -124,7 +124,7 @@ blocksuite/
 
 `blocksuite/affine/all/src/schemas.ts` 把预置块的 Schema 收集成数组 `AffineSchemas`（25 个），供测试、playground 使用。小发现：其中 `SurfaceBlockSchema`、`DataViewBlockSchema` 并不来自 `affine-model`，而是定义在各自块包中（如 `blocksuite/affine/blocks/surface/src/surface-model.ts`），因为它们依赖块内实现。
 
-### 12.1.4 分层架构图
+### 16.1.4 分层架构图
 
 ```mermaid
 flowchart TB
@@ -158,11 +158,11 @@ flowchart TB
 
 ---
 
-## 12.2 framework/global：地基工具箱
+## 16.2 framework/global：地基工具箱
 
 `blocksuite/framework/global/src/` 下有 `di`、`disposable`、`env`、`exceptions`、`gfx`、`lit`、`types`、`utils` 八个目录，与编辑器概念无关，却被上层到处使用。
 
-### 12.2.1 di：轻量依赖注入容器
+### 16.2.1 di：轻量依赖注入容器
 
 | 概念 | 源码 | 作用 |
 | --- | --- | --- |
@@ -170,12 +170,12 @@ flowchart TB
 | `Container` | `.../di/container.ts` | 注册表：`add`（按类）、`addImpl`（为标识符注册类/工厂/值）、`override` |
 | `ServiceProvider` | `.../di/provider.ts` | 解析器：`get`、`getOptional`、`getAll`；支持父 provider 链 |
 
-`createIdentifier` 的实现是 `Object.assign(variant => createIdentifier(name, variant), { identifierName: name, variant })`——一个"可调用的标识符对象"。"变体"是 BlockSuite 最常见的用法：`BlockSchemaIdentifier('affine:paragraph')`、`BlockViewIdentifier('affine:paragraph')` 以 flavour 为变体，`provider.getAll(BlockSchemaIdentifier)` 一次取出全部。`container.provider(scope, parentProvider)` 的第二个参数是父 provider——这正是 Store 与 Std 两级容器能串起来的原因（第 17 章）。
+`createIdentifier` 的实现是 `Object.assign(variant => createIdentifier(name, variant), { identifierName: name, variant })`——一个"可调用的标识符对象"。"变体"是 BlockSuite 最常见的用法：`BlockSchemaIdentifier('affine:paragraph')`、`BlockViewIdentifier('affine:paragraph')` 以 flavour 为变体，`provider.getAll(BlockSchemaIdentifier)` 一次取出全部。`container.provider(scope, parentProvider)` 的第二个参数是父 provider——这正是 Store 与 Std 两级容器能串起来的原因（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>）。
 
-### 12.2.2 disposable、exceptions、gfx、lit 与其它
+### 16.2.2 disposable、exceptions、gfx、lit 与其它
 
 - **disposable**：`DisposableGroup` 接受 `Disposable`、RxJS `Subscription`、`Subject` 或回调，统一 `dispose()`；`addFromEvent()` 封装事件监听。已 dispose 的组再 `add` 会立即释放。所有监听都应放进 `DisposableGroup`，这是 BlockSuite 的强约定。
-- **exceptions**：`blocksuite/framework/global/src/exceptions/code.ts` 定义 `ErrorCode`（`ModelCRUDError`、`SchemaValidateError`、`TransformerError`、`InlineEditorError`、`SelectionError`…），`>= 10000` 为致命错误（`NoRootModelError` 等）。`BlockSuiteError` 自动计算 `isFatal`。枚举中的 `MigrationError` 已无代码使用（见 12.5.5）。
+- **exceptions**：`blocksuite/framework/global/src/exceptions/code.ts` 定义 `ErrorCode`（`ModelCRUDError`、`SchemaValidateError`、`TransformerError`、`InlineEditorError`、`SelectionError`…），`>= 10000` 为致命错误（`NoRootModelError` 等）。`BlockSuiteError` 自动计算 `isFatal`。枚举中的 `MigrationError` 已无代码使用（见 <a href="./16-BlockSuite架构与Store数据层.md#sec-16-5-5">16.5.5</a>）。
 - **gfx**：`Bound`、`Vec`、`PointLocation`、`xywh.ts`（序列化格式 `"[x,y,w,h]"`）、曲线/折线/SVG 路径工具与 vendored 的 `perfect-freehand`（画笔平滑）。纯数学，可在 Worker 中运行。
 - **lit**：`SignalWatcher(Base)` 在 Lit 的 `performUpdate` 中用 `effect` 包裹渲染，**自动收集读取过的 signal**并在变化时 `requestUpdate()`；`WithDisposable(Base)` 提供 `_disposables`；`watch` 装饰器。`EditorHost`、`BlockComponent` 都是 `SignalWatcher(WithDisposable(...))`。
 - **utils / env / types**：`NoopLogger`、`nextTick`、`assertType`；`IS_MAC`、`IS_ANDROID`、`IS_MOBILE` 等；`VirtualKeyboard` 类型补充。
@@ -184,9 +184,9 @@ flowchart TB
 
 ---
 
-## 12.3 Workspace / Doc / Store：三层数据容器
+## 16.3 Workspace / Doc / Store：三层数据容器
 
-### 12.3.1 三者关系
+### 16.3.1 三者关系
 
 在 `@blocksuite/store` 中，**`Workspace` 与 `Doc` 只是接口，`Store` 才是具体类**——这与旧文档的 `DocCollection`、`doc.addBlock` 大不相同。`Workspace` 接口（`blocksuite/framework/store/src/extension/workspace/workspace.ts`）包含 `id`、`meta`、`idGenerator`、`blobSync: BlobEngine`、`onLoadDoc?`、`onLoadAwareness?`、`doc`、`docs` 与 `createDoc/getDoc/removeDoc`；`Doc` 接口如下：
 ```ts
@@ -232,7 +232,7 @@ const storeExtension: ExtensionType = {
 
 两个细节：① `StoreContainer` 在不传 `id` 且不传 `readonly/query` 时会**生成新 id**——AFFiNE 的 `DocImpl.getStore()` 原样透传 `id`，所以不传参调用每次都新建 Store，复用必须传 `id`；而 `TestDoc.getStore()`（`blocksuite/framework/store/src/test/test-doc.ts`）在未传 `id` 时默认使用 `spaceDoc.guid`，因此测试环境中多次调用拿到的是同一个 Store——两种实现行为不同，务必留意；② Store 通过 DI（`DocIdentifier`）拿到 Doc，Store 自身也是"扩展化"的。
 
-### 12.3.2 谁来实现 Workspace 与 Doc
+### 16.3.2 谁来实现 Workspace 与 Doc
 
 | 场景 | Workspace 实现 | Doc 实现 |
 | --- | --- | --- |
@@ -259,7 +259,7 @@ getStore({ readonly, query, provider, extensions, id }: GetStoreOptions = {}) {
 
 `getStoreManager()`（`packages/frontend/core/src/blocksuite/manager/store.ts`）汇总了 `getInternalStoreExtensions()` + `AIStoreExtension` + `FeatureFlagStoreExtension`，因此 AFFiNE 中任何 Store 都认识全部 flavour。`DocImpl` 为每篇文档新建**独立**的 `Y.Doc({ guid: id })` 作为 `spaceDoc`，`clientID` 与 `rootDoc` 相同；为兼容旧版本仍在 `rootDoc.getMap('spaces')` 放一个同 guid 的 subdoc 占位（源码注释"old version compatible code"）。
 
-### 12.3.3 生命周期
+### 16.3.3 生命周期
 
 ```mermaid
 sequenceDiagram
@@ -284,7 +284,7 @@ sequenceDiagram
 
 `Store.load()` 依次执行：（若已 dispose 则重建 `disposableGroup`）→ `this._doc.load(initFn)` → 对所有 `StoreExtensionIdentifier` 调用 `ext.loaded()` → `slots.ready.next()` → `slots.rootAdded.next(root.id)`。`dispose()` 则反向调用 `ext.disposed()` 并 `unobserveDeep`。`Store.slots` 是一组 RxJS `Subject`：`ready`、`rootAdded`、`rootDeleted`、`blockUpdated`（`add`/`delete`/`update` 三种 payload）与内部的 `yBlockUpdated`。视图层对"数据变了"的感知几乎都来自 `blockUpdated` 与 `BlockModel.propsUpdated`。
 
-### 12.3.4 初始化文档的标准姿势
+### 16.3.4 初始化文档的标准姿势
 
 ```ts
 // 来源：blocksuite/playground/apps/starter/data/empty.ts（节选）
@@ -306,9 +306,9 @@ store.resetHistory();
 
 ---
 
-## 12.4 Block 树：在 Y.Map 中的存储布局
+## 16.4 Block 树：在 Y.Map 中的存储布局
 
-### 12.4.1 扁平存储 + id 引用
+### 16.4.1 扁平存储 + id 引用
 
 BlockSuite **不嵌套存储**块树：`doc.yBlocks` 是 `Y.Map<YBlock>`，键为 block id，值为一个 `Y.Map`；父子关系由父块的 `sys:children`（`Y.Array<string>`）引用 id 表达。
 
@@ -326,7 +326,7 @@ yBlocks (Y.Map)
 
 好处：移动块只改两个 `Y.Array`；按 id 查找 O(1)；协同冲突粒度更细。
 
-### 12.4.2 跟踪 `store.addBlock()`
+### 16.4.2 跟踪 `store.addBlock()`
 
 `Store.addBlock` 只做只读检查、生成 id、包事务，再委托 `DocCRUD`：
 
@@ -372,7 +372,7 @@ const parentId = parent ?? (schema.model.role === 'root' ? null : this.root);
 
 写入后，Store 构造时注册的 `observeDeep` 回调捕获顶层 `add` 事件，经 `slots.yBlockUpdated` 进入 `_onBlockAdded`：`new Block(schema, yBlock, store, options)`（由 `SyncController` 解析出 Model）→ 运行 query 设置 `blockViewType` → 更新 `_blocks` signal → `model.created.next()` → 若为 root 则 `slots.rootAdded` → 最后发出 `blockUpdated: { type: 'add' }`。注意：**Block 对象是由 Yjs 事件创建的，而不是由 `addBlock` 直接创建**——远端协作者新增的块走的是完全相同的路径。
 
-### 12.4.3 Query 与 blockViewType
+### 16.4.3 Query 与 blockViewType
 
 `Store` 的 `query` 参数对块树做视图过滤，结果存于 `Block.blockViewType`：`'display' | 'hidden' | 'bypass'`。
 
@@ -386,9 +386,9 @@ const parentId = parent ?? (schema.model.role === 'root' ? null : this.root);
 type QueryMode = 'strict' | 'loose' | 'include';
 ```
 
-`bypass` 表示"自身不渲染但渲染子块"：子块需要显示而祖先被隐藏时，祖先被提升为 `bypass`。`BlockComponent._renderViewType` 按这三个值决定渲染内容（第 17 章）。
+`bypass` 表示"自身不渲染但渲染子块"：子块需要显示而祖先被隐藏时，祖先被提升为 `bypass`。`BlockComponent._renderViewType` 按这三个值决定渲染内容（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>）。
 
-### 12.4.4 常用 CRUD API
+### 16.4.4 常用 CRUD API
 
 | 方法 | 说明 |
 | --- | --- |
@@ -406,9 +406,9 @@ type QueryMode = 'strict' | 'loose' | 'include';
 
 ---
 
-## 12.5 Schema：用 defineBlockSchema 声明块
+## 16.5 Schema：用 defineBlockSchema 声明块
 
-### 12.5.1 结构
+### 16.5.1 结构
 
 `defineBlockSchema`（`blocksuite/framework/store/src/model/block/zod.ts`）把参数重组成 zod 定义的 `BlockSchema` 形状并 `parse` 一次：
 
@@ -423,7 +423,7 @@ type QueryMode = 'strict' | 'loose' | 'include';
 | `toModel` | 返回自定义 Model 实例 |
 | `transformer` | 返回自定义 `BaseBlockTransformer`（快照处理资源等） |
 
-### 12.5.2 真实例子
+### 16.5.2 真实例子
 
 ```ts
 // 来源：blocksuite/affine/model/src/blocks/paragraph/paragraph-model.ts（节选）
@@ -472,7 +472,7 @@ export const NoteBlockSchema = defineBlockSchema({
 
 Note 的 `parent: ['@root']`、`children: ['@content', ...]` 中，**`@` 前缀表示按 role 匹配**：任何 `role: 'content'` 的新块无需改 Note 的 Schema 就能放进 Note。Root（`affine:page`）是 `role: 'root'`、`version: 2`；Callout 是 `role: 'hub'`、`children: ['affine:paragraph', 'affine:list']`。
 
-### 12.5.3 校验算法
+### 16.5.3 校验算法
 
 `Schema`（`blocksuite/framework/store/src/schema/schema.ts`）的 `validate(flavour, parentFlavour?, childFlavours?)`：root 块不能有父、非 root 块必须有父，然后调用 `validateSchema(child, parent)` → `_validateParent`：取 `child.model.parent ?? ['*']` 与 `parent.model.children ?? ['*']` 两两组合，任一组满足即合法。
 
@@ -493,11 +493,11 @@ flowchart TD
 
 `_matchFlavourOrRole` 支持：`@xxx` 与对方 role 比较；普通字符串用 `minimatch` 做 **glob 匹配**（Surface 的 `children` 含 `'affine:embed-*'`）。
 
-### 12.5.4 role 的真实语义
+### 16.5.4 role 的真实语义
 
 `docs-site/guide/block-schema.md` 称 role 只有 `root`/`hub`/`content` 三种，且 hub/content 有隐式嵌套规则。**源码中没有这些硬编码规则**：`RoleType` 是 `'root' | 'content' | string`；`Schema` 只特殊处理 `root`；其余 role 仅在 `@role` 匹配时生效。反例：`packages/frontend/core/src/blocksuite/ai/blocks/transcription-block/model.ts` 使用了自定义 `role: 'attachment-viewer'`。
 
-### 12.5.5 version：只校验，不迁移
+### 16.5.5 version：只校验，不迁移
 
 `version` 在 `addBlock` 时写入 `sys:version`。渲染时 `BlockComponent.isVersionMismatch`（`blocksuite/framework/std/src/view/element/block-component.ts`）比较 Schema 与数据版本，不一致则渲染 "Block Version Mismatched" 警告而非内容。在 `framework`、`affine` 目录搜索 `migrat`/`upgrade`，**没有任何 Schema 迁移实现**（早期 BlockSuite 的迁移钩子已移除）。因此：
 
@@ -505,7 +505,7 @@ flowchart TD
 - AFFiNE 实践是"兼容式演进"：新增可选属性（`textAlign?`、`comments?`）、读取时容错，而非升版本；
 - 版本 > 1 的只有 `affine:page`(2)、`affine:database`(3)、`affine:surface`(5)，均为历史遗留。
 
-### 12.5.6 注册方式：BlockSchemaExtension
+### 16.5.6 注册方式：BlockSchemaExtension
 
 ```ts
 // 来源：blocksuite/framework/store/src/extension/schema.ts
@@ -526,9 +526,9 @@ Store 构造时执行 `this._provider.getAll(BlockSchemaIdentifier).forEach(sche
 
 ---
 
-## 12.6 BlockModel 与响应式：props 如何落到 Y.Map
+## 16.6 BlockModel 与响应式：props 如何落到 Y.Map
 
-### 12.6.1 Block、BlockModel、SyncController
+### 16.6.1 Block、BlockModel、SyncController
 
 ```ts
 // 来源：blocksuite/framework/store/src/model/block/block.ts（节选）
@@ -555,7 +555,7 @@ export class Block {
 
 `BlockModel._children` 是 signal，`created` 时从 `sys:children` 初始化并 observe；`children` 通过 `computed` 映射为 `store.getBlock$(id).model`，所以 **`model.children` 也是响应式的**。
 
-### 12.6.2 props 的双形态：值与 signal
+### 16.6.2 props 的双形态：值与 signal
 
 `SyncController._createModel` 为每个 prop 同时生成"值"与"`$` signal"：
 
@@ -583,7 +583,7 @@ const signalWithProps = Object.entries(props).reduce((acc, [key, value]) => {
 
 `BlockModel` 用映射类型 `SignaledProps<Props>` 声明了 `` `${P}$` `` 形式的 signal 属性。
 
-### 12.6.3 写路径与读路径
+### 16.6.3 写路径与读路径
 
 Proxy 的 `set` 拦截器（节选）：
 
@@ -625,7 +625,7 @@ flowchart LR
   W4 --> V2[SignalWatcher 重渲染]
 ```
 
-### 12.6.4 复杂属性：Text、Boxed、嵌套对象与 Flat Data
+### 16.6.4 复杂属性：Text、Boxed、嵌套对象与 Flat Data
 
 | 类型 | 存储 | 说明 |
 | --- | --- | --- |
@@ -638,7 +638,7 @@ flowchart LR
 
 `isFlatData: true` 的块（目前只有 `affine:table`）使用 `FlatSyncController` + `ReactiveFlatYMap`（`reactive/flat-native-y/`）：嵌套对象**展开为点路径扁平键**，如 `prop:cells.row1:col1.text`（见 `DocCRUD.addBlock` 中的 `run(obj, basePath)` 递归）。表格这类"大量小对象"结构协同冲突更细、观察更高效。
 
-### 12.6.5 stash / pop
+### 16.6.5 stash / pop
 
 `model.stash('xywh')` 把属性从 Yjs"摘出来"成纯本地值，此后修改只触发 `onChange` 不写 Yjs；`model.pop('xywh')` 再一次性写回。白板拖拽时避免每帧写 Yjs、产生海量更新与撤销项。
 
@@ -646,9 +646,9 @@ flowchart LR
 
 ---
 
-## 12.7 事务与历史
+## 16.7 事务与历史
 
-### 12.7.1 transact 与 origin
+### 16.7.1 transact 与 origin
 
 ```ts
 // 来源：blocksuite/framework/store/src/model/store/store.ts（节选）
@@ -693,11 +693,11 @@ constructor(store: Store) {
 | 事务外直接 `model.props.x = v` | `null`（Yjs 默认） | 否 |
 | 远端协作者更新 | 对方 origin | 否 |
 
-### 12.7.2 captureSync：切分撤销单元
+### 16.7.2 captureSync：切分撤销单元
 
 `Y.UndoManager` 默认把 500ms（`captureTimeout`）内的变更合并为一项。`store.captureSync()` 调用 `undoManager.stopCapturing()`，强制开启新项。源码注释示例：`op1(); op2(); store.captureSync(); op3();` 之后第一次 `undo` 撤销 op3，第二次撤销 op1、op2。`blocksuite/affine/blocks/paragraph/src/commands/split-paragraph.ts` 在拆分段落前调用 `store.captureSync()`，保证"回车拆分"是独立的撤销步骤。
 
-### 12.7.3 撤销时恢复选择
+### 16.7.3 撤销时恢复选择
 
 `StoreSelectionExtension`（`blocksuite/framework/store/src/extension/selection/selection-extension.ts`）在 `loaded()` 中订阅 UndoManager 的 `stack-item-added`（把当前选择存入 `stackItem.meta` 的 `selection-state`）和 `stack-item-popped`（恢复选择）。撤销后光标能回到原处，且这发生在 **store 层**，与视图无关。
 
@@ -705,9 +705,9 @@ constructor(store: Store) {
 
 ---
 
-## 12.8 Transformer：Snapshot、中间件与 Adapter
+## 16.8 Transformer：Snapshot、中间件与 Adapter
 
-### 12.8.1 Snapshot
+### 16.8.1 Snapshot
 
 Yjs 二进制适合同步，却不适合复制粘贴、导入导出、模板与测试断言。BlockSuite 定义了 JSON 快照（`blocksuite/framework/store/src/transformer/type.ts`）：
 
@@ -724,7 +724,7 @@ export type DocSnapshot = { type: 'page'; meta: DocMeta; blocks: BlockSnapshot }
 
 快照是**嵌套树**（与 Yjs 扁平存储相反）。`transformer/json.ts` 中 `toJSON` 把 `Text` 序列化为 `{ "$blocksuite:internal:text$": true, delta }`，`Boxed` 序列化为 `{ "$blocksuite:internal:native$": true, value }`，`fromJSON` 反向还原。
 
-### 12.8.2 Transformer 类
+### 16.8.2 Transformer 类
 
 `Transformer`（`blocksuite/framework/store/src/transformer/transformer.ts`）提供 `blockToSnapshot`/`snapshotToBlock`、`docToSnapshot`/`snapshotToDoc`、`sliceToSnapshot`/`snapshotToSlice`。最便捷的获取方式是 `store.getTransformer(middlewares)`：它用 Store 的 `schema`、`workspace.blobSync` 作为 `blobCRUD`，并用 `workspace.createDoc(id).getStore({ id })` 等组装 `docCRUD`。
 
@@ -748,7 +748,7 @@ private _blockToSnapshot(model: DraftModel): BlockSnapshot | null {
 
 `DraftModel`（`model/block/draft.ts`）是 `BlockModel` 的纯数据拷贝（`toDraftModel`），避免遍历中受实时变更影响。导入时按 `BATCH_SIZE = 100` 分批插入。
 
-### 12.8.3 块级 Transformer：图片资源
+### 16.8.3 块级 Transformer：图片资源
 
 ```ts
 // 来源：blocksuite/affine/model/src/blocks/image/image-transformer.ts（节选）
@@ -774,7 +774,7 @@ export class ImageBlockTransformer extends BaseBlockTransformer<ImageBlockProps>
 
 它通过 Schema 的 `transformer: transformerConfigs => new ImageBlockTransformer(transformerConfigs)` 挂载；`AssetsManager`（`transformer/assets.ts`）负责 blob 与快照资源之间的搬运。
 
-### 12.8.4 中间件
+### 16.8.4 中间件
 
 中间件接收 `{ slots, docCRUD, assetsManager, adapterConfigs, transformerConfigs }`，可订阅 `beforeImport/afterImport/beforeExport/afterExport`，并可返回清理函数。最简单的真实例子：
 
@@ -794,9 +794,9 @@ export const titleMiddleware =
   };
 ```
 
-同目录还有 `replace-id.ts`、`paste.ts`、`upload.ts`、`doc-link.ts`、`surface-ref-to-embed.ts` 等，剪贴板（第 17 章）大量使用。
+同目录还有 `replace-id.ts`、`paste.ts`、`upload.ts`、`doc-link.ts`、`surface-ref-to-embed.ts` 等，剪贴板（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>）大量使用。
 
-### 12.8.5 Adapter 基类
+### 16.8.5 Adapter 基类
 
 `BaseAdapter<AdapterTarget>`（`blocksuite/framework/store/src/adapter/base.ts`）站在 Transformer 之上，定义 6 个抽象方法（`fromDocSnapshot/fromBlockSnapshot/fromSliceSnapshot/toDocSnapshot/toBlockSnapshot/toSliceSnapshot`）与组合便捷方法（`fromDoc`、`toDoc`、`fromSlice`…）。同文件的 `ASTWalker` 与 `adapter/context.ts` 的 `ASTWalkerContext` 提供"遍历源 AST 同时 `openNode/closeNode` 构造目标 AST"的机制。具体 Markdown/HTML/Notion HTML/纯文本适配器在 `blocksuite/affine/shared/src/adapters/`，每个块通过 `BlockMarkdownAdapterExtension` 等注册 matcher（第 18、19 章）。
 
@@ -814,9 +814,9 @@ flowchart LR
 
 ---
 
-## 12.9 Store 侧扩展体系
+## 16.9 Store 侧扩展体系
 
-### 12.9.1 Extension 与 StoreExtension
+### 16.9.1 Extension 与 StoreExtension
 
 `blocksuite/framework/store/src/extension/extension.ts` 只定义了两样东西：抽象类 `Extension`（静态 `setup(_di)` 空实现）与接口 `ExtensionType { setup(di: Container): void }`。任何拥有 `setup(di)` 的对象或带静态 `setup` 的类都是扩展。该文件顶部有一段很长的"水果加工系统"注释，讲解了"接口 → 标识符 → 实现 → 工厂产出扩展 → 容器 setup → provider 按变体取用"的模式，强烈建议通读。
 
@@ -848,7 +848,7 @@ export class StoreExtension extends Extension {
 | `StoreExtension` 子类 | 各处 | 带生命周期的 Store 服务 |
 | `BlockMarkdownAdapterExtension(matcher)` 等 | `blocksuite/affine/shared/src/adapters/*/block-adapter.ts` | 块的 Adapter 规则 |
 
-### 12.9.2 StoreExtensionProvider：按块打包
+### 16.9.2 StoreExtensionProvider：按块打包
 
 ```ts
 // 来源：blocksuite/affine/blocks/divider/src/store.ts
@@ -863,15 +863,15 @@ export class DividerStoreExtension extends StoreExtensionProvider {
 }
 ```
 
-`getInternalStoreExtensions()`（`blocksuite/affine/all/src/extensions/store.ts`）返回所有内置 Provider，首个是 `FoundationStoreExtension`（`blocksuite/affine/foundation/src/store.ts`，注册预置选择类型、Adapter 工厂、`FeatureFlagService` 等）。`StoreExtensionManager.get('store')` 实例化 Provider、调用 `setup`、收集所有 `register` 的扩展，得到 `ExtensionType[]`。完整机制（含 `ViewExtensionProvider`）见第 17 章 13.10 节。
+`getInternalStoreExtensions()`（`blocksuite/affine/all/src/extensions/store.ts`）返回所有内置 Provider，首个是 `FoundationStoreExtension`（`blocksuite/affine/foundation/src/store.ts`，注册预置选择类型、Adapter 工厂、`FeatureFlagService` 等）。`StoreExtensionManager.get('store')` 实例化 Provider、调用 `setup`、收集所有 `register` 的扩展，得到 `ExtensionType[]`。完整机制（含 `ViewExtensionProvider`）见<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a> <a href="./17-BlockSuite-Std视图扩展命令事件.md#sec-17-10">17.10 节</a>。
 
 **小结**：Store 层的可插拔能力全部是 `ExtensionType`；预置层用 `StoreExtensionProvider` 按块打包、由 Manager 汇总。
 
 ---
 
-## 12.10 framework/sync 与 nbstore 的关系
+## 16.10 framework/sync 与 nbstore 的关系
 
-### 12.10.1 三类 Source
+### 16.10.1 三类 Source
 
 ```ts
 // 来源：blocksuite/framework/sync/src/doc/source.ts（节选）
@@ -894,9 +894,9 @@ export interface DocSource {
 | 资源 | `BlobSource`（get/set/delete/list，可选 `blobState$`、`upload`） | `BlobEngine` | `MemoryBlobSource`、`IndexedDBBlobSource` |
 | 在线状态 | `AwarenessSource`（connect/disconnect） | `AwarenessEngine` | `BroadcastChannelAwarenessSource` |
 
-`pull(docId, stateVector)` 返回差量、`push` 推送本地更新、`subscribe` 监听远端——正是第 12 章状态向量同步协议的抽象。
+`pull(docId, stateVector)` 返回差量、`push` 推送本地更新、`subscribe` 监听远端——正是<a href="../03-编程语言与基础技术/12-CRDT与Yjs原理.md#ch-12">第 12 章</a>状态向量同步协议的抽象。
 
-### 12.10.2 在 AFFiNE 中谁在用
+### 16.10.2 在 AFFiNE 中谁在用
 
 - **`TestWorkspace`**（playground、单测）完整使用三类 Engine：`blocksuite/playground/apps/starter/utils/collection.ts` 用 `BroadcastChannelDocSource` 让同浏览器多标签页协同，用 `MemoryBlobSource`/`IndexedDBBlobSource` 存图片。
 - **AFFiNE 的 `WorkspaceImpl`** 只用 `BlobEngine`（接口要求 `blobSync: BlobEngine`），传入的 `blobSource` 是转发到 nbstore 的薄包装；文档与 Awareness 同步完全交给 nbstore：
@@ -939,11 +939,11 @@ flowchart LR
   BE --> H3 --> N
 ```
 
-**小结**：`@blocksuite/sync` 是 BlockSuite 独立使用时的参考同步实现；AFFiNE 中 Workspace/Doc 通过 `onLoadDoc` 等钩子把 Y.Doc 交给 nbstore（第 23 章）。这正是框架把 `Workspace`/`Doc` 设计成接口的原因。
+**小结**：`@blocksuite/sync` 是 BlockSuite 独立使用时的参考同步实现；AFFiNE 中 Workspace/Doc 通过 `onLoadDoc` 等钩子把 Y.Doc 交给 nbstore（<a href="../06-前端应用/23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>）。这正是框架把 `Workspace`/`Doc` 设计成接口的原因。
 
 ---
 
-## 12.11 核心类关系总览
+## 16.11 核心类关系总览
 
 ```mermaid
 classDiagram
@@ -994,11 +994,11 @@ classDiagram
   BaseAdapter --> Transformer
 ```
 
-左侧是"宿主可替换"的接口层（Workspace/Doc），右侧是"框架固定"的实现层；Store 是**聚合根**，Schema、CRUD、Block 集合、扩展容器都挂在它身上；视图层的 `BlockStdScope` 再以 Store 的 provider 为父级（第 17 章）。
+左侧是"宿主可替换"的接口层（Workspace/Doc），右侧是"框架固定"的实现层；Store 是**聚合根**，Schema、CRUD、Block 集合、扩展容器都挂在它身上；视图层的 `BlockStdScope` 再以 Store 的 provider 为父级（<a href="./17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>）。
 
 ---
 
-## 12.12 官方文档与源码差异对照及本章总结
+## 16.12 官方文档与源码差异对照及本章总结
 
 | 文档页面 | 文档写法 | 当前源码 |
 | --- | --- | --- |
@@ -1055,7 +1055,7 @@ API 虽变，`docs-site/blog/crdt-native-data-flow.md` 阐述的**设计哲学�
   1. 阅读 `blocksuite/framework/store/src/__tests__/block.unit.spec.ts` 中的 `createTestDoc()`；
   2. 本地临时新建测试文件（**不要提交**），仿照其写法定义 `role: 'root'` 的 `page` 与 `role: 'content'`、带 `title: ''` 默认 prop 的 `note`，`addBlock('page')` 后 `addBlock('note', { title: 'x' })`；
   3. 打印 `store.doc.yBlocks.toJSON()`；对 note 的 `model.props.title$` 建立 `effect`，再修改 `model.props.title`；
-  4. 在仓库根执行 `yarn vitest run <测试文件路径>`（环境见第 15 章）。
+  4. 在仓库根执行 `yarn vitest run <测试文件路径>`（环境见<a href="../04-工程化与开发环境/15-本地开发环境搭建与调试.md#ch-15">第 15 章</a>）。
 - **验收标准**：输出含 `sys:flavour`、`sys:children`、`prop:title`；effect 被触发；把 note 的 `metadata.parent` 改为 `['not-exist']` 后，`store.schema.validate('note', 'page')` 抛出 `SchemaValidateError`，而 `addBlock` 只在控制台打印错误、返回的 id 在 `store.getBlock(id)` 中不存在（异常被 `transact` 捕获）。
 
 ### 练习 3：验证撤销单元切分（进阶）
@@ -1126,11 +1126,11 @@ API 虽变，`docs-site/blog/crdt-native-data-flow.md` 阐述的**设计哲学�
 ## 延伸阅读
 
 - `blocksuite/docs-site/blog/crdt-native-data-flow.md`、`document-centric.md`：设计理念（仍适用）
-- `blocksuite/docs-site/guide/store.md`、`block-schema.md`、`working-with-block-tree.md`、`data-synchronization.md`：对照 12.12 节练习识别过时 API
+- `blocksuite/docs-site/guide/store.md`、`block-schema.md`、`working-with-block-tree.md`、`data-synchronization.md`：对照 <a href="./16-BlockSuite架构与Store数据层.md#sec-16-12">16.12 节</a>练习识别过时 API
 - `blocksuite/framework/store/src/extension/extension.ts` 顶部注释：扩展模式官方讲解
 - `blocksuite/framework/store/src/__tests__/`：`block.unit.spec.ts`、`schema.unit.spec.ts`、`transformer.unit.spec.ts` 是"可运行的文档"
 - Yjs 文档中 `Y.UndoManager`、`trackedOrigins`、`captureTimeout` 部分
-- 本书第 12 章（CRDT 与 Yjs）、第 20 章（应用层 DI，可对比）、第 23 章（nbstore）
+- 本书<a href="../03-编程语言与基础技术/12-CRDT与Yjs原理.md#ch-12">第 12 章</a>（CRDT 与 Yjs）、<a href="../06-前端应用/20-前端基础设施-DI与LiveData.md#ch-20">第 20 章</a>（应用层 DI，可对比）、<a href="../06-前端应用/23-存储与同步引擎nbstore.md#ch-23">第 23 章</a>（nbstore）
 
 ---
 
@@ -1150,4 +1150,4 @@ API 虽变，`docs-site/blog/crdt-native-data-flow.md` 阐述的**设计哲学�
 
 ---
 
-上一章：[第 15 章 本地开发环境搭建与调试](../04-工程化与开发环境/15-本地开发环境搭建与调试.md) ｜ 下一章：[第 17 章 BlockSuite Std：视图、扩展、命令、事件](./17-BlockSuite-Std视图扩展命令事件.md) ｜ [返回目录](../README.md)
+上一章：[第 15 章 本地开发环境搭建与调试](../04-工程化与开发环境/15-本地开发环境搭建与调试.md) ｜ 下一章：[第 17 章 BlockSuite Std：视图、扩展、命令、事件](17-BlockSuite-Std视图扩展命令事件.md) ｜ [返回目录](../README.md)

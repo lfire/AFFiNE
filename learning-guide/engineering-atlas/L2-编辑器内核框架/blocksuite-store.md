@@ -194,4 +194,4 @@ type SignaledProps<Props> = Props & {
 
 - 同层：`@blocksuite/sync`（提供 `BlobEngine` 等同步能力，被 `Workspace` 引用）、`@blocksuite/std`（视图层，消费 `Store`/`BlockModel`）、`@blocksuite/global`（DI、异常、Signal 桥）。
 - 上层：`@blocksuite/affine-model` 用 `defineBlockSchema` 定义具体块；`@blocksuite/affine-shared` 的 transformer 中间件做格式转换。
-- 对应教程：learning-guide 第 16 章《BlockSuite 架构与 Store 数据层》。
+- 对应教程：learning-guide <a href="../../05-编辑器内核BlockSuite/16-BlockSuite架构与Store数据层.md#ch-16">第 16 章</a>《BlockSuite 架构与 Store 数据层》。

@@ -230,4 +230,4 @@ gfx 复用了文档侧同一套 DI/事件/选择机制，只是模型从"块树"
 
 - 同层：`@blocksuite/store`（数据与选区状态来源）、`@blocksuite/global`（DI、异常、Lit×Signal Mixin、gfx 几何）、`@blocksuite/sync`（经 store 间接使用）。
 - 上层：`@blocksuite/affine-block-*`（用 `BlockViewExtension` + `BlockComponent` 实现具体块）、`affine-widget-*`、编辑器 presets。
-- 对应教程：learning-guide 第 17 章《BlockSuite-Std：视图、扩展、命令、事件》。
+- 对应教程：learning-guide <a href="../../05-编辑器内核BlockSuite/17-BlockSuite-Std视图扩展命令事件.md#ch-17">第 17 章</a>《BlockSuite-Std：视图、扩展、命令、事件》。
